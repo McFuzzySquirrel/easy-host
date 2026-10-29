@@ -15,11 +15,11 @@ describe("CLI entry", () => {
     expect(readPackageVersion()).toBe(packageManifest.version);
   });
 
-  it("prints the package version to stdout and exits 0", () => {
+  it("runs the version command through the program and exits 0", () => {
     const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
 
     try {
-      expect(main()).toBe(0);
+      expect(main(["version"])).toBe(0);
       expect(write).toHaveBeenCalledTimes(1);
       expect(write).toHaveBeenCalledWith(`${packageManifest.version}\n`);
     } finally {

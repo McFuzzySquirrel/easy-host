@@ -3,7 +3,7 @@
 ## Current State
 **Phase**: PREREQUISITES-AND-DOCTOR-1
 **Status**: In Progress
-**Last Updated**: 2026-10-29T23:04:23.474Z
+**Last Updated**: 2026-10-29T23:08:20.200Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -15,6 +15,8 @@
   - Files: src/platform/paths.ts, tests/unit/paths.test.ts
 - [x] Phase PREREQUISITES-AND-DOCTOR-1, Task PRE-1.3: Define the error taxonomy and exit codes (@cli-engineer)
   - Files: src/cli/errors.ts, tests/unit/errors.test.ts, src/cli/index.ts
+- [x] Phase PREREQUISITES-AND-DOCTOR-1, Task PRE-1.4: Register the ten-command CLI surface (@cli-engineer)
+  - Files: src/cli/program.ts, tests/unit/program.test.ts, src/cli/index.ts, tests/unit/cli-entry.test.ts, src/cli/commands/not-implemented.ts
 
 ## Current Task
 - None currently running

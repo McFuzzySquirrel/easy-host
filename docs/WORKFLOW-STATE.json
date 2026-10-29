@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-29T23:04:23.473Z",
+  "lastUpdatedAt": "2026-10-29T23:08:20.199Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -141,10 +141,49 @@
     },
     "PRE-1.4": {
       "taskId": "PRE-1.4",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "cli-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 1,
+      "outputFiles": [
+        "src/cli/program.ts",
+        "tests/unit/program.test.ts",
+        "src/cli/index.ts",
+        "tests/unit/cli-entry.test.ts",
+        "src/cli/commands/not-implemented.ts"
+      ],
+      "startedAt": "2026-10-29T23:04:23.648Z",
+      "usage": {
+        "inputTokens": 46691,
+        "outputTokens": 14340,
+        "reasoningTokens": 18700,
+        "cacheReadTokens": 2358656,
+        "cacheWriteTokens": 0,
+        "costUsd": 0.033903617999999996,
+        "source": "harness"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/PRE-1.4.2026-10-29T23-08-20-195Z.attempt-1.result.json",
+          "usage": {
+            "inputTokens": 46691,
+            "outputTokens": 14340,
+            "reasoningTokens": 18700,
+            "cacheReadTokens": 2358656,
+            "cacheWriteTokens": 0,
+            "costUsd": 0.033903617999999996,
+            "source": "harness"
+          }
+        }
+      ],
+      "completedAt": "2026-10-29T23:08:20.197Z",
+      "agentOutput": "I'll start by reading the execution file.\nI'll explore the current state of the repository before implementing.\nNow I have the full picture. Let me implement the command registration.\n## Result report — PRE-1.4: Register the ten-command CLI surface\n\n### What was implemented\n\n- Added the commander program with exactly the ten PRD commands: `add`, `list`, `status`, `logs`, `update`, `rollback`, `remove`, `config`, `doctor`, `version`.\n- Declared the documented flags for every command, including the global `--json` flag, plus `-f/--follow` and `--tail <n>` for `logs`.\n- Wired lifecycle/read commands and `doctor` to a shared not-implemented handler that throws a usage error (exit 1).\n- Implemented `version`, printing the package version and exiting 0.\n- Added `version --json` with a single `schemaVersion: 1` document.\n- Routed CLI parsing through `runCli`, mapping commander failures (unknown command, missing argument, unknown option, excess arguments) into the shared error taxonomy and exit code 1.\n- Suppressed commander's built-in `help` command so help lists exactly ten commands.\n- No-argument invocation prints help and exits 0.\n\n### Files created\n\n- `src/cli/program.ts`\n- `src/cli/commands/not-implemented.ts`\n- `tests/unit/program.test.ts`\n\n### Files changed\n\n- `src/cli/index.ts` — entry now delegates to `runCli`; `readPackageVersion` moved to `program.ts` and re-exported.\n- `tests/unit/cli-entry.test.ts` — updated the entry test to invoke `main([\"version\"])`.\n\n### Requirements satisfied\n\n- **PRE-FR-06** — exactly ten subcommands; working root and per-command help; global `--json` accepted by `doctor` and `version`; non-zero exits for unknown commands and missing required arguments.\n- **PRD-C-01** — CLI-only surface; no start/stop/restart/prune/completion/daemon commands registered.\n- **PRE-FR-05** — reuses the established exit-code and error-rendering contract; no exit-code changes.\n\n### Validation commands and results\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0 (`Checked 14 files`) |\n| `npm test -- tests/unit/program.test.ts` | exit 0, 19 tests passed |\n| `npm test -- tests/unit/program.test.ts tests/unit/cli-entry.test.ts` | exit 0, 22 tests passed |\n| `npm test` | exit 0, 72 tests passed across 4 files |\n| `npm run build` | exit 0 |\n| `node dist/cli/index.js --help` | exit 0; lists exactly ten commands |\n| `node dist/cli/index.js version` | prints `0.1.0`, exit 0 |\n| `node dist/cli/index.js version --json` | exit 0; emits one `schemaVersion: 1` document |\n| `node dist/cli/index.js doctor --json` | exit 1; accepted `--json`, emitted JSON error envelope |\n| `node dist/cli/index.js bogus` | exit 1; `unknown command` |\n| `node dist/cli/index.js logs` | exit 1; `missing required argument 'app'` |\n\n### Contract changes to announce\n\n- **Exit codes:** unchanged from the documented table. Unknown commands, missing arguments, unknown options, and excess arguments all exit **1**.\n- **New JSON field set:** `version --json` emits `{\"schemaVersion\":1,\"name\":\"easy-host\",\"version\":\"<semver>\"}`. Additive changes only under `schemaVersion: 1`; the eventual OBS-1.1 serializer may extend it.\n- **Global flag:** `--json` is accepted before or after any subcommand; it also appears in the help of `list`, `status`, `config`, `doctor`, and `version`.\n- **Placeholder error code:** unimplemented commands emit code `NOT_IMPLEMENTED` with exit 1.\n- **No config-key or file-mode changes.**\n\n### Assumptions applied\n\n- `add` declares `[git-url]` as an optional positional because `--local <path>` is the documented alternative; mutual exclusion belongs to the lifecycle implementation.\n- Invoking `easy-host` with no arguments prints help and exits 0.\n- `doctor` remains a registered placeholder in this task because PRE-1.5 owns its implementation; it already accepts `--json` and returns the JSON error envelope.\n\n```forge-result\n{\"summary\":\"Registered exactly the ten documented commands with their flags and global --json, wired placeholders to a usage-error handler, implemented version and version --json, and verified typecheck, lint, focused and full tests, build, and runtime behavior.\",\"unresolved\":[],\"decisions\":[\"Moved readPackageVersion into src/cli/program.ts and re-exported it from src/cli/index.ts so the version command and entry share one implementation without a circular import.\",\"Suppressed commander's built-in help command so help lists exactly ten commands.\",\"Mapped commander parse failures into UsageError/exit 1 so unknown commands, missing arguments, and unknown flags share the existing error renderer.\"],\"interfaces\":[\"COMMAND_NAMES, CommandName, PROGRAM_NAME\",\"createProgram(options): Command\",\"runCli(argv, options): ExitCode\",\"readPackageVersion(): string\",\"VersionDocument { schemaVersion: 1; name: string; version: string }\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/program.test.ts: exit 0 (19 passed)\",\"npm test -- tests/unit/program.test.ts tests/unit/cli-entry.test.ts: exit 0 (22 passed)\",\"npm test: exit 0 (72 passed)\",\"npm run build: exit 0\",\"manual node dist/cli/index.js --help, version, version --json, doctor --json, bogus, logs: expected outputs and exit codes observed\"],\"warnings\":[\"version --json introduces the field set {schemaVersion, name, version}; OBS-1.1 may extend it additively, and docs must reflect it.\",\"The entry's previous no-argument version print is replaced by help output; tests/unit/cli-entry.test.ts now invokes main([\\\"version\\\"]).\"]}\n```\n",
+      "artifactId": "work-pre-1-4-001",
+      "inputArtifactIds": [
+        "work-pre-1-1-001",
+        "work-pre-1-3-001"
+      ]
     },
     "PRE-1.5": {
       "taskId": "PRE-1.5",

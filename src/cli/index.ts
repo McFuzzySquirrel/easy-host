@@ -1,37 +1,20 @@
 #!/usr/bin/env node
 
-import { readFileSync, realpathSync } from "node:fs";
+import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { runWithErrorHandling } from "./errors.js";
+import { readPackageVersion, runCli } from "./program.js";
 
-interface PackageManifest {
-  version?: unknown;
-}
-
-const PACKAGE_MANIFEST_URL = new URL("../../package.json", import.meta.url);
+export { readPackageVersion };
 
 /**
- * Reads the version from the package manifest next to the built entry.
- * The same relative path works from `src/cli/` and `dist/cli/`.
+ * Runs one CLI invocation from the user-supplied arguments and returns the
+ * documented exit code. Argument parsing, command dispatch, and error rendering
+ * live in `program.ts`; this entry point only guards against bugs outside that
+ * boundary.
  */
-export function readPackageVersion(): string {
-  const manifest = JSON.parse(readFileSync(PACKAGE_MANIFEST_URL, "utf8")) as PackageManifest;
-  const { version } = manifest;
-
-  if (typeof version !== "string" || version.length === 0) {
-    throw new Error("package.json does not declare a version");
-  }
-
-  return version;
-}
-
-/**
- * Writes the package version to stdout. The scaffold has no subcommands yet;
- * `PRE-1.4` replaces this entry point with the ten-command program.
- */
-export function main(): number {
-  process.stdout.write(`${readPackageVersion()}\n`);
-  return 0;
+export function main(argv: readonly string[] = process.argv.slice(2)): number {
+  return runCli(argv);
 }
 
 function isDirectExecution(): boolean {
