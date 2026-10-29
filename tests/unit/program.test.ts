@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { DoctorCommandOptions } from "../../src/cli/commands/doctor.js";
 import {
   COMMAND_NAMES,
   type CommandName,
@@ -53,7 +54,6 @@ const PLACEHOLDER_COMMANDS: readonly CommandName[] = [
   "rollback",
   "remove",
   "config",
-  "doctor",
 ];
 
 class RecordingStream {
@@ -78,7 +78,14 @@ function createCli(options: ProgramOptions = {}) {
     stdout,
     stderr,
     run(argv: readonly string[]): number {
-      return runCli(argv, { ...options, stdout, stderr, env });
+      return runCli(argv, {
+        ...options,
+        stdout,
+        stderr,
+        env,
+        // Doctor probes the real host by default; unit tests inject a stub.
+        runDoctor: options.runDoctor ?? (() => 0),
+      });
     },
   };
 }
@@ -163,10 +170,25 @@ describe("command registration", () => {
         ? [name, "api", "--json"]
         : [name, "--json"];
 
-      // `version` succeeds and emits JSON; the rest are placeholders that must
-      // fail with the JSON error envelope, not an unknown-option usage error.
-      expect(run(argv), name).toBe(name === "version" ? 0 : 1);
+      // `version` and `doctor` succeed and emit JSON; the rest are placeholders
+      // that must fail with the JSON error envelope, not an unknown-option error.
+      const expected = name === "version" || name === "doctor" ? 0 : 1;
+      expect(run(argv), name).toBe(expected);
     }
+  });
+
+  it("forwards --json and the doctor exit code through the program", () => {
+    const calls: DoctorCommandOptions[] = [];
+    const { run } = createCli({
+      runDoctor: (options) => {
+        calls.push(options);
+        return 2;
+      },
+    });
+
+    expect(run(["doctor", "--json"])).toBe(2);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.json).toBe(true);
   });
 });
 
@@ -280,7 +302,7 @@ describe("placeholder handlers", () => {
   it("accepts --json on a placeholder and reports the error as JSON", () => {
     const { run, stdout, stderr } = createCli();
 
-    expect(run(["doctor", "--json"])).toBe(1);
+    expect(run(["config", "api", "--json"])).toBe(1);
     expect(stderr.text).toBe("");
 
     const document = JSON.parse(stdout.text) as {

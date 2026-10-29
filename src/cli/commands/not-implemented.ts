@@ -7,7 +7,7 @@ import { UsageError } from "../errors.js";
  * commands that do work in this build.
  */
 export const NOT_IMPLEMENTED_REMEDIATION =
-  "Only the version command is implemented in this build. Run easy-host --help to list the available commands.";
+  "Only the version and doctor commands are implemented in this build. Run easy-host --help to list the available commands.";
 
 /**
  * Builds a commander action that fails with a usage error (exit code 1) instead

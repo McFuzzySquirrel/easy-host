@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-29T23:08:20.199Z",
+  "lastUpdatedAt": "2026-10-29T23:13:46.620Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -187,10 +187,52 @@
     },
     "PRE-1.5": {
       "taskId": "PRE-1.5",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "cli-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 1,
+      "outputFiles": [
+        "src/doctor/checks.ts",
+        "src/doctor/index.ts",
+        "src/cli/commands/doctor.ts",
+        "tests/unit/doctor.test.ts",
+        "src/cli/commands/not-implemented.ts",
+        "src/cli/program.ts",
+        "tests/unit/program.test.ts"
+      ],
+      "startedAt": "2026-10-29T23:08:20.411Z",
+      "usage": {
+        "inputTokens": 63216,
+        "outputTokens": 22583,
+        "reasoningTokens": 26148,
+        "cacheReadTokens": 4988032,
+        "cacheWriteTokens": 0,
+        "costUsd": 0.05368509599999999,
+        "source": "harness"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/PRE-1.5.2026-10-29T23-13-46-616Z.attempt-1.result.json",
+          "usage": {
+            "inputTokens": 63216,
+            "outputTokens": 22583,
+            "reasoningTokens": 26148,
+            "cacheReadTokens": 4988032,
+            "cacheWriteTokens": 0,
+            "costUsd": 0.05368509599999999,
+            "source": "harness"
+          }
+        }
+      ],
+      "completedAt": "2026-10-29T23:13:46.618Z",
+      "agentOutput": "I'll start by reading the execution file to understand the task scope.\nNow I have the full picture. Let me implement the doctor modules.\nImplemented and verified `doctor` host checks. Summary of the work:\n\n## Requirements satisfied\n- **PRE-FR-02** — Podman presence, version parsing, supported range `>= 5.7.0, < 6.0.0`, rootless-mode check, exit 2 with found/required versions and distro-specific upgrade/downgrade guidance.\n- **PRE-FR-03** — `loginctl show-user <user> -p Linger`; disabled lingering fails and explains the `--restart=always` reboot consequence with `loginctl enable-linger` remediation.\n- **PRE-FR-04** — git on PATH at 2.40+; failures name the found version.\n- **PRE-FR-07** — stable ordered human report with a `next:` line for every non-pass check, plus a single `schemaVersion: 1` JSON document (`status`, `checks`).\n- **PRE-NF-01 / PRE-NF-02 / PRD-NF-01** — local-only calls (no network), finite per-command timeouts, never reports a non-pass as pass, exits 2 on any failure, measured 1.14 s on this healthy host.\n\n## Files created\n- `src/doctor/checks.ts` — runner contract + injectable host checks (Podman, rootless, linger, git, Node, disk).\n- `src/doctor/index.ts` — composition, overall status, 80-column human rendering, JSON document.\n- `src/cli/commands/doctor.ts` — command handler and exit mapping.\n- `tests/unit/doctor.test.ts` — 26 tests covering missing Podman, 4.9.3, 5.7.0/5.8.9 rootless, 6.1.4, rootless failure, lingering disabled/unavailable, git 2.39.2/2.40/missing, Node 22/24, disk fail/warn/pass/unreadable, report order/width, JSON shape, never-pass invariant, fake-clock 2 s budget, local-only commands.\n\n## Files changed\n- `src/cli/program.ts` — wired `doctor`, propagated its exit code through `runCli`, added injectable `runDoctor` for tests.\n- `src/cli/commands/not-implemented.ts` — remediation now names `version` and `doctor`.\n- `tests/unit/program.test.ts` — doctor no longer a placeholder; added exit/JSON forwarding coverage.\n\n## Validation commands and results\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0 (18 files, no fixes) |\n| `npm test -- tests/unit/doctor.test.ts` | 26 passed |\n| `npm test` | 99 passed across 5 files |\n| `npm run build` | exit 0 |\n| `node dist/cli/index.js --help` | ten commands listed |\n| `node dist/cli/index.js version` | `0.1.0`, exit 0 |\n| `node dist/cli/index.js doctor --json` | `schemaVersion: 1`, `status: pass`, six checks, exit 0 |\n| `node dist/cli/index.js doctor` | text report, exit 0, 1.14 s |\n\n## Contract notes\n- `doctor` no longer returns `NOT_IMPLEMENTED`; it returns **0** for pass/warn/skip and **2** for any failing check.\n- JSON shape is `{ schemaVersion: 1, status: \"pass\"|\"warn\"|\"fail\", checks: [{ id, status, detail, remediation }] }` with `remediation: null` for passes.\n- Stable check order/IDs: `podman`, `podman-rootless`, `linger`, `git`, `node`, `disk`.\n- Default assumptions applied: Node 24 check added per feature open question 1; skip is overall `warn` but exits 0; disk warn/fail thresholds 5 GiB/2 GiB.\n- Doctor uses a narrow injectable synchronous runner adapter until the shared platform runner lands; calls are shell-free and timed out at 1750 ms.\n\n```forge-result\n{\"summary\":\"Implemented the doctor host-check suite with ordered Podman/version, rootless, lingering, git, Node, and disk checks, human and schemaVersion 1 JSON output, exit 0/2 behavior, and injectable process/clock/disk fakes. Typecheck, lint, focused (26 tests), full unit suite (99 tests), build, and manual CLI checks all pass.\",\"unresolved\":[],\"decisions\":[\"Added the Node.js 24 check alongside git per feature open question 1.\",\"Skip is a non-pass status: it requires remediation, makes the overall result warn, and still exits 0.\",\"A missing Podman binary makes the rootless check skip; a timeout or other spawn failure is a fail, not a missing binary.\",\"Distro guidance is selected from injected /etc/os-release data, defaulting to the distribution's package manager.\",\"Doctor uses a narrow injectable synchronous spawn adapter until the shared platform runner exists.\"],\"interfaces\":[\"DoctorCheck { id, label, status, detail, remediation }\",\"DoctorReport { status, checks, durationMs }\",\"DoctorDocument { schemaVersion: 1, status, checks: [{ id, status, detail, remediation }] }\",\"ProcessRunner.run(command, args, { timeoutMs })\",\"runDoctor(options), formatDoctorReport(report), toDoctorDocument(report), formatDoctorJson(report)\",\"runDoctorCommand(options): ExitCode\",\"ProgramOptions.runDoctor injectable override\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/doctor.test.ts: 26 passed\",\"npm test: 99 passed across 5 files\",\"npm run build: exit 0\",\"manual --help/version/doctor/doctor --json: exit 0, doctor completed in 1.14 s\"],\"warnings\":[\"doctor --json introduces the stable document {schemaVersion, status, checks}; docs must reflect the check IDs and remediation null semantics.\",\"The default doctor process adapter is local to the doctor module until platform-engineer's shared runner is available; it remains replaceable by injection.\"]}\n```\n",
+      "artifactId": "work-pre-1-5-001",
+      "inputArtifactIds": [
+        "work-pre-1-2-001",
+        "work-pre-1-3-001",
+        "work-pre-1-4-001"
+      ]
     },
     "BLD-0.1": {
       "taskId": "BLD-0.1",

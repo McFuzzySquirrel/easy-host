@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { Command, CommanderError, type OptionValues } from "commander";
+import { type DoctorCommandOptions, runDoctorCommand } from "./commands/doctor.js";
 import { createNotImplementedHandler } from "./commands/not-implemented.js";
 import {
   type ErrorRenderOptions,
@@ -52,7 +53,24 @@ export interface ProgramOptions {
   env?: NodeJS.ProcessEnv;
   /** Overrides the package version lookup, used by tests. */
   readVersion?: () => string;
+  /**
+   * Runs the doctor command. Tests replace it so a unit test never probes the
+   * real host; production uses {@link runDoctorCommand}.
+   */
+  runDoctor?: (options: DoctorCommandOptions) => ExitCode;
 }
+
+/**
+ * Commander actions cannot return an exit code through `parse`, so the program
+ * carries one mutable result for the duration of a single invocation.
+ */
+interface ExitState {
+  exitCode: ExitCode;
+}
+
+const EXIT_STATE: unique symbol = Symbol("easy-host.exit-state");
+
+type ProgramWithExitState = Command & { [EXIT_STATE]?: ExitState };
 
 /**
  * The stable `version --json` document. Field names are additive-only under
@@ -87,8 +105,8 @@ export function readPackageVersion(): string {
 
 /**
  * Creates the commander program with exactly ten subcommands, the documented
- * flags, and the global `--json` flag. `version` is the only command that
- * performs work here: lifecycle and read commands throw a usage error until
+ * flags, and the global `--json` flag. `version` and `doctor` perform work
+ * here; lifecycle and the remaining read commands throw a usage error until
  * later tasks wire them.
  */
 export function createProgram(options: ProgramOptions = {}): Command {
@@ -97,6 +115,8 @@ export function createProgram(options: ProgramOptions = {}): Command {
   const readVersion = options.readVersion ?? readPackageVersion;
 
   const program = new Command();
+  const exitState: ExitState = { exitCode: EXIT_CODES.SUCCESS };
+  (program as ProgramWithExitState)[EXIT_STATE] = exitState;
 
   program
     .name(PROGRAM_NAME)
@@ -126,7 +146,7 @@ export function createProgram(options: ProgramOptions = {}): Command {
   registerRollback(program);
   registerRemove(program);
   registerConfig(program);
-  registerDoctor(program);
+  registerDoctor(program, exitState, options.runDoctor ?? runDoctorCommand, stdout, options.env);
   registerVersion(program, readVersion, stdout);
 
   return program;
@@ -158,7 +178,7 @@ export function runCli(argv: readonly string[], options: ProgramOptions = {}): E
     }
 
     program.parse([...argv], { from: "user" });
-    return EXIT_CODES.SUCCESS;
+    return (program as ProgramWithExitState)[EXIT_STATE]?.exitCode ?? EXIT_CODES.SUCCESS;
   } catch (error) {
     if (error instanceof CommanderError) {
       // `--help` writes its output and reports exit 0; that is a success.
@@ -257,12 +277,26 @@ function registerConfig(program: Command): void {
     .action(createNotImplementedHandler("config"));
 }
 
-function registerDoctor(program: Command): void {
+function registerDoctor(
+  program: Command,
+  exitState: ExitState,
+  runDoctor: (options: DoctorCommandOptions) => ExitCode,
+  stdout: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("doctor")
     .description("Check host prerequisites")
     .option("--json", "write one machine-readable JSON document to stdout")
-    .action(createNotImplementedHandler("doctor"));
+    .action((_options: OptionValues, command: Command) => {
+      const { json } = command.optsWithGlobals<{ json?: boolean }>();
+
+      exitState.exitCode = runDoctor({
+        json: json === true,
+        stdout,
+        ...(env === undefined ? {} : { env }),
+      });
+    });
 }
 
 function registerVersion(program: Command, readVersion: () => string, stdout: OutputStream): void {

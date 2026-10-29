@@ -3,7 +3,7 @@
 ## Current State
 **Phase**: PREREQUISITES-AND-DOCTOR-1
 **Status**: In Progress
-**Last Updated**: 2026-10-29T23:08:20.200Z
+**Last Updated**: 2026-10-29T23:13:46.621Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -17,12 +17,13 @@
   - Files: src/cli/errors.ts, tests/unit/errors.test.ts, src/cli/index.ts
 - [x] Phase PREREQUISITES-AND-DOCTOR-1, Task PRE-1.4: Register the ten-command CLI surface (@cli-engineer)
   - Files: src/cli/program.ts, tests/unit/program.test.ts, src/cli/index.ts, tests/unit/cli-entry.test.ts, src/cli/commands/not-implemented.ts
+- [x] Phase PREREQUISITES-AND-DOCTOR-1, Task PRE-1.5: Implement doctor host checks (@cli-engineer)
+  - Files: src/doctor/checks.ts, src/doctor/index.ts, src/cli/commands/doctor.ts, tests/unit/doctor.test.ts, src/cli/commands/not-implemented.ts, src/cli/program.ts, tests/unit/program.test.ts
 
 ## Current Task
 - None currently running
 
 ## Remaining
-- [ ] Phase PREREQUISITES-AND-DOCTOR-1: Phase 1: Foundation and Host Checks
 - [ ] Phase BUILDKIT-AND-RAILPACK-1: Phase 1: Compatibility Spike
 - [ ] Phase BUILDKIT-AND-RAILPACK-2: Phase 2: Build Layer
 - [ ] Phase APP-REGISTRY-AND-CONFIG-1: Phase 1: Configuration and Registry
