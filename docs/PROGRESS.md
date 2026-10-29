@@ -1,9 +1,9 @@
 # Project Progress
 
 ## Current State
-**Phase**: PREREQUISITES-AND-DOCTOR-1
+**Phase**: APP-REGISTRY-AND-CONFIG-1
 **Status**: In Progress
-**Last Updated**: 2026-10-29T23:13:46.621Z
+**Last Updated**: 2026-10-29T23:19:50.555Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -19,6 +19,8 @@
   - Files: src/cli/program.ts, tests/unit/program.test.ts, src/cli/index.ts, tests/unit/cli-entry.test.ts, src/cli/commands/not-implemented.ts
 - [x] Phase PREREQUISITES-AND-DOCTOR-1, Task PRE-1.5: Implement doctor host checks (@cli-engineer)
   - Files: src/doctor/checks.ts, src/doctor/index.ts, src/cli/commands/doctor.ts, tests/unit/doctor.test.ts, src/cli/commands/not-implemented.ts, src/cli/program.ts, tests/unit/program.test.ts
+- [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.1: Parse and validate AppSpec from TOML (@cli-engineer)
+  - Files: src/config/schema.ts, src/config/parse.ts, tests/unit/config-parse.test.ts
 
 ## Current Task
 - None currently running
