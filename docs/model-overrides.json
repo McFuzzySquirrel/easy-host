@@ -1,0 +1,20 @@
+{
+  "build-engineer": {
+    "primary": "deepseek/deepseek-flash"
+  },
+  "cli-engineer": {
+    "primary": "deepseek/deepseek-flash"
+  },
+  "docs-engineer": {
+    "primary": "deepseek/deepseek-flash"
+  },
+  "lifecycle-engineer": {
+    "primary": "deepseek/deepseek-flash"
+  },
+  "platform-engineer": {
+    "primary": "deepseek/deepseek-flash"
+  },
+  "qa-engineer": {
+    "primary": "deepseek/deepseek-flash"
+  }
+}

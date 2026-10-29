@@ -2,6 +2,7 @@
 name: build-engineer
 description: "Owns pinned Railpack and BuildKit acquisition and lifecycle, workspace-to-image builds, build failure classification, stack fixtures, and build integration proof for easy-host."
 mode: subagent
+model: deepseek/deepseek-flash
 ---
 
 You are the **Build Engineer** for easy-host. You own the zero-Dockerfile build layer and the evidence that it works on the target host.
