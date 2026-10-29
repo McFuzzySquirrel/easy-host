@@ -23,7 +23,7 @@ Greenfield feature. All commands exist by the time this feature runs. `README.md
 
 - Make installation reproducible without a registry: clone, pack, or install from a git tag.
 - Replace stale documentation rather than layering on top of it.
-- Make the Podman 6.1 upgrade and lingering requirement impossible to miss.
+- Make the Podman 5.7.0 upgrade, the 6.x exclusion, and the lingering requirement impossible to miss.
 - Keep documented flags and completions generated from the same source as the CLI.
 
 ### 3.2 Non-Goals
@@ -76,7 +76,7 @@ Modifies `package.json` (files list, bin, prepare, engines, repository metadata)
 | `completions/easy-host.bash`, `completions/easy-host.zsh`, `completions/easy-host.fish` | Shipped completion files |
 | `tests/packaging/install.test.ts` | Pack, install into a clean prefix, run the binary |
 | `tests/docs/links.test.ts` | Relative link and required-section checks across all docs |
-| `docs/operations/prerequisites.md` | Podman 6.1, lingering, git, Node, upgrade from 4.9 |
+| `docs/operations/prerequisites.md` | Podman 5.7.0–5.8.x, 6.x exclusion, lingering, git, Node, upgrade from 4.9 |
 | `docs/operations/systemd-timer.md` | Timer unit that calls update on a schedule |
 | `docs/reference/cli.md`, `docs/reference/config.md` | Command, flag, exit-code, and config-key reference |
 | `docs/MIGRATION.md` | Repository rename and what changed from the React-only README |
@@ -104,7 +104,7 @@ No new runtime dependencies. Uses the existing commander definitions as the sing
 ```
 
 ```forge-requirement
-{"id":"DOC-FR-02","kind":"requirement","text":"Document the host prerequisites: rootless Podman 6.1 or newer with an upgrade path from the 4.9 packages shipped by Ubuntu 24.04 and Debian 12, loginctl enable-linger and why it is mandatory, git 2.40 or newer, Node.js 24 or newer, and ports at or above 1024. Include a verification command for each prerequisite."}
+{"id":"DOC-FR-02","kind":"requirement","text":"Document the host prerequisites: rootless Podman >= 5.7.0 and < 6.0.0 with an upgrade path from the 4.9 packages shipped by Ubuntu 24.04 and Debian 12, an explicit note that Podman 6.x is unsupported while unstable, loginctl enable-linger and why it is mandatory, git 2.40 or newer, Node.js 24 or newer, and ports at or above 1024. Include a verification command for each prerequisite."}
 ```
 
 ```forge-requirement
@@ -228,7 +228,7 @@ Greenfield feature. Planned owner: `docs-engineer` for README, operations, refer
 {
   "id": "DOC-1.4",
   "title": "Write the prerequisite and systemd timer guides",
-  "description": "Write docs/operations/prerequisites.md covering rootless Podman 6.1 with an upgrade path from 4.9 on Ubuntu 24.04 and Debian 12, lingering with its reboot consequence, git 2.40, Node 24, and ports at or above 1024, each with a verification command and the matching doctor check. Write docs/operations/systemd-timer.md with user unit files that run update for one app, enable commands, log location, and the note that overlapping runs exit on the app lock. Extend the docs link test to cover both files.",
+  "description": "Write docs/operations/prerequisites.md covering rootless Podman 5.7.0 to 5.8.x with an upgrade path from 4.9 on Ubuntu 24.04 and Debian 12, an explicit note that 6.x is excluded while unstable, lingering with its reboot consequence, git 2.40, Node 24, and ports at or above 1024, each with a verification command and the matching doctor check. Write docs/operations/systemd-timer.md with user unit files that run update for one app, enable commands, log location, and the note that overlapping runs exit on the app lock. Extend the docs link test to cover both files.",
   "ownerAgent": "docs-engineer",
   "dependencies": ["DOC-1.3"],
   "expectedOutputs": ["docs/operations/prerequisites.md", "docs/operations/systemd-timer.md"],
@@ -238,7 +238,7 @@ Greenfield feature. Planned owner: `docs-engineer` for README, operations, refer
     "kind": "implementation",
     "requirements": [],
     "requirementRefs": ["docs/features/08-docs-and-packaging.md#DOC-FR-02", "docs/features/08-docs-and-packaging.md#DOC-FR-03"],
-    "acceptanceCriteria": ["Every prerequisite has a verification command and a doctor reference", "The Podman 4.9 to 6.1 upgrade path is explicit", "The timer example is complete and uses the documented exit codes", "Links resolve"],
+    "acceptanceCriteria": ["Every prerequisite has a verification command and a doctor reference", "The Podman 4.9 to 5.7.0 upgrade path is explicit", "The 6.x exclusion is explicit and explains why", "The timer example is complete and uses the documented exit codes", "Links resolve"],
     "constraints": ["Do not claim a distribution package that was not verified", "No daemon instructions"],
     "constraintRefs": ["docs/PRD.md#PRD-C-04"],
     "references": ["docs/PRD.md#6.3 What the operator must provide", "docs/PRD.md#5.4 Platform finding that shaped the scope", "docs/PRD.md#18.2 Risks"]
@@ -324,7 +324,7 @@ Reverting restores the old README and removes the generated completions, operati
 1. A clone, a git tag install, and a packed tarball all produce a working `easy-host` binary.
 2. The tarball contains the built entry, completions, and runtime docs, and no tests or secrets.
 3. README describes easy-host, its supported stacks, install paths, quickstart, and the four success scenarios.
-4. The prerequisite guide covers Podman 6.1, the 4.9 upgrade, lingering, git, Node, and ports.
+4. The prerequisite guide covers Podman 5.7.0–5.8.x, the 6.x exclusion, the 4.9 upgrade, lingering, git, Node, and ports.
 5. The systemd timer example is complete and explains lock behavior.
 6. The CLI and config references cover every command, flag, exit code, and key, verified by tests.
 7. Bash, zsh, and fish completions are generated and current.

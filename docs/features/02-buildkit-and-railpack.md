@@ -21,7 +21,7 @@ Greenfield feature. Feature 01 provides the state root (`tools/`, `buildkit/`), 
 
 ### 3.1 Goals
 
-- Settle the top technical risk with evidence rather than assumption: can Railpack drive BuildKit on rootless Podman 6.1 on the target host?
+- Settle the top technical risk with evidence rather than assumption: can Railpack drive BuildKit on rootless Podman 5.7.0–5.8.x on the target host?
 - Make builds reproducible: one place declares the Railpack version, the buildkit image tag, and its digest.
 - Make infrastructure failures distinguishable from source failures.
 - Keep build output streaming so a multi-minute build is not a silent black box.
@@ -142,8 +142,8 @@ Greenfield feature. Planned owners: `build-engineer` for the resolver, daemon ma
 ```forge-task
 {
   "id": "BLD-0.1",
-  "title": "Verify Railpack and BuildKit on rootless Podman 6.1",
-  "description": "Run the Phase 0 compatibility spike by hand on the target Linux host with rootless Podman 6.1.4. Install or run the pinned railpack 0.43.0 and a buildkitd reachable over a unix socket, then build the Vite fixture with no Dockerfile. Record in the review file: the exact podman run and railpack commands used, the flags required for rootless operation, whether privileged mode or unconfined seccomp was necessary, build wall-clock time warm and cold, the resulting image reference, and the observed failure modes. Do not implement product code in this task. If the build cannot succeed, record that outcome and the blocking error verbatim; the build layer is then re-planned before Phase 2 starts.",
+  "title": "Verify Railpack and BuildKit on rootless Podman 5.7.0",
+  "description": "Run the Phase 0 compatibility spike by hand on the target Linux host with rootless Podman 5.7.0. Install or run the pinned railpack 0.43.0 and a buildkitd reachable over a unix socket, then build the Vite fixture with no Dockerfile. Record in the review file: the exact podman run and railpack commands used, the flags required for rootless operation, whether privileged mode or unconfined seccomp was necessary, build wall-clock time warm and cold, the resulting image reference, and the observed failure modes. Do not implement product code in this task. If the build cannot succeed, record that outcome and the blocking error verbatim; the build layer is then re-planned before Phase 2 starts.",
   "dependencies": [],
   "expectedOutputs": [],
   "validationCommands": [],
@@ -152,7 +152,7 @@ Greenfield feature. Planned owners: `build-engineer` for the resolver, daemon ma
     "kind": "human-review",
     "requirements": [],
     "requirementRefs": ["docs/features/02-buildkit-and-railpack.md#BLD-FR-02", "docs/features/02-buildkit-and-railpack.md#BLD-FR-03"],
-    "acceptanceCriteria": ["A Vite repository builds into an image on rootless Podman 6.1.4 without a Dockerfile", "The exact buildkitd flags, including any elevated option, are recorded with their justification", "Warm and cold build durations are recorded", "A failing outcome records the verbatim error and the re-plan decision"],
+    "acceptanceCriteria": ["A Vite repository builds into an image on rootless Podman 5.7.0 without a Dockerfile", "The exact buildkitd flags, including any elevated option, are recorded with their justification", "Warm and cold build durations are recorded", "A failing outcome records the verbatim error and the re-plan decision"],
     "constraints": ["Do not use privileged mode for app containers", "Record what actually ran rather than what was expected"],
     "constraintRefs": ["docs/PRD.md#PRD-SP-03", "docs/PRD.md#PRD-C-02"],
     "references": ["docs/PRD.md#18.2 Risks", "docs/PRD.md#6.2 Success / completion criteria"],
@@ -288,7 +288,7 @@ Greenfield feature. Planned owners: `build-engineer` for the resolver, daemon ma
     "requirements": [],
     "requirementRefs": ["docs/features/02-buildkit-and-railpack.md#BLD-FR-03", "docs/features/02-buildkit-and-railpack.md#BLD-FR-04"],
     "acceptanceCriteria": ["All three fixtures build into distinct image references", "The test fails when the integration environment variable is absent rather than passing vacuously", "Created images and the daemon are cleaned up after the run"],
-    "constraints": ["Runs only on the Linux host with Podman 6.1", "No network assumption beyond image pulls and the Railpack download"],
+    "constraints": ["Runs only on the Linux host with Podman >= 5.7.0, < 6.0.0", "No network assumption beyond image pulls and the Railpack download"],
     "constraintRefs": ["docs/PRD.md#PRD-NF-07", "docs/PRD.md#PRD-C-10"],
     "references": ["docs/PRD.md#15. Testing Strategy", "docs/PRD.md#6.2 Success / completion criteria"]
   }
@@ -327,7 +327,7 @@ Reverting removes `src/platform/{versions,railpack,buildkit,build}.ts`, the doct
 1. The Phase 0 spike is recorded in `docs/reviews/buildkit-spike.json` with commands, flags, timings, and an explicit pass or fail outcome.
 2. A digest mismatch prevents execution and reports a build-infrastructure error.
 3. A healthy buildkitd is reused; a cold start is bounded by an explicit timeout.
-4. All three fixtures build into distinct timestamped images on rootless Podman 6.1.
+4. All three fixtures build into distinct timestamped images on rootless Podman 5.7.0–5.8.x.
 5. Unsupported source, provider failure, and infrastructure failure are distinguishable by message and exit code.
 6. Doctor reports Railpack and BuildKit status without starting or downloading anything.
 7. No app image is built with a privileged container.

@@ -4,7 +4,7 @@
 
 **Product Name:** easy-host
 **Summary:** A Linux CLI that turns a git repository into a long-running, self-hosted HTTP service on one machine. It clones the repo, builds an image with Railpack (no per-repo Dockerfile), runs it under rootless Podman with a restart policy on a port the operator declares, health-gates every update, keeps the last two images for rollback, and removes apps without ever deleting data by accident.
-**Target Platform:** Linux only (x86_64 and arm64), rootless Podman 6.1 or newer, Node.js 24 or newer, system git 2.40 or newer.
+**Target Platform:** Linux only (x86_64 and arm64), rootless Podman `>= 5.7.0, < 6.0.0`, Node.js 24 or newer, system git 2.40 or newer.
 **Key Constraints:** Single host; CLI only; one explicit host port per app bound on the LAN by default; no TLS, no bundled reverse proxy, no database, no daemon, no scheduler; secrets are plain `0600` files; observability is `podman logs` passthrough only.
 
 This document is the authoritative product definition. Feature-level requirements, task contracts, and acceptance details live in [docs/features/](features/). Source material for this version: [IDEA.md](IDEA.md).
@@ -16,6 +16,7 @@ This document is the authoritative product definition. Feature-level requirement
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 1.0 | 2026-10-29 | forge-build-prd | Initial PRD from the sharpened idea; settles Podman floor 6.1, TOML config, npm-from-repo install, ten-command surface, named volumes, eight-feature decomposition. |
+| 1.1 | 2026-10-30 | forge-build-prd | Re-baselines the Podman requirement to `>= 5.7.0, < 6.0.0` because the 6.x line is unstable; updates the verified versions, doctor checks, release gate, risks, and downstream feature docs. |
 
 ---
 
@@ -35,7 +36,7 @@ This document is the authoritative product definition. Feature-level requirement
 ```
 
 ```forge-requirement
-{"id":"PRD-C-02","kind":"constraint","text":"Run on a single Linux host with rootless Podman 6.1 or newer. No multi-node operation, scheduling, clustering, or orchestrator integration."}
+{"id":"PRD-C-02","kind":"constraint","text":"Run on a single Linux host with rootless Podman >= 5.7.0 and < 6.0.0. Podman 6.x is excluded while that major line is unstable. No multi-node operation, scheduling, clustering, or orchestrator integration."}
 ```
 
 ```forge-requirement
@@ -148,7 +149,7 @@ The gap is the hosting and lifecycle layer around the build: clone, build, swap,
 | Component | Version | Notes |
 |---|---|---|
 | Railpack | 0.43.0 (2026-10-19) | Pre-1.0; pin exactly. Requires BuildKit. |
-| Podman | 6.1.4 (2026-10-12); 6.2.0-rc1 | 5.8 security support ended 2026-09-26; 4.9.3 is EOL. Minimum is 6.1. |
+| Podman | 5.7.0 (2025-11-11); 5.7.1 (2025-12-10); 5.8.9 (2026-10-12) | Re-checked 2026-10-30. Supported range is `>= 5.7.0, < 6.0.0`. 5.8.x patch releases are allowed; the 6.x line is excluded while unstable. 4.9.3 is EOL. |
 | BuildKit | 0.34.1 (2026-10-20) | Use the `-rootless` image, pinned by digest. |
 | Node.js | 26.13.0 LTS (2026-10-28) | Active LTS; 24.x is maintenance. Minimum is 24. |
 | TypeScript | 7.0.2 (2026-07-08) | Native compiler; no programmatic API until 7.1. |
@@ -164,7 +165,7 @@ The gap is the hosting and lifecycle layer around the build: clone, build, swap,
 
 ### 5.4 Platform finding that shaped the scope
 
-The reference host runs Podman 4.9.3, which is out of security support and also what stock Ubuntu 24.04 and Debian 12 ship. Supporting it would mean owning rootless BuildKit bugs on an unmaintained runtime, so v1 requires Podman 6.1+ and treats upgrading the host as a prerequisite. This is a deliberate trade: a smaller support matrix in exchange for a build layer that can actually work.
+The reference host runs Podman 4.9.3, which is out of security support and also what stock Ubuntu 24.04 and Debian 12 ship. Supporting it would mean owning rootless BuildKit bugs on an unmaintained runtime, so v1 requires Podman `>= 5.7.0, < 6.0.0` and treats upgrading the host as a prerequisite. Version 6.x is explicitly excluded because the major line is still unstable; the supported window is the current 5.x line from 5.7.0 onward. This is a deliberate trade: a smaller support matrix in exchange for a build layer that can actually work.
 
 ### 5.5 Design principles
 
@@ -207,7 +208,7 @@ easy-host remove <app> [--volumes]
 
 ### 6.2 Success / completion criteria
 
-Version 0.1.0 is done when this scenario passes on a fresh Linux host with rootless Podman 6.1+, lingering enabled, and an empty easy-host root:
+Version 0.1.0 is done when this scenario passes on a fresh Linux host with rootless Podman `>= 5.7.0, < 6.0.0`, lingering enabled, and an empty easy-host root:
 
 1. `add <git-url>` results in the app reachable at `http://<host>:<port>` from another machine on the LAN.
 2. Rebooting the host brings the app back without a manual command.
@@ -217,7 +218,7 @@ Version 0.1.0 is done when this scenario passes on a fresh Linux host with rootl
 
 ### 6.3 What the operator must provide
 
-- A Linux host with rootless Podman 6.1+, `loginctl enable-linger` for the owning user, system git 2.40+, and Node.js 24+.
+- A Linux host with rootless Podman `>= 5.7.0, < 6.0.0`, `loginctl enable-linger` for the owning user, system git 2.40+, and Node.js 24+.
 - One free TCP port per app, at or above 1024 (rootless Podman cannot bind privileged ports without a host sysctl change).
 - Credentials for private repos through the existing SSH agent or git credential helper.
 - Any external service the app needs (database, object storage) and the environment variables to reach it.
@@ -240,7 +241,7 @@ Version 0.1.0 is done when this scenario passes on a fresh Linux host with rootl
 | Output | picocolors + ora | 1.1.1 / 9.4.1 | TTY-aware color and progress |
 | Tests | Vitest | 5.0.5 | Fast unit tests; gated integration suite |
 | Lint/format | Biome | 2.6.4 | One tool, one config, no TS API dependency |
-| Container engine | rootless Podman | >= 6.1 (6.1.4 verified) | Rootless, daemonless, restart policy |
+| Container engine | rootless Podman | >= 5.7.0, < 6.0.0 (5.7.0 verified) | Rootless, daemonless, restart policy; 6.x excluded while unstable |
 | Image builder | Railpack | 0.43.0 pinned | Zero-Dockerfile detection and build |
 | BuildKit | moby/buildkit rootless | 0.34.1 pinned by digest | Build backend for Railpack |
 | Repo access | system git | >= 2.40 | Operator's existing credentials |
@@ -327,7 +328,7 @@ Feature-level requirements are defined once in the owning feature document and r
 | ID | Requirement | Feature | Priority |
 |----|-------------|---------|----------|
 | [PRE-FR-01](features/01-prerequisites-and-doctor.md#PRE-FR-01) | Resolve and create the state root | 01 | Must |
-| [PRE-FR-02](features/01-prerequisites-and-doctor.md#PRE-FR-02) | Doctor verifies Podman 6.1+ rootless | 01 | Must |
+| [PRE-FR-02](features/01-prerequisites-and-doctor.md#PRE-FR-02) | Doctor verifies Podman 5.7.0–5.8.x rootless | 01 | Must |
 | [PRE-FR-03](features/01-prerequisites-and-doctor.md#PRE-FR-03) | Doctor verifies lingering | 01 | Must |
 | [PRE-FR-04](features/01-prerequisites-and-doctor.md#PRE-FR-04) | Doctor verifies git 2.40+ | 01 | Must |
 | [PRE-FR-05](features/01-prerequisites-and-doctor.md#PRE-FR-05) | Unified error taxonomy and exit codes | 01 | Must |
@@ -639,7 +640,7 @@ Execution order is the dependency order above. Features 2 and 3 are independent 
 |-------|-------|------------------|
 | Unit | Config parsing, naming, paths, locks, diffing, command construction, formatting, JSON shapes, error mapping | Vitest 5.0.5 with injected fake runners; no Podman, no network |
 | Contract | Exact `podman`, `git`, and `railpack` argument arrays and exit-code mapping | Vitest with a recording fake process runner |
-| Integration (gated) | Real clone, build, run, probe, update, rollback, remove against rootless Podman 6.1 | `EASY_HOST_INTEGRATION=1 npm run test:integration` on the Linux host; three fixture apps |
+| Integration (gated) | Real clone, build, run, probe, update, rollback, remove against rootless Podman 5.7.0–5.8.x | `EASY_HOST_INTEGRATION=1 npm run test:integration` on the Linux host; three fixture apps |
 | Packaging | Global install from a packed tarball into a clean prefix, then `easy-host version` | `npm run test:packaging` |
 | Docs | Relative links resolve, required sections exist, examples match the command surface | Vitest link checker |
 | Manual / exploratory | The four success scenarios on a fresh host, including a real reboot | Recorded in `docs/reviews/v1-success-scenarios.json` |
@@ -688,7 +689,7 @@ No telemetry is collected. Success is evaluated by the operator and by the relea
 10. Concurrent mutations on one app are serialized by a lock and the loser exits with code 6.
 11. `--json` output for `list`, `status`, and `doctor` is valid JSON on stdout with no ANSI escapes and no secret values.
 12. `npm install -g .` from a fresh clone and `npm install -g <packed-tarball>` both produce a working `easy-host` binary with Node.js 24+.
-13. The documented prerequisite guide covers upgrading from Podman 4.9 to 6.1 and enabling lingering.
+13. The documented prerequisite guide covers upgrading from Podman 4.9 to 5.7.0 and enabling lingering.
 14. No command deletes data without `--volumes`, and no command sends telemetry.
 
 ---
@@ -700,7 +701,7 @@ No telemetry is collected. Success is evaluated by the operator and by the relea
 | Dependency | Type | Risk if Unavailable | Mitigation |
 |------------|------|---------------------|------------|
 | Railpack 0.43.0 | External binary (pinned download) | No zero-Dockerfile build | Pinned, SHA-256 verified, `EASY_HOST_RAILPACK_BIN` override, documented upgrade procedure |
-| rootless Podman >= 6.1 | Host runtime | Nothing runs | `doctor` fails early with upgrade instructions; minimum is enforced, not assumed |
+| rootless Podman >= 5.7.0, < 6.0.0 | Host runtime | Nothing runs | `doctor` fails early with upgrade instructions; minimum and 6.x exclusion are enforced, not assumed |
 | moby/buildkit 0.34.1-rootless | Container image | Railpack cannot build | Pinned by digest; `doctor` reports reachability; Phase 0 spike gates the build layer |
 | BuildKit rootless compatibility | Platform behavior | The "any repo" premise collapses | Phase 0 hard gate; if it fails, the build layer is re-planned before Phase 1 |
 | system git >= 2.40 | Host tool | Cannot clone private or public repos | `doctor` check; SSH agent and credential helper documented |
@@ -712,9 +713,10 @@ No telemetry is collected. Success is evaluated by the operator and by the relea
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| Railpack cannot drive BuildKit under rootless Podman 6.1 | Medium | High — core premise | Phase 0 spike is a hard gate; stop and re-plan if it fails |
+| Railpack cannot drive BuildKit under rootless Podman 5.7.0–5.8.x | Medium | High — core premise | Phase 0 spike is a hard gate; stop and re-plan if it fails |
 | Railpack pre-1.0 breaking changes | High over time | Medium — build breakage | Exact version pin, checksum, explicit upgrade task, fixtures detect regressions |
 | Podman 4.9 hosts (Ubuntu/Debian stock) cannot run v1 | High | Medium — install friction | Documented upgrade path; `doctor` explains the minimum and the fix |
+| Hosts already on Podman 6.x cannot run v1 while that line is unstable | Medium | Medium — install friction | `doctor` rejects 6.x and documents downgrading to the newest 5.8.x package; revisit once 6.x is stable and the BuildKit spike passes |
 | Rootless port <1024 cannot bind | Medium | Low — confusing failure | Validate ports >= 1024 with a specific message |
 | Builds are slow (minutes) | High | Medium — operator frustration | Honest docs, streamed output, config-only updates skip builds, BuildKit cache guidance |
 | Disk growth from images and cache | Medium | Medium — host fills up | Keep two images, `doctor` reports sizes and warns, manual prune documented |
@@ -759,6 +761,7 @@ No telemetry is collected. Success is evaluated by the operator and by the relea
 | 10 | What is the exact `--json` schema version field? | `"schemaVersion": 1` on every JSON payload; bump only for breaking field changes. |
 | 11 | Is a `restart` command needed despite the settled ten-command surface? | No; `update` without changes and `rollback` cover recovery, and Podman restart is the operator's tool. |
 | 12 | Does v1 need shell completion generation at install time? | No; `easy-host completion <shell>` prints the script and docs explain where to place it. |
+| 13 | When can Podman 6.x re-enter the supported range? | Not in v1. Re-evaluate after a stable 6.x release and a passing Phase 0 BuildKit spike on that version; until then `doctor` rejects 6.x and the docs point at the newest 5.8.x package. |
 
 ---
 

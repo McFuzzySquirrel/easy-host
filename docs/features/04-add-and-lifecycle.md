@@ -281,7 +281,7 @@ Greenfield feature. Planned owners: `platform-engineer` for git, podman, and the
     "requirements": [],
     "requirementRefs": ["docs/features/04-add-and-lifecycle.md#ADD-FR-03", "docs/features/04-add-and-lifecycle.md#ADD-FR-04", "docs/features/04-add-and-lifecycle.md#ADD-FR-05"],
     "acceptanceCriteria": ["All three fixtures are reachable after add", "The failed-add path leaves no container and keeps the image", "Cleanup removes everything the test created", "The test fails rather than skips when the integration variable is absent"],
-    "constraints": ["Runs only on the Linux host with Podman 6.1", "Uses a temporary state root"],
+    "constraints": ["Runs only on the Linux host with Podman >= 5.7.0, < 6.0.0", "Uses a temporary state root"],
     "constraintRefs": ["docs/PRD.md#PRD-NF-07", "docs/PRD.md#PRD-C-10"],
     "references": ["docs/PRD.md#15. Testing Strategy", "docs/PRD.md#6.2 Success / completion criteria"]
   }

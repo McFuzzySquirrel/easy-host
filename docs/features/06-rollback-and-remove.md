@@ -258,7 +258,7 @@ Greenfield feature. Planned owners: `lifecycle-engineer` for rollback, retention
 {
   "id": "RBK-1.6",
   "title": "Run the v0.1.0 release gate",
-  "description": "Execute the four success scenarios by hand on a fresh Linux host with rootless Podman 6.1, lingering enabled, and an empty state root. Record in the review file, for each scenario, the commands run, the observed result, and the wall-clock time: add one supported repo and reach it from another LAN machine; reboot and confirm it returns without a manual command; push a broken commit, run update, and confirm the previous version still serves; run rollback and confirm the previous image serves; then remove and confirm the data rules. Note any deviation, unsupported stack, or prerequisite surprise. This is a human gate and cannot be satisfied by unit tests.",
+  "description": "Execute the four success scenarios by hand on a fresh Linux host with rootless Podman 5.7.0–5.8.x, lingering enabled, and an empty state root. Record in the review file, for each scenario, the commands run, the observed result, and the wall-clock time: add one supported repo and reach it from another LAN machine; reboot and confirm it returns without a manual command; push a broken commit, run update, and confirm the previous version still serves; run rollback and confirm the previous image serves; then remove and confirm the data rules. Note any deviation, unsupported stack, or prerequisite surprise. This is a human gate and cannot be satisfied by unit tests.",
   "dependencies": ["RBK-1.4", "RBK-1.5", "UPD-1.4", "ADD-1.6"],
   "expectedOutputs": [],
   "validationCommands": [],

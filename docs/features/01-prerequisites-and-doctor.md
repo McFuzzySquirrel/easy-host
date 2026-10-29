@@ -101,7 +101,7 @@ All versions are verified in [PRD §5.3](../PRD.md#5.3 Verified versions (checke
 ```
 
 ```forge-requirement
-{"id":"PRE-FR-02","kind":"requirement","text":"Doctor parses podman version and fails with exit code 2 when Podman is missing, below 6.1, or not running rootless. The failure names the found version, the required minimum, and a distro-specific upgrade starting point."}
+{"id":"PRE-FR-02","kind":"requirement","text":"Doctor parses podman version and fails with exit code 2 when Podman is missing, below 5.7.0, at or above 6.0.0, or not running rootless. The failure names the found version, the supported range (>= 5.7.0, < 6.0.0), and a distro-specific upgrade or downgrade starting point."}
 ```
 
 ```forge-requirement
@@ -245,7 +245,7 @@ Greenfield feature — agents will be generated from all feature documents toget
 {
   "id": "PRE-1.5",
   "title": "Implement doctor host checks",
-  "description": "Add doctor with an ordered check list covering Podman presence and version, rootless mode, user lingering, git version, and free disk space. Each check returns pass, warn, fail, or skip with a detail line and a remediation line. Doctor exits 0 when all checks pass or warn and 2 when any check fails. Support --json with schemaVersion 1, a checks array, and an overall status. Tests inject a recording process runner and cover Podman missing, Podman 4.9.3, Podman 6.1.4 rootless, lingering disabled, git too old, low disk, all-pass output, JSON shape, and the 2-second no-network budget using a fake clock.",
+  "description": "Add doctor with an ordered check list covering Podman presence and version, rootless mode, user lingering, git version, and free disk space. Each check returns pass, warn, fail, or skip with a detail line and a remediation line. Doctor exits 0 when all checks pass or warn and 2 when any check fails. Support --json with schemaVersion 1, a checks array, and an overall status. Tests inject a recording process runner and cover Podman missing, Podman 4.9.3, Podman 5.7.0 rootless, Podman 5.8.9 rootless, Podman 6.1.4 rejection, lingering disabled, git too old, low disk, all-pass output, JSON shape, and the 2-second no-network budget using a fake clock.",
   "ownerAgent": "cli-engineer",
   "dependencies": ["PRE-1.2", "PRE-1.3", "PRE-1.4"],
   "expectedOutputs": ["src/doctor/checks.ts", "src/doctor/index.ts", "src/cli/commands/doctor.ts", "tests/unit/doctor.test.ts"],
@@ -255,7 +255,7 @@ Greenfield feature — agents will be generated from all feature documents toget
     "kind": "implementation",
     "requirements": [],
     "requirementRefs": ["docs/features/01-prerequisites-and-doctor.md#PRE-FR-02", "docs/features/01-prerequisites-and-doctor.md#PRE-FR-03", "docs/features/01-prerequisites-and-doctor.md#PRE-FR-04", "docs/features/01-prerequisites-and-doctor.md#PRE-FR-07"],
-    "acceptanceCriteria": ["Podman below 6.1 fails with exit code 2 and names the found and required versions", "Lingering disabled is reported as a failure with the enable-linger remediation", "Git below 2.40 fails and prints the found version", "JSON mode emits schemaVersion 1 with no ANSI escapes", "A failing check is never reported as pass"],
+    "acceptanceCriteria": ["Podman below 5.7.0 fails with exit code 2 and names the found and required versions", "Podman 6.x fails with exit code 2 and names the unsupported major line", "Podman 5.7.0 and 5.8.9 rootless pass", "Lingering disabled is reported as a failure with the enable-linger remediation", "Git below 2.40 fails and prints the found version", "JSON mode emits schemaVersion 1 with no ANSI escapes", "A failing check is never reported as pass"],
     "constraints": ["Doctor performs no network calls", "Doctor does not install or upgrade anything"],
     "constraintRefs": ["docs/features/01-prerequisites-and-doctor.md#PRE-NF-01", "docs/features/01-prerequisites-and-doctor.md#PRE-NF-02", "docs/PRD.md#PRD-NF-01"],
     "references": ["docs/PRD.md#6.3 What the operator must provide", "docs/PRD.md#7.1 Technology stack"]
@@ -276,7 +276,7 @@ Greenfield feature — agents will be generated from all feature documents toget
 Key test scenarios:
 
 1. All three root-resolution orders, including tilde expansion.
-2. Doctor failure for Podman 4.9.3 and pass for 6.1.4 rootless.
+2. Doctor failure for Podman 4.9.3 and Podman 6.1.4; pass for 5.7.0 and 5.8.9 rootless.
 3. Lingering disabled produces a failure with the linger remediation.
 4. Git 2.39 fails; 2.40 passes.
 5. Unknown command exits 1; unimplemented lifecycle command exits 1 with a "not implemented" usage message.
