@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "candidates": [
+    {
+      "name": "easy-host-cli-command-contract",
+      "description": "Adds or changes easy-host commands while preserving the ten-command surface, stable exit codes, flag parity, JSON schemaVersion 1, TTY and NO_COLOR behavior, and secret-safe output.",
+      "consumers": [
+        "cli-engineer",
+        "lifecycle-engineer",
+        "docs-engineer"
+      ],
+      "action": "create",
+      "reason": "Ten commands and five read-only JSON payloads repeat the same fragile contract, and lifecycle handlers plus docs drift tests must consume it; no existing project package defines the exit-code, flag-parity, or output rules."
+    },
+    {
+      "name": "easy-host-registry-config",
+      "description": "Creates or changes AppSpec TOML schema, defaults, name derivation, atomic registry writes, rebuildable state cache, env and secret merging, and key-named validation errors.",
+      "consumers": [
+        "cli-engineer",
+        "lifecycle-engineer",
+        "docs-engineer"
+      ],
+      "action": "create",
+      "reason": "Config and registry behavior repeats across add, update, status, and documentation, and mistakes risk data loss, secret leakage, or path traversal; no existing package covers this schema."
+    },
+    {
+      "name": "easy-host-prerequisite-doctor",
+      "description": "Adds or changes doctor checks for Podman version and rootless mode, lingering, git, Node, disk, Railpack, and BuildKit with ordered pass, warn, fail, and remediation output under a no-network time budget.",
+      "consumers": [
+        "cli-engineer",
+        "build-engineer"
+      ],
+      "action": "create",
+      "reason": "Doctor is composed by three features and two agents, and its version-window parsing, check ordering, JSON shape, and remediation lines are easy to drift; no existing package defines these invariants."
+    },
+    {
+      "name": "easy-host-container-runtime-contract",
+      "description": "Wraps Podman and git calls with argument arrays, finite timeouts, labels, named volumes, restart policy, port publication, and redaction of secrets and URL credentials.",
+      "consumers": [
+        "platform-engineer",
+        "build-engineer",
+        "lifecycle-engineer"
+      ],
+      "action": "create",
+      "reason": "Every runtime call shares security and safety rules repeated across app containers, buildkitd, and read commands; one package is needed to prevent shell interpolation, missing timeouts, or leaked environment values."
+    },
+    {
+      "name": "easy-host-health-gated-swap",
+      "description": "Implements the stop, start, probe, keep or revert sequence shared by update and rollback, including phase reporting, bounded probes, previous-image restart, and state recording only after health.",
+      "consumers": [
+        "lifecycle-engineer",
+        "platform-engineer",
+        "qa-engineer"
+      ],
+      "action": "create",
+      "reason": "The swap is the highest-risk state transition and is reused by update and rollback; its revert and no-zero-container rules are fragile and currently spread across two feature documents."
+    },
+    {
+      "name": "easy-host-destructive-operation-safety",
+      "description": "Guards remove and rollback with confirmation, per-app locks, label-scoped deletion, default volume retention, foreign-resource refusal, and two-image retention.",
+      "consumers": [
+        "lifecycle-engineer",
+        "platform-engineer",
+        "qa-engineer"
+      ],
+      "action": "create",
+      "reason": "Accidental data loss is the product's strongest prohibition and the rules repeat across remove, retention, volume deletion, and lock contention; no existing package encodes the confirmation and label-scoped deletion gates."
+    },
+    {
+      "name": "easy-host-build-layer",
+      "description": "Pins and verifies Railpack, manages the rootless buildkitd lifecycle, builds a workspace into a timestamped image, streams output, and classifies unsupported-source, build, and infrastructure failures.",
+      "consumers": [
+        "build-engineer",
+        "cli-engineer",
+        "qa-engineer"
+      ],
+      "action": "create",
+      "reason": "The build layer is pre-1.0, digest-pinned, rootless-sensitive, and the top technical risk; its acquisition, daemon, streaming, and failure-classification rules repeat and are easy to regress."
+    },
+    {
+      "name": "easy-host-integration-gate",
+      "description": "Adds gated Podman integration or release evidence with EASY_HOST_INTEGRATION enforcement, unique resources, local git fixtures, bounded waits, guaranteed cleanup, and non-vacuous assertions.",
+      "consumers": [
+        "qa-engineer",
+        "build-engineer",
+        "lifecycle-engineer"
+      ],
+      "action": "create",
+      "reason": "Five integration suites and two human-review gates repeat the same gating, cleanup, and evidence discipline, and a silent skip would falsely certify the release."
+    },
+    {
+      "name": "easy-host-packaging-docs-sync",
+      "description": "Keeps global install, packed tarball contents, generated shell completions, README, operations guides, and CLI and config references synchronized with the executable definitions.",
+      "consumers": [
+        "docs-engineer",
+        "cli-engineer"
+      ],
+      "action": "create",
+      "reason": "Packaging, completion generation, and reference documentation all drift from the same commander and zod sources; no existing package enforces the generated-from-source rule."
+    },
+    {
+      "name": "generic-typescript-cli-scaffold",
+      "description": "Generic ESM TypeScript package, Biome, and Vitest scaffold conventions.",
+      "consumers": [
+        "cli-engineer"
+      ],
+      "action": "omit",
+      "reason": "Standard tooling conventions are already covered by the pinned stack and repository configuration; a project skill would duplicate framework guidance without protecting a product-specific invariant."
+    },
+    {
+      "name": "human-release-gate-automation",
+      "description": "Automates the v0.1.0 success scenarios, including the real host reboot and manual LAN reachability check.",
+      "consumers": [
+        "qa-engineer"
+      ],
+      "action": "omit",
+      "reason": "The release gate is explicitly a human-review task that cannot be satisfied by automation; evidence collection belongs to easy-host-integration-gate, and automating the decision would contradict the PRD."
+    }
+  ]
+}
