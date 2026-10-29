@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "models": {
+    "prd": "deepseek/deepseek-flash",
+    "team": "deepseek/deepseek-flash",
+    "skills": "deepseek/deepseek-flash"
+  },
+  "runner": "opencode"
+}

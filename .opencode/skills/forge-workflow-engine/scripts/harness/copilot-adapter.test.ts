@@ -1,0 +1,292 @@
+import assert from "node:assert/strict";
+import test, { type TestContext } from "node:test";
+import { writeFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+
+import { CopilotAdapter } from "./copilot-adapter.ts";
+import type { AgentDescriptor, ManifestTask } from "../types.ts";
+import { prepareTaskRequest } from "../request.ts";
+import { makeNodeShim, tempDir } from "../test-support.ts";
+
+interface Shim {
+  bin: string;
+  argsFile: string;
+}
+
+function makeShim(t: TestContext): Shim {
+  const dir = tempDir(t, "forge-copilot-adapter-");
+  const argsFile = join(dir, "args.json");
+  const bin = makeNodeShim(dir, "fake-copilot", `
+const fs = require("fs");
+fs.writeFileSync(${JSON.stringify(argsFile)}, JSON.stringify(process.argv.slice(2)));
+process.exit(0);
+`,
+  );
+  return { bin, argsFile };
+}
+
+function makeTask(): ManifestTask {
+  return {
+    id: "t1",
+    title: "Build the scanner",
+    description: "Implement the recursive scanner.",
+    dependencies: [],
+    expectedOutputs: ["src/discovery/scanner.ts"],
+    validationCommands: ["npm run typecheck"],
+    approvalRequired: false,
+    sourceLines: [],
+  };
+}
+
+function makeAgent(path: string): AgentDescriptor {
+  return {
+    name: "discovery-engineer",
+    description: "Discovery engineer",
+    path,
+    expertise: [],
+    collaboration: [],
+    constraints: [],
+    rawBody: "You are a Discovery Engineer.\n- scan repos read-only",
+  };
+}
+
+async function invokeWith(shim: Shim, agent: AgentDescriptor, root: string): Promise<void> {
+  const original = process.env.COPILOT_BIN;
+  process.env.COPILOT_BIN = shim.bin;
+  try {
+    const adapter = new CopilotAdapter();
+    const result = await adapter.invoke(prepareTaskRequest({ agent, task: makeTask(), repoRoot: root, defaultModel: adapter.defaultModel }));
+    assert.equal(result.success, true);
+  } finally {
+    if (original === undefined) delete process.env.COPILOT_BIN;
+    else process.env.COPILOT_BIN = original;
+  }
+}
+
+function recordedPrompt(shim: Shim, root: string): string {
+  const recorded = JSON.parse(readFileSync(shim.argsFile, "utf8")) as string[];
+  const prompt = recorded[recorded.indexOf("-p") + 1]!;
+  const file = prompt.match(/execution file "([^"]+)"/)?.[1];
+  assert.ok(file, prompt);
+  assert.ok(prompt.length < 1000, prompt);
+  return prompt + "\n" + readFileSync(join(root, file), "utf8");
+}
+
+test("passes --agent for .github-rooted agents and omits the fallback persona", async (t) => {
+  const root = tempDir(t, "forge-copilot-repo-");
+  const agent = makeAgent(join(root, ".github", "agents", "discovery-engineer.md"));
+  const shim = makeShim(t);
+
+  await invokeWith(shim, agent, root);
+
+  const prompt = recordedPrompt(shim, root);
+  const args = JSON.parse(readFileSync(shim.argsFile, "utf8")) as string[];
+  assert.equal(args[args.indexOf("--agent") + 1], "discovery-engineer");
+  assert.ok(!args[args.indexOf("-p") + 1]!.includes("\n"));
+  assert.ok(!prompt.includes("You are a Discovery Engineer"), prompt);
+});
+
+test("falls back to inlining the persona for non-.github harness roots", async (t) => {
+  const root = tempDir(t, "forge-agents-repo-");
+  const agent = makeAgent(join(root, ".agents", "agents", "discovery-engineer.md"));
+  const shim = makeShim(t);
+
+  await invokeWith(shim, agent, root);
+
+  const prompt = recordedPrompt(shim, root);
+  assert.ok(!prompt.includes("/agent "), prompt);
+  assert.ok(prompt.includes("You are a Discovery Engineer"), prompt);
+});
+
+test("never uses /agent when the agent has no name", async (t) => {
+  const root = tempDir(t, "forge-noname-repo-");
+  const agent = { ...makeAgent(join(root, ".github", "agents", "unnamed.md")), name: "" };
+  const shim = makeShim(t);
+
+  await invokeWith(shim, agent, root);
+
+  const prompt = recordedPrompt(shim, root);
+  assert.ok(!prompt.includes("/agent "), prompt);
+  assert.ok(prompt.includes("You are a Discovery Engineer"), prompt);
+});
+
+test("FORGE_ENGINE_NATIVE_AGENT=0 forces the inline-persona fallback for .github agents", async (t) => {
+  const root = tempDir(t, "forge-nonative-repo-");
+  const agent = makeAgent(join(root, ".github", "agents", "discovery-engineer.md"));
+  const shim = makeShim(t);
+  const original = process.env.FORGE_ENGINE_NATIVE_AGENT;
+  process.env.FORGE_ENGINE_NATIVE_AGENT = "0";
+  try {
+    await invokeWith(shim, agent, root);
+  } finally {
+    if (original === undefined) delete process.env.FORGE_ENGINE_NATIVE_AGENT;
+    else process.env.FORGE_ENGINE_NATIVE_AGENT = original;
+  }
+
+  const prompt = recordedPrompt(shim, root);
+  assert.ok(!prompt.includes("/agent "), prompt);
+  assert.ok(prompt.includes("You are a Discovery Engineer"), prompt);
+});
+
+test("prompt includes the execute-now directive in both native and inline modes", async (t) => {
+  const root = tempDir(t, "forge-directive-repo-");
+  const shim = makeShim(t);
+
+  await invokeWith(shim, makeAgent(join(root, ".github", "agents", "discovery-engineer.md")), root);
+  const nativePrompt = recordedPrompt(shim, root);
+  assert.ok(nativePrompt.includes("Perform the task now"), nativePrompt);
+
+  await invokeWith(shim, makeAgent(join(root, ".agents", "agents", "discovery-engineer.md")), root);
+  const inlinePrompt = recordedPrompt(shim, root);
+  assert.ok(inlinePrompt.includes("Perform the task now"), inlinePrompt);
+});
+
+test("prompt surfaces the per-task timeout and retry budget when provided", async (t) => {
+  const root = tempDir(t, "forge-budget-repo-");
+  const agent = makeAgent(join(root, ".agents", "agents", "discovery-engineer.md"));
+  const shim = makeShim(t);
+  const original = process.env.COPILOT_BIN;
+  process.env.COPILOT_BIN = shim.bin;
+  try {
+    const adapter = new CopilotAdapter();
+    const result = await adapter.invoke(prepareTaskRequest({ agent, task: makeTask(), repoRoot: root, timeoutMs: 30_000, maxRetries: 3 }));
+    assert.equal(result.success, true);
+  } finally {
+    if (original === undefined) delete process.env.COPILOT_BIN;
+    else process.env.COPILOT_BIN = original;
+  }
+
+  const prompt = recordedPrompt(shim, root);
+  assert.ok(prompt.includes("Per-task timeout: 30s"), prompt);
+  assert.ok(prompt.includes("retried up to 3 time(s)"), prompt);
+});
+
+async function captureConsole<T>(fn: () => Promise<T>): Promise<{ result: T; lines: string[] }> {
+  const lines: string[] = [];
+  const original = console.log;
+  console.log = (...args: unknown[]) => lines.push(args.map((arg) => String(arg)).join(" "));
+  try {
+    return { result: await fn(), lines };
+  } finally {
+    console.log = original;
+  }
+}
+
+test("logs the harness invocation with run/task/attempt identifiers and no activity by default", async (t) => {
+  const root = tempDir(t, "forge-copilot-log-repo-");
+  const agent = makeAgent(join(root, ".github", "agents", "discovery-engineer.md"));
+  const shim = makeShim(t);
+  const original = process.env.COPILOT_BIN;
+  process.env.COPILOT_BIN = shim.bin;
+  let lines: string[] = [];
+  try {
+    const { lines: captured } = await captureConsole(async () => {
+      await new CopilotAdapter().invoke(prepareTaskRequest({ agent, task: makeTask(), repoRoot: root, runId: "run-9", attempt: 2 }));
+    });
+    lines = captured;
+  } finally {
+    if (original === undefined) delete process.env.COPILOT_BIN;
+    else process.env.COPILOT_BIN = original;
+  }
+
+  const invocation = lines.find((line) => line.includes("harness invocation"));
+  assert.ok(invocation, lines.join("\n"));
+  assert.match(invocation, /harness=copilot/);
+  assert.match(invocation, /run=run-9/);
+  assert.match(invocation, /task=t1/);
+  assert.match(invocation, /attempt=2/);
+  assert.match(invocation, /\[requested]/);
+  assert.ok(!lines.some((line) => line.includes("harness activity")), "activity must stay off by default");
+});
+
+test("streams harness activity when logHarnessActivity is enabled", async (t) => {
+  const root = tempDir(t, "forge-copilot-activity-repo-");
+  const agent = makeAgent(join(root, ".github", "agents", "discovery-engineer.md"));
+  const bin = makeNodeShim(tempDir(t, "forge-copilot-activity-"), "fake-copilot", 'process.stderr.write("activity-line\\n"); process.exit(0);');
+  const original = process.env.COPILOT_BIN;
+  process.env.COPILOT_BIN = bin;
+  let lines: string[] = [];
+  try {
+    const { lines: captured } = await captureConsole(async () => {
+      const result = await new CopilotAdapter().invoke(prepareTaskRequest({
+        agent, task: makeTask(), repoRoot: root, runId: "run-10", attempt: 1, logHarnessActivity: true,
+      }));
+      assert.equal(result.success, true);
+    });
+    lines = captured;
+  } finally {
+    if (original === undefined) delete process.env.COPILOT_BIN;
+    else process.env.COPILOT_BIN = original;
+  }
+
+  assert.ok(lines.some((line) => line.includes("harness activity stderr") && line.includes("activity-line")), lines.join("\n"));
+  assert.ok(lines.some((line) => line.includes("harness completed")), lines.join("\n"));
+});
+
+test("passes --session-id when the request carries a sessionId, and omits it otherwise", async (t) => {
+  const root = tempDir(t, "forge-copilot-session-repo-");
+  const agent = makeAgent(join(root, ".github", "agents", "discovery-engineer.md"));
+
+  const runWith = async (sessionId?: string): Promise<string[]> => {
+    const shim = makeShim(t);
+    const original = process.env.COPILOT_BIN;
+    process.env.COPILOT_BIN = shim.bin;
+    try {
+      const adapter = new CopilotAdapter();
+      await adapter.invoke(prepareTaskRequest({ agent, task: makeTask(), repoRoot: root, ...(sessionId ? { sessionId } : {}) }));
+    } finally {
+      if (original === undefined) delete process.env.COPILOT_BIN;
+      else process.env.COPILOT_BIN = original;
+    }
+    return JSON.parse(readFileSync(shim.argsFile, "utf8")) as string[];
+  };
+
+  const without = await runWith();
+  assert.ok(!without.includes("--session-id"), `expected no --session-id: ${without.join(" ")}`);
+
+  const withSession = await runWith("forge-run-phase-1");
+  assert.ok(withSession.includes("--session-id"));
+  assert.equal(withSession[withSession.indexOf("--session-id") + 1], "forge-run-phase-1");
+});
+
+test("parses token and credit stats from the CLI stats block", async (t) => {
+  const root = tempDir(t, "forge-copilot-usage-repo-");
+  const agent = makeAgent(join(root, ".github", "agents", "discovery-engineer.md"));
+  const bin = makeNodeShim(tempDir(t, "forge-copilot-usage-"), "fake-copilot", `
+process.stdout.write("OK\\n");
+process.stderr.write("Changes    +0 -0\\nAI Credits 0.46 (8s)\\nTokens     \\u2191 18.6k (18.6k written) \\u2022 \\u2193 5\\n");
+process.exit(0);
+`);
+  const original = process.env.COPILOT_BIN;
+  process.env.COPILOT_BIN = bin;
+  try {
+    const adapter = new CopilotAdapter();
+    const result = await adapter.invoke(prepareTaskRequest({ agent, task: makeTask(), repoRoot: root }));
+    assert.deepEqual(result.usage, {
+      inputTokens: 18600,
+      outputTokens: 5,
+      cacheWriteTokens: 18600,
+      credits: 0.46,
+      source: "harness",
+    });
+  } finally {
+    if (original === undefined) delete process.env.COPILOT_BIN;
+    else process.env.COPILOT_BIN = original;
+  }
+});
+
+test("reports usage unavailable when Copilot prints no stats block", async (t) => {
+  const root = tempDir(t, "forge-copilot-nostats-repo-");
+  const agent = makeAgent(join(root, ".github", "agents", "discovery-engineer.md"));
+  const shim = makeShim(t);
+  const original = process.env.COPILOT_BIN;
+  process.env.COPILOT_BIN = shim.bin;
+  try {
+    const adapter = new CopilotAdapter();
+    const result = await adapter.invoke(prepareTaskRequest({ agent, task: makeTask(), repoRoot: root }));
+    assert.equal(result.usage?.source, "unavailable");
+  } finally {
+    if (original === undefined) delete process.env.COPILOT_BIN;
+    else process.env.COPILOT_BIN = original;
+  }
+});

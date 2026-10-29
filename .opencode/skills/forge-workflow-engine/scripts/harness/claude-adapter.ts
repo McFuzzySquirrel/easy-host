@@ -1,0 +1,246 @@
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
+
+import { runCommand, extractModelFlags, stripProviderPrefix, canSelectAgentNatively } from "./run.ts";
+import { harnessInvocationContext } from "./invocation-log.ts";
+import type { HarnessAdapter, SessionResumeStrategy, TaskAttemptRequest, TaskFailureKind, TaskResult, TaskUsage } from "../types.ts";
+import { inlinePersona } from "../request.ts";
+import { executionPrompt } from "../task-execution.ts";
+
+/** Fields the adapter reads from `claude -p --output-format json`. All optional: the CLI may evolve. */
+interface ClaudeResultEnvelope {
+  type?: string;
+  is_error?: boolean;
+  subtype?: string;
+  terminal_reason?: string;
+  api_error_status?: number | null;
+  result?: string;
+  permission_denials?: Array<{ tool_name?: string }>;
+  session_id?: string;
+  /** Token counts, present on recent Claude Code versions. */
+  usage?: {
+    input_tokens?: number;
+    output_tokens?: number;
+    cache_read_input_tokens?: number;
+    cache_creation_input_tokens?: number;
+  };
+  /** Monetary cost in USD, present on recent Claude Code versions. */
+  total_cost_usd?: number;
+}
+
+const STDOUT_PREVIEW_CHARS = 500;
+
+/**
+ * Claude Code CLI harness adapter.
+ *
+ * Invokes `claude -p` per task, parses the JSON result envelope, and returns a
+ * structured TaskResult.
+ *
+ * Agent selection is native when possible: if the owning agent's file lives
+ * under the project's `.claude/agents/` directory, the adapter passes
+ * `--agent <name>` so the CLI loads the persona itself and the persona is not
+ * inlined. For other harness roots (`.agents`, `.github`, `.opencode`) the CLI
+ * cannot discover the agent files, so the agent file body is included in the
+ * repository task's execution file instead. Text-only tasks remain inline.
+ *
+ * Expected CLI shapes:
+ *   claude -p "<short execution-file instruction>" --output-format json --agent <name> --permission-mode bypassPermissions
+ *   claude -p "<short execution-file instruction>" --output-format json --permission-mode bypassPermissions
+ *
+ * Set CLAUDE_BIN env var to override the claude binary path.
+ * Set CLAUDE_EXTRA_FLAGS env var to inject extra flags (e.g. "--model opus").
+ * `--permission-mode bypassPermissions` is passed by default so per-task tool
+ * permissions are auto-approved; this adapter runs non-interactively (no user
+ * is present to approve prompts).
+ */
+export class ClaudeAdapter implements HarnessAdapter {
+  readonly name = "claude";
+  readonly supportsConcurrency = true;
+  readonly capabilities = ["text", "repository-tools"] as const;
+  readonly defaultModel?: string;
+  /**
+   * Claude Code assigns its own session UUID on the first `-p` run and reports
+   * it in the JSON envelope's `session_id`; subsequent tasks resume it with
+   * `--resume <id>`. The engine captures the ID from the first result.
+   */
+  readonly sessionStrategy: SessionResumeStrategy = {
+    kind: "capture",
+    resumeFlags: (sessionId) => ["--resume", sessionId],
+    captureSessionId: (result) => result.sessionId,
+  };
+
+  private readonly bin: string;
+  private readonly extraFlags: string[];
+
+  constructor() {
+    this.bin = process.env["CLAUDE_BIN"] ?? "claude";
+    const extra = (process.env["CLAUDE_EXTRA_FLAGS"] ?? "").split(/\s+/).filter(Boolean);
+    const parsed = extractModelFlags(extra);
+    this.extraFlags = ["--permission-mode", "bypassPermissions", ...parsed.flags];
+    this.defaultModel = parsed.model;
+  }
+
+  async invoke(request: TaskAttemptRequest): Promise<TaskResult> {
+    const start = Date.now();
+    const { agent, task, repoRoot } = request;
+    const native = this.canSelectAgent(request);
+    const prompt = executionPrompt(request, native ? "" : inlinePersona(request));
+    const agentFlag = native ? ["--agent", agent.name] : [];
+    const modelFlag = request.effectiveModel ? ["--model", stripProviderPrefix(request.effectiveModel)] : [];
+    const sessionFlag = request.sessionId ? this.sessionStrategy.resumeFlags(request.sessionId) : [];
+    const args = ["-p", prompt, "--output-format", "json", ...agentFlag, ...modelFlag, ...sessionFlag, ...this.extraFlags];
+
+    const result = await runCommand(this.bin, args, {
+      cwd: repoRoot,
+      timeoutMs: request.budget.timeoutMs,
+      signal: request.signal,
+      maxBufferBytes: 10 * 1024 * 1024,
+      invocation: harnessInvocationContext(this.name, request),
+      activity: request.logHarnessActivity === true,
+    });
+
+    const stdout = result.stdout;
+    const stderr = result.stderr;
+    let sessionId: string | undefined;
+    let usage: TaskUsage = { source: "unavailable", note: "claude returned no result envelope" };
+    const failure = (errorMessage: string, failureKind: TaskFailureKind | undefined): TaskResult => ({
+      success: false,
+      outputFiles: [],
+      stdout,
+      stderr,
+      durationMs: Date.now() - start,
+      errorMessage,
+      failureKind,
+      sessionId,
+      usage,
+    });
+
+    if (result.error) return failure(result.error, result.failureKind);
+
+    const envelope = parseResultEnvelope(stdout);
+    sessionId = envelope?.session_id;
+    if (envelope) usage = claudeUsage(envelope);
+    if (sessionId) console.log(`[engine] claude session ${sessionId} (task ${task.id})`);
+
+    if (!envelope) {
+      if (result.status !== 0) {
+        return failure(stderr.trim() || `${this.bin} exited with status ${result.status}`, "configuration");
+      }
+      const preview = stdout.trim().slice(0, STDOUT_PREVIEW_CHARS);
+      const detail = preview ? `: ${preview}` : "";
+      return failure(`claude returned no JSON result envelope${detail}`, "exception");
+    }
+
+    if (envelope.is_error === true) {
+      return failure(envelopeErrorMessage(envelope, stderr), classifyEnvelopeFailure(envelope));
+    }
+
+    const denials = envelope.permission_denials ?? [];
+    if (denials.length > 0) {
+      const named = uniqueDeniedTools(envelope);
+      const listed = named.length > 0 ? named.join(", ") : "unnamed tool";
+      return failure(`claude denied tool calls under bypassPermissions: ${listed}`, "configuration");
+    }
+
+    if (result.status !== 0) {
+      return failure(`${this.bin} exited with status ${result.status} despite a success envelope`, "retryable");
+    }
+
+    const outputFiles = task.expectedOutputs.filter((path) =>
+      existsSync(resolve(repoRoot, path)),
+    );
+
+    return {
+      success: true,
+      outputFiles,
+      stdout: envelope.result ?? "",
+      stderr: "",
+      durationMs: Date.now() - start,
+      sessionId,
+      usage,
+    };
+  }
+
+  /** True when the Claude Code CLI can select this agent natively; see `canSelectAgentNatively`. */
+  private canSelectAgent(request: TaskAttemptRequest): boolean {
+    return canSelectAgentNatively(request, ".claude");
+  }
+}
+
+/**
+ * Reads the single JSON object `claude -p --output-format json` prints. Falls
+ * back to the last non-empty line so a banner or warning ahead of the envelope
+ * does not lose it. Anything that is not a JSON object counts as no envelope,
+ * and so does a JSON object carrying a `type` other than "result" (a streamed
+ * `system` or `assistant` message, say). An object with no `type` at all is
+ * still accepted, since the field is optional in the shapes we have seen.
+ */
+function parseResultEnvelope(stdout: string): ClaudeResultEnvelope | undefined {
+  const text = stdout.trim();
+  if (!text) return undefined;
+  const lines = text.split(/\r?\n/).filter((line) => line.trim());
+  const lastLine = lines.at(-1);
+  const candidates = lastLine && lastLine !== text ? [text, lastLine] : [text];
+  for (const candidate of candidates) {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(candidate);
+    } catch {
+      continue;
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) continue;
+    const envelope = parsed as ClaudeResultEnvelope;
+    if (envelope.type !== undefined && envelope.type !== "result") continue;
+    return envelope;
+  }
+  return undefined;
+}
+
+/**
+ * Maps the result envelope's usage fields, or reports "unavailable" when the
+ * installed Claude Code version does not include them.
+ */
+function claudeUsage(envelope: ClaudeResultEnvelope): TaskUsage {
+  const usage = envelope.usage;
+  const hasTokens = usage && (typeof usage.input_tokens === "number" || typeof usage.output_tokens === "number");
+  const cost = typeof envelope.total_cost_usd === "number" ? envelope.total_cost_usd : undefined;
+  if (!hasTokens && cost === undefined) {
+    return { source: "unavailable", note: "claude envelope reported no token usage" };
+  }
+  return {
+    inputTokens: usage?.input_tokens,
+    outputTokens: usage?.output_tokens,
+    cacheReadTokens: usage?.cache_read_input_tokens,
+    cacheWriteTokens: usage?.cache_creation_input_tokens,
+    costUsd: cost,
+    source: "harness",
+  };
+}
+
+/**
+ * `subtype` is "success" even for some hard errors (the not-logged-in case), so
+ * classification keys on the message and the API status before the subtype.
+ */
+function classifyEnvelopeFailure(envelope: ClaudeResultEnvelope): TaskFailureKind {
+  if (envelope.result && /not logged in/i.test(envelope.result)) return "configuration";
+  const status = envelope.api_error_status;
+  if (typeof status === "number") {
+    if (status === 429) return "retryable";
+    if (status >= 500) return "retryable";
+    if (status >= 400) return "configuration";
+  }
+  if (envelope.subtype === "error_max_turns" || envelope.subtype === "error_max_budget_usd") return "configuration";
+  return "retryable";
+}
+
+function envelopeErrorMessage(envelope: ClaudeResultEnvelope, stderr: string): string {
+  const message = envelope.result?.trim()
+    ? envelope.result
+    : `claude ${envelope.subtype ?? "error"} (${envelope.terminal_reason ?? "unknown"})`;
+  return stderr.trim() ? `${message}\n${stderr.trim()}` : message;
+}
+
+function uniqueDeniedTools(envelope: ClaudeResultEnvelope): string[] {
+  const names = (envelope.permission_denials ?? []).map((denial) => denial?.tool_name).filter((name): name is string => Boolean(name));
+  return [...new Set(names)];
+}
