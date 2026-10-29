@@ -3,7 +3,7 @@
 ## Current State
 **Phase**: APP-REGISTRY-AND-CONFIG-1
 **Status**: In Progress
-**Last Updated**: 2026-10-29T23:19:50.555Z
+**Last Updated**: 2026-10-29T23:23:00.923Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -21,6 +21,8 @@
   - Files: src/doctor/checks.ts, src/doctor/index.ts, src/cli/commands/doctor.ts, tests/unit/doctor.test.ts, src/cli/commands/not-implemented.ts, src/cli/program.ts, tests/unit/program.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.1: Parse and validate AppSpec from TOML (@cli-engineer)
   - Files: src/config/schema.ts, src/config/parse.ts, tests/unit/config-parse.test.ts
+- [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.2: Derive and validate app names (@cli-engineer)
+  - Files: src/config/name.ts, tests/unit/config-name.test.ts
 
 ## Current Task
 - None currently running
