@@ -3,7 +3,7 @@
 ## Current State
 **Phase**: APP-REGISTRY-AND-CONFIG-1
 **Status**: In Progress
-**Last Updated**: 2026-10-29T23:28:41.921Z
+**Last Updated**: 2026-10-29T23:31:20.919Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -25,9 +25,12 @@
   - Files: src/config/name.ts, tests/unit/config-name.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.3: Implement the on-disk registry and state cache (@cli-engineer)
   - Files: src/registry/store.ts, src/registry/state.ts, tests/unit/registry-store.test.ts
+- [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.5: Merge inline environment with the secrets file (@cli-engineer)
+  - Files: src/config/env.ts, tests/unit/config-env.test.ts
 
 ## Current Task
-- None currently running
+- [ ] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.4: Add per-app locks and port conflict checks (@platform-engineer)
+  - Status: In progress
 
 ## Remaining
 - [ ] Phase BUILDKIT-AND-RAILPACK-1: Phase 1: Compatibility Spike
