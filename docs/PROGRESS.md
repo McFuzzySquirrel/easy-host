@@ -3,7 +3,8 @@
 ## Current State
 **Phase**: APP-REGISTRY-AND-CONFIG-1
 **Status**: In Progress
-**Last Updated**: 2026-10-29T23:31:20.919Z
+**Validation Gaps**: 1 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-29T23:32:14.897Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -25,17 +26,17 @@
   - Files: src/config/name.ts, tests/unit/config-name.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.3: Implement the on-disk registry and state cache (@cli-engineer)
   - Files: src/registry/store.ts, src/registry/state.ts, tests/unit/registry-store.test.ts
+- [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.4: Add per-app locks and port conflict checks (@platform-engineer)
+  - Files: src/platform/lock.ts, src/registry/ports.ts, tests/unit/lock.test.ts, tests/unit/ports.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.5: Merge inline environment with the secrets file (@cli-engineer)
   - Files: src/config/env.ts, tests/unit/config-env.test.ts
 
 ## Current Task
-- [ ] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.4: Add per-app locks and port conflict checks (@platform-engineer)
-  - Status: In progress
+- None currently running
 
 ## Remaining
 - [ ] Phase BUILDKIT-AND-RAILPACK-1: Phase 1: Compatibility Spike
 - [ ] Phase BUILDKIT-AND-RAILPACK-2: Phase 2: Build Layer
-- [ ] Phase APP-REGISTRY-AND-CONFIG-1: Phase 1: Configuration and Registry
 - [ ] Phase ADD-AND-LIFECYCLE-1: Phase 1: Building Blocks
 - [ ] Phase ADD-AND-LIFECYCLE-2: Phase 2: Add and Read Commands
 - [ ] Phase UPDATE-AND-HEALTH-GATE-1: Phase 1: Diff and Swap
@@ -50,7 +51,7 @@
 - None
 
 ## Validation Gaps
-- None reported
+- Task REG-1.4: The conditional gated host check `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts` was not run because tests/integration/add.test.ts does not exist yet (ADD phase).
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
