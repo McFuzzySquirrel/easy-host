@@ -1,0 +1,36 @@
+{
+  "name": "easy-host",
+  "version": "0.1.0",
+  "description": "Self-host apps on a rootless Podman host with a small, predictable CLI.",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "easy-host": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "biome check .",
+    "test": "vitest run",
+    "test:integration": "EASY_HOST_INTEGRATION=1 vitest run tests/integration",
+    "test:packaging": "EASY_HOST_PACKAGING=1 vitest run tests/packaging"
+  },
+  "dependencies": {
+    "@clack/prompts": "1.8.1",
+    "commander": "15.0.0",
+    "execa": "10.2.1",
+    "ora": "9.4.1",
+    "picocolors": "1.1.1",
+    "smol-toml": "1.9.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.4",
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

@@ -7,7 +7,7 @@
   "viz": false,
   "vizPort": "",
   "autoCommit": true,
-  "logHarnessActivity": false,
+  "logHarnessActivity": true,
   "executionMode": "auto",
   "selectedTaskIds": []
 }
