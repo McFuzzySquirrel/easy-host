@@ -3,7 +3,7 @@
 ## Current State
 **Phase**: APP-REGISTRY-AND-CONFIG-1
 **Status**: In Progress
-**Last Updated**: 2026-10-29T23:23:00.923Z
+**Last Updated**: 2026-10-29T23:28:41.921Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -23,6 +23,8 @@
   - Files: src/config/schema.ts, src/config/parse.ts, tests/unit/config-parse.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.2: Derive and validate app names (@cli-engineer)
   - Files: src/config/name.ts, tests/unit/config-name.test.ts
+- [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.3: Implement the on-disk registry and state cache (@cli-engineer)
+  - Files: src/registry/store.ts, src/registry/state.ts, tests/unit/registry-store.test.ts
 
 ## Current Task
 - None currently running

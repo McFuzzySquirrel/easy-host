@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-29T23:23:00.922Z",
+  "lastUpdatedAt": "2026-10-29T23:28:41.920Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -368,10 +368,42 @@
     },
     "REG-1.3": {
       "taskId": "REG-1.3",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "cli-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 1,
+      "outputFiles": [
+        "src/registry/store.ts",
+        "src/registry/state.ts",
+        "tests/unit/registry-store.test.ts"
+      ],
+      "startedAt": "2026-10-29T23:23:01.112Z",
+      "usage": {
+        "source": "unavailable",
+        "note": "opencode usage unavailable: Unterminated string in JSON at position 400472 (line 1440 column 18)"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/REG-1.3.2026-10-29T23-28-41-916Z.attempt-1.result.json",
+          "usage": {
+            "source": "unavailable",
+            "note": "opencode usage unavailable: Unterminated string in JSON at position 400472 (line 1440 column 18)"
+          }
+        }
+      ],
+      "completedAt": "2026-10-29T23:28:41.918Z",
+      "agentOutput": "I'll start by reading the execution file.\nI'll start by exploring the repository structure and the relevant existing code.\nNow I have a clear picture. Let me implement the registry store.\nNow let me write the test suite.\nImplemented and verified REG-1.3. Summary of the work:\n\n## What was built\n\n**`src/registry/store.ts`**\n- `Registry` treats `apps/` as the authoritative list: `list()` scans real directories, parses every `config.toml`, and returns broken entries carrying the typed parse/read error instead of skipping them.\n- `writeFileAtomic()` writes a same-directory temp file, fsyncs it, optionally invokes the fault-injection `beforeRename` seam, renames over the target, and fsyncs the directory. A failed write removes the temp file and leaves the previous file intact.\n- `config.toml` is `0644`, `secrets.env` is `0600`, app and workspace directories are `0700`.\n- `create()` provisions the app + `workspace/` and refuses to overwrite; `remove()` requires explicit `confirmed: true` before touching the filesystem.\n- Symlinked app entries are reported broken rather than followed; regular files in `apps/` are ignored.\n\n**`src/registry/state.ts`**\n- `AppState` shape: `schemaVersion`, `name`, `images{current,previous}`, `containerId`, `health{status,checkedAt,detail}`, `createdAt`, `updatedAt`.\n- Lenient cache reads: only unparseable/non-object/wrong-`schemaVersion` documents trigger a rebuild; bad optional fields are defaulted and the directory name always wins.\n- Missing/invalid caches are rebuilt from the app directory plus an optional runtime snapshot and persisted atomically. A rebuild whose write fails still returns usable state with `persisted: false`, so the app never disappears.\n- `update()` merges image/container/health patches, stamps `checkedAt` for a health status, and persists atomically.\n\n## Files created\n\n- `src/registry/store.ts`\n- `src/registry/state.ts`\n- `tests/unit/registry-store.test.ts`\n\n## Validation run\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0 (26 files) |\n| `npm test -- tests/unit/registry-store.test.ts` | 35 passed |\n| `npm test` (full suite) | 237 passed / 8 files |\n| `npm run build` | exit 0 |\n| Compiled smoke test (`dist/registry`) | registry list + state rebuild worked |\n\nNo changes were made to `docs/artifacts/`; the pre-existing engine modifications to `docs/EXECUTION-AUDIT.jsonl` and `docs/WORKFLOW-STATE.json` were not touched.\n\n```forge-result\n{\"summary\":\"Implemented the directory-as-truth registry and lenient rebuildable state cache with crash-safe atomic writes and documented file modes; typecheck, lint, build, 35 focused tests, and the full 237-test suite pass.\",\"unresolved\":[],\"decisions\":[\"The directory tree is authoritative: list() never reads state.json, so deleting the cache cannot remove an app.\",\"state.json layout is {schemaVersion, name, images:{current,previous}, containerId, health:{status,checkedAt,detail}, createdAt, updatedAt}; containerId is included for OBS-FR-03 drift detection and name is for debugging only.\",\"Only unparseable JSON, a non-object document, or a different schemaVersion forces a rebuild; other bad/missing optional fields are salvaged so partial image history is kept.\",\"A rebuilt cache that cannot be persisted still returns usable state with persisted:false instead of failing the read (REG-FR-04, PRD-NF-06).\",\"Rebuild createdAt comes from config.toml birth/mtime when available; updatedAt uses the injected clock. update() stamps health.checkedAt when a status is set without a timestamp.\",\"AppState lives in src/registry/state.ts (the feature table mentions schema.ts) to keep REG-1.3 changes within its declared output files.\",\"create() provisions the app directory and workspace/ with 0700; config.toml, secrets.env, and state.json are created by their owning writers (state lazily on first load).\",\"Symlinked entries under apps/ are reported as broken and never followed; plain files are ignored because only directories are apps.\",\"state.json is written with mode 0644 because it holds no secrets; config.toml is 0644 and secrets.env is 0600 as required.\"],\"interfaces\":[\"Registry(appsDir | Paths): exists, record, list, readConfig, writeConfig, readSecrets, writeSecrets, create, remove({confirmed})\",\"AppRecord {name, directory, configPath, secretsPath, statePath, workspacePath}\",\"AppListEntry = OkAppEntry {status:'ok', spec} | BrokenAppEntry {status:'broken', error: EasyHostError}\",\"writeFileAtomic(target, contents, {mode?, beforeRename?}) and AtomicWriteOptions/BeforeRenameHook\",\"CONFIG_FILE_MODE=0644, SECRETS_FILE_MODE=0600, STATE_FILE_MODE=0644, APP_DIRECTORY_MODE=0700\",\"StateStore(appDir, {clock?, runtime?, beforeRename?}): load, readCache, rebuild, write, update, reset\",\"StateLoadResult {state, source:'cache'|'rebuilt', reason?:'missing'|'invalid', persisted}\",\"AppStatePatch {images?, containerId?, health?}\",\"isIsoTimestamp(value), STATE_SCHEMA_VERSION=1, HEALTH_STATUSES\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/registry-store.test.ts: 35 passed\",\"npm test: 237 passed across 8 files\",\"npm run build: exit 0\",\"compiled dist smoke test: registry list ok and state rebuilt\"],\"warnings\":[\"Contract addition for docs/other agents: state.json field set and semantics above; additive fields are safe, renames/removals should bump the state schemaVersion.\",\"New stable error codes: APP_NOT_FOUND, APP_NOT_A_DIRECTORY, MISSING_CONFIG, CONFIG_UNREADABLE, SECRETS_UNREADABLE, APP_NAME_CONFLICT, CONFIRMATION_REQUIRED, APP_CREATE_FAILED, APP_DELETE_FAILED, APPS_DIRECTORY_NOT_WRITABLE, APPS_DIRECTORY_INVALID, APPS_DIRECTORY_UNREADABLE, INVALID_APPS_DIRECTORY.\",\"File modes beyond the documented config/secrets pair: state.json 0644, app and workspace directories 0700.\",\"Registry.create creates <root>/apps when it is absent; all other mutations stay inside a single app directory.\",\"Stale .tmp files from a hard crash are not garbage-collected on read; they are hidden from the app listing and harmless to config parsing.\"]}\n```\n",
+      "artifactId": "work-reg-1-3-001",
+      "inputArtifactIds": [
+        "work-reg-1-1-001",
+        "work-reg-1-2-001",
+        "work-pre-1-2-001",
+        "work-pre-1-1-001",
+        "work-pre-1-3-001",
+        "work-pre-1-4-001",
+        "work-pre-1-5-001"
+      ]
     },
     "REG-1.4": {
       "taskId": "REG-1.4",
