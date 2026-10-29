@@ -3,7 +3,7 @@
 ## Current State
 **Phase**: PREREQUISITES-AND-DOCTOR-1
 **Status**: In Progress
-**Last Updated**: 2026-10-29T22:59:49.915Z
+**Last Updated**: 2026-10-29T23:04:23.474Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -13,6 +13,8 @@
   - Files: package.json, tsconfig.json, tsconfig.build.json, biome.json, vitest.config.ts, src/cli/index.ts, tests/unit/cli-entry.test.ts, .gitignore, package-lock.json
 - [x] Phase PREREQUISITES-AND-DOCTOR-1, Task PRE-1.2: Resolve and create the state root (@cli-engineer)
   - Files: src/platform/paths.ts, tests/unit/paths.test.ts
+- [x] Phase PREREQUISITES-AND-DOCTOR-1, Task PRE-1.3: Define the error taxonomy and exit codes (@cli-engineer)
+  - Files: src/cli/errors.ts, tests/unit/errors.test.ts, src/cli/index.ts
 
 ## Current Task
 - None currently running

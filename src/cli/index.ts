@@ -2,6 +2,7 @@
 
 import { readFileSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { runWithErrorHandling } from "./errors.js";
 
 interface PackageManifest {
   version?: unknown;
@@ -52,5 +53,7 @@ function isDirectExecution(): boolean {
 }
 
 if (isDirectExecution()) {
-  process.exitCode = main();
+  process.exitCode = runWithErrorHandling(main, {
+    json: process.argv.includes("--json"),
+  });
 }
