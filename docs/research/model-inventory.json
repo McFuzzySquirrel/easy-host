@@ -1,0 +1,141 @@
+{
+  "opencode_cli": {
+    "available": true,
+    "last_verified": "2026-10-29T20:00:10.965Z",
+    "models": [
+      {
+        "id": "deepseek/deepseek-flash"
+      },
+      {
+        "id": "deepseek/deepseek-v4-pro"
+      },
+      {
+        "id": "github-copilot/claude-fable-5"
+      },
+      {
+        "id": "github-copilot/claude-fable-5.1"
+      },
+      {
+        "id": "github-copilot/claude-haiku-4.5"
+      },
+      {
+        "id": "github-copilot/claude-haiku-5.5"
+      },
+      {
+        "id": "github-copilot/claude-opus-4.8"
+      },
+      {
+        "id": "github-copilot/claude-opus-4.8-fast"
+      },
+      {
+        "id": "github-copilot/claude-opus-5"
+      },
+      {
+        "id": "github-copilot/claude-opus-5.5"
+      },
+      {
+        "id": "github-copilot/claude-sonnet-4.6"
+      },
+      {
+        "id": "github-copilot/claude-sonnet-5"
+      },
+      {
+        "id": "github-copilot/claude-sonnet-5.5"
+      },
+      {
+        "id": "github-copilot/gemini-3.8-flash"
+      },
+      {
+        "id": "github-copilot/gemini-4-argon"
+      },
+      {
+        "id": "github-copilot/gpt-5.3-codex"
+      },
+      {
+        "id": "github-copilot/gpt-5.4-nano"
+      },
+      {
+        "id": "github-copilot/gpt-5.6-luna"
+      },
+      {
+        "id": "github-copilot/gpt-5.6-sol"
+      },
+      {
+        "id": "github-copilot/gpt-5.6-terra"
+      },
+      {
+        "id": "github-copilot/gpt-6-astra"
+      },
+      {
+        "id": "github-copilot/gpt-6-luna"
+      },
+      {
+        "id": "github-copilot/gpt-6-sol"
+      },
+      {
+        "id": "github-copilot/gpt-6.1-sol"
+      },
+      {
+        "id": "github-copilot/gpt-6.1-terra"
+      },
+      {
+        "id": "github-copilot/grok-4.5"
+      },
+      {
+        "id": "github-copilot/grok-4.6"
+      },
+      {
+        "id": "github-copilot/grok-4.7"
+      },
+      {
+        "id": "github-copilot/kimi-k3"
+      },
+      {
+        "id": "github-copilot/mai-code-1.1-flash"
+      },
+      {
+        "id": "ollama/gemma4:e4b"
+      },
+      {
+        "id": "ollama/qwen2.5:3b"
+      },
+      {
+        "id": "ollama/qwen3:8b"
+      },
+      {
+        "id": "opencode/beam-free"
+      },
+      {
+        "id": "opencode/big-pickle"
+      },
+      {
+        "id": "opencode/deepseek-v4.1-flash-free"
+      },
+      {
+        "id": "opencode/flint-40b-free"
+      },
+      {
+        "id": "opencode/glm-5.3-flash-free"
+      },
+      {
+        "id": "opencode/mimo-v2.6-flash-free"
+      },
+      {
+        "id": "opencode/nemotron-3.5-lightning-free"
+      },
+      {
+        "id": "opencode/nemotron-3.5-super-vl-free"
+      }
+    ],
+    "diagnostics": {
+      "command": [
+        "opencode",
+        "models"
+      ],
+      "exitCode": 0,
+      "raw_output": "deepseek/deepseek-flash\ndeepseek/deepseek-v4-pro\ngithub-copilot/claude-fable-5\ngithub-copilot/claude-fable-5.1\ngithub-copilot/claude-haiku-4.5\ngithub-copilot/claude-haiku-5.5\ngithub-copilot/claude-opus-4.8\ngithub-copilot/claude-opus-4.8-fast\ngithub-copilot/claude-opus-5\ngithub-copilot/claude-opus-5.5\ngithub-copilot/claude-sonnet-4.6\ngithub-copilot/claude-sonnet-5\ngithub-copilot/claude-sonnet-5.5\ngithub-copilot/gemini-3.8-flash\ngithub-copilot/gemini-4-argon\ngithub-copilot/gpt-5.3-codex\ngithub-copilot/gpt-5.4-nano\ngithub-copilot/gpt-5.6-luna\ngithub-copilot/gpt-5.6-sol\ngithub-copilot/gpt-5.6-terra\ngithub-copilot/gpt-6-astra\ngithub-copilot/gpt-6-luna\ngithub-copilot/gpt-6-sol\ngithub-copilot/gpt-6.1-sol\ngithub-copilot/gpt-6.1-terra\ngithub-copilot/grok-4.5\ngithub-copilot/grok-4.6\ngithub-copilot/grok-4.7\ngithub-copilot/kimi-k3\ngithub-copilot/mai-code-1.1-flash\nollama/gemma4:e4b\nollama/qwen2.5:3b\nollama/qwen3:8b\nopencode/beam-free\nopencode/big-pickle\nopencode/deepseek-v4.1-flash-free\nopencode/flint-40b-free\nopencode/glm-5.3-flash-free\nopencode/mimo-v2.6-flash-free\nopencode/nemotron-3.5-lightning-free\nopencode/nemotron-3.5-super-vl-free\n",
+      "stderr": ""
+    }
+  },
+  "last_verified": "2026-10-29T20:00:10.965Z"
+}
