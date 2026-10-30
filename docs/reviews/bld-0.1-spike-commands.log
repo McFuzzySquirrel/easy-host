@@ -1,0 +1,323 @@
+BLD-0.1 Phase 0 compatibility spike — command transcript
+Host: Ubuntu 26.04.1 LTS, kernel 7.0.0-42-generic, x86_64
+Executed: 2026-10-29 23:38–23:58 UTC
+Spike root: /tmp/opencode/easy-host-bld-0.1
+Outcome: PASS
+
+================================================================================
+1. PREFLIGHT
+================================================================================
+$ podman --version
+podman version 5.7.0
+$ uname -r; uname -m
+7.0.0-42-generic
+x86_64
+$ . /etc/os-release; echo "$PRETTY_NAME"
+Ubuntu 26.04.1 LTS
+$ podman info --format 'rootless={{.Host.Security.Rootless}} cgroupManager={{.Host.CgroupManager}} driver={{.Store.GraphDriverName}} arch={{.Host.Arch}}'
+rootless=true cgroupManager=systemd driver=overlay arch=amd64
+$ podman info | grep -E 'cgroupVersion|rootlessNetworkCmd|rootless|graphDriverName'
+  cgroupManager: systemd
+  cgroupVersion: v2
+  rootlessNetworkCmd: pasta
+    rootless: true
+  graphDriverName: overlay
+$ loginctl show-user "$(id -un)" -p Linger
+Linger=yes
+$ grep "^$(id -un):" /etc/subuid /etc/subgid
+/etc/subuid:mcfuzzysquirrel:100000:65536
+/etc/subgid:mcfuzzysquirrel:100000:65536
+$ sysctl kernel.apparmor_restrict_unprivileged_userns
+kernel.apparmor_restrict_unprivileged_userns = 1
+$ ls -l /dev/fuse
+crw-rw-rw- 1 root root 10, 229 Oct 30 00:32 /dev/fuse
+
+Note: /usr/local/bin/docker is a local shell shim, not the podman-docker package:
+$ file /usr/local/bin/docker
+/usr/local/bin/docker: Bourne-Again shell script, ASCII text executable
+$ cat /usr/local/bin/docker
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "compose" ]]; then
+  shift
+  exec podman-compose "$@"
+fi
+exec podman "$@"
+
+================================================================================
+2. RAILPACK 0.43.0
+================================================================================
+$ VER=0.43.0
+$ URL="https://github.com/railwayapp/railpack/releases/download/v$VER/railpack-v$VER-x86_64-unknown-linux-musl.tar.gz"
+$ curl -fL --retry 3 -o "$ROOT/tools/railpack.tar.gz" "$URL"
+  8.44M downloaded
+$ echo "248a8f60f36854aabed6124113631078a802de3461660855fc4de9c26065c1fb  $ROOT/tools/railpack.tar.gz" | sha256sum -c -
+/tmp/opencode/easy-host-bld-0.1/tools/railpack.tar.gz: OK
+$ tar -xzf "$ROOT/tools/railpack.tar.gz" -C "$ROOT/tools"
+$ "$ROOT/tools/railpack" --version
+railpack version 0.43.0
+
+================================================================================
+3. BUILDKIT IMAGE
+================================================================================
+$ IMG='docker.io/moby/buildkit:v0.34.1-rootless@sha256:f68752a5a94acfcdad2d07867b7075601a421638e17fc5f28efc1c814d0c4f89'
+$ /usr/bin/time -f 'pull_wall=%e s' podman pull "$IMG"
+pull_wall=51.35 s
+$ podman image inspect "$IMG" --format 'id={{.Id}} digest={{.Digest}} size={{.Size}}'
+id=9cca736f4c5c924382d15804fdd3e1702823c83ec19546e569e18ae33e700380
+digest=sha256:f68752a5a94acfcdad2d07867b7075601a421638e17fc5f28efc1c814d0c4f89
+size=267298905
+
+Note: the tag without the "v" prefix (0.34.1-rootless) does not exist on Docker Hub.
+
+================================================================================
+4. DAEMON ATTEMPTS (failure ladder)
+================================================================================
+
+--- 4a. image default entrypoint (rootlesskit), seccomp/apparmor unconfined ---
+$ podman run -d --name easy-host-buildkit-spike \
+    --label io.easy-host.role=buildkit \
+    --security-opt seccomp=unconfined --security-opt apparmor=unconfined \
+    -v "$ROOT/buildkit/state:/home/user/.local/share/buildkit" \
+    -v "$ROOT/buildkit/socket:/run/user/1000/buildkit" \
+    "$IMG" --addr unix:///run/user/1000/buildkit/buildkitd.sock \
+    --oci-worker-no-process-sandbox
+$ podman logs easy-host-buildkit-spike
+[rootlesskit:parent] error: failed to setup UID/GID map: newuidmap 8 [0 1000 1 1 100000 65536] failed: newuidmap: write to uid_map failed: Operation not permitted
+: exit status 1
+$ podman ps -a --filter name=easy-host-buildkit-spike --format '{{.Names}} {{.Status}}'
+easy-host-buildkit-spike Exited (1)
+
+--- 4b. same command plus --privileged ---
+$ podman run -d ... --privileged ...
+$ podman logs easy-host-buildkit-spike
+[rootlesskit:parent] error: failed to setup UID/GID map: newuidmap 8 [0 1000 1 1 100000 65536] failed: newuidmap: write to uid_map failed: Operation not permitted
+: exit status 1
+
+--- 4c. custom /etc/subuid range user:1001:64535, default entrypoint ---
+$ printf 'user:1001:64535\n' > "$ROOT/buildkit/subuid"
+$ printf 'user:1001:64535\n' > "$ROOT/buildkit/subgid"
+$ podman run -d ... \
+    -v "$ROOT/buildkit/subuid:/etc/subuid:ro" \
+    -v "$ROOT/buildkit/subgid:/etc/subgid:ro" ...
+$ podman logs easy-host-buildkit-spike
+buildkitd: open /home/user/.local/share/buildkit/buildkitd.lock: permission denied
+(rootlesskit child exited: exit status 1)
+
+--- 4d. same, state dir chmod 0777 ---
+$ chmod 0777 "$ROOT/buildkit/state" "$ROOT/buildkit/socket"
+$ podman run -d ... (same as 4c)
+$ podman ps -a --filter name=easy-host-buildkit-spike --format '{{.Names}} {{.Status}}'
+easy-host-buildkit-spike Up
+$ podman logs easy-host-buildkit-spike
+level=info msg="auto snapshotter: using overlayfs"
+level=warning msg="NoProcessSandbox is enabled. ..."
+level=info msg="found 1 workers"
+level=info msg="running server on /run/user/1000/buildkit/buildkitd.sock"
+$ ls -la "$ROOT/buildkit/socket/"
+srw-rw---- 1 100999 100999 ... buildkitd.sock
+=> socket is owned by the mapped subuid; host user cannot connect.
+
+--- 4e. add --userns=keep-id, clean state ---
+$ podman run -d ... --userns=keep-id ... (same subuid mounts)
+$ podman logs easy-host-buildkit-spike
+buildkitd: mkdir /home/user/.local/share/buildkit/runc-overlayfs/executor: permission denied
+$ podman unshare rm -rf "$ROOT/buildkit/state"/* ; chmod 0777 state socket
+$ podman run -d ... --userns=keep-id ...
+$ podman ps ... => Up
+$ ls -la "$ROOT/buildkit/socket/"
+srw-rw---- 1 mcfuzzysquirrel mcfuzzysquirrel ... buildkitd.sock
+$ buildctl --addr unix://$ROOT/buildkit/socket/buildkitd.sock debug workers
+ID                            PLATFORMS
+snqc6955o72qt2h8vxnchly7e     linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/386
+
+--- 4f. build with the rootlesskit daemon: apt fails ---
+# exec namespace observed inside a build container:
+uid_map
+         0       1000          1
+         1       1001      64535
+gid_map
+         0       1000          1
+         1       1001      64535
+# railpack build ...
+#5 0.065 E: setgroups 65534 failed - setgroups (22: Invalid argument)
+#5 0.065 E: setegid 65534 failed - setegid (22: Invalid argument)
+#5 0.080 E: Method gave invalid 400 URI Failure message: Failed to setgroups - setgroups (22: Invalid argument)
+#5 ERROR: process "sh -c apt-get update && apt-get install -y libatomic1" did not complete successfully: exit code: 100
+wall=169.46 s
+railpack_exit=1
+
+--- 4g. widen to user:1001:65534 ---
+$ printf 'user:1001:65534\n' > subuid; printf 'user:1001:65534\n' > subgid
+$ podman run -d ... --userns=keep-id ... (same mounts)
+$ podman logs easy-host-buildkit-spike
+[rootlesskit:parent] error: failed to setup UID/GID map: newuidmap 8 [0 1000 1 1 1001 65534] failed: newuidmap: write to uid_map failed: Operation not permitted
+: exit status 1
+=> the outer range would exceed the container's 65536-ID map.
+
+--- 4h. bypass rootlesskit: entrypoint buildkitd, image user 1000 ---
+$ podman run -d ... --userns=keep-id --entrypoint /usr/bin/buildkitd ...
+$ podman logs easy-host-buildkit-spike
+buildkitd: rootless mode requires to be executed as the mapped root in a user namespace; you may use RootlessKit for setting up the namespace
+
+--- 4i. run as --user 0, no privileged ---
+$ podman run -d ... --user 0 --entrypoint /usr/bin/buildkitd ...
+$ podman logs easy-host-buildkit-spike
+level=info msg="auto snapshotter: using native"
+level=info msg="running server on /run/user/1000/buildkit/buildkitd.sock"
+$ buildctl ... build --frontend dockerfile.v0 ...
+error: failed to solve: failed to read dockerfile: failed to mount /home/user/.local/tmp/buildkit-mount2032919208: [{Type:bind Source:/home/user/.local/share/buildkit/runc-native/snapshots/snapshots/1 Target: Options:[rbind ro nosuid nodev]}]: ... err: operation not permitted
+
+--- 4j. run as --user 0 with --cap-add SYS_ADMIN ---
+$ podman run -d ... --user 0 --cap-add SYS_ADMIN \
+    --security-opt seccomp=unconfined --security-opt apparmor=unconfined ...
+$ buildctl ... build ...
+error: failed to solve: process "/bin/sh -c echo ok" did not complete successfully: exit code: 1
+=> CAP_SYS_ADMIN alone is not sufficient.
+
+--- 4k. run as --user 0 with --privileged (WORKING) ---
+$ podman run -d --name easy-host-buildkit-spike \
+    --label io.easy-host.role=buildkit \
+    --user 0 --privileged \
+    --entrypoint /usr/bin/buildkitd \
+    -v "$ROOT/buildkit/state:/home/user/.local/share/buildkit" \
+    -v "$ROOT/buildkit/socket:/run/user/1000/buildkit" \
+    "$IMG" \
+    --addr unix:///run/user/1000/buildkit/buildkitd.sock \
+    --oci-worker-no-process-sandbox
+$ podman ps -a --filter name=easy-host-buildkit-spike --format '{{.Names}} {{.Status}}'
+easy-host-buildkit-spike Up
+$ podman logs easy-host-buildkit-spike
+level=info msg="auto snapshotter: using overlayfs"
+level=warning msg="NoProcessSandbox is enabled. Note that NoProcessSandbox allows build containers to kill (and potentially ptrace) an arbitrary process in the BuildKit host namespace. ..."
+level=info msg="found 1 workers"
+level=info msg="running server on /run/user/1000/buildkit/buildkitd.sock"
+$ podman inspect easy-host-buildkit-spike --format 'User={{.Config.User}} Privileged={{.HostConfig.Privileged}} SecurityOpt={{.HostConfig.SecurityOpt}} Binds={{.HostConfig.Binds}}'
+User=0 Privileged=true SecurityOpt=[unmask=all] Binds=[...socket:/run/user/1000/buildkit... ...state:/home/user/.local/share/buildkit...]
+$ buildctl --addr unix://$ROOT/buildkit/socket/buildkitd.sock debug workers
+ID                            PLATFORMS
+6i2gznc61tnin96s0vn88etyp     linux/amd64,linux/amd64/v2,linux/amd64/v3,linux/386
+
+================================================================================
+5. FIXTURE
+================================================================================
+$ npm_config_yes=true npm create vite@latest vite-spa -- --template react-ts
+create-vite v9.3.3
+Scaffolding project in /tmp/opencode/easy-host-bld-0.1/vite-spa...
+Done.
+$ find vite-spa -maxdepth 2 -type f | sort
+vite-spa/.gitignore
+vite-spa/index.html
+vite-spa/.oxlintrc.json
+vite-spa/package.json
+vite-spa/public/favicon.svg
+vite-spa/public/icons.svg
+vite-spa/README.md
+vite-spa/src/App.css
+vite-spa/src/App.tsx
+vite-spa/src/index.css
+vite-spa/src/main.tsx
+vite-spa/tsconfig.app.json
+vite-spa/tsconfig.json
+vite-spa/tsconfig.node.json
+vite-spa/vite.config.ts
+confirmed: no Dockerfile
+
+================================================================================
+6. COLD BUILD
+================================================================================
+$ export BUILDKIT_HOST="unix:///tmp/opencode/easy-host-bld-0.1/buildkit/socket/buildkitd.sock"
+$ COLD="localhost/easy-host-vite-spike:$(date -u +%Y%m%dT%H%M%SZ)"
+$ echo "COLD_TAG=$COLD"
+COLD_TAG=localhost/easy-host-vite-spike:20261029T234714Z
+$ /usr/bin/time -f 'wall=%e s maxrss=%M KB' \
+    railpack build "$ROOT/vite-spa" --name "$COLD" --progress plain
+... railpack detects Node 24.22.0, npm, vite static site, output dist ...
+#3 docker-image://ghcr.io/railwayapp/railpack-builder:mise-2026.10.14
+#3 DONE 196.7s
+#4 docker-image://ghcr.io/railwayapp/railpack-runtime:mise-2026.10.14
+#4 DONE 25.8s
+#5 install apt packages: libatomic1
+#5 DONE 102.7s
+#8 install mise packages: node
+#8 DONE 27.6s
+#16 npm install
+#16 DONE 27.9s
+#18 npm run build
+#18 dist/index.html 0.45 kB
+#18 dist/assets/index-GpEN3EET.js 222.44 kB
+#18 DONE 0.8s
+#21 exporting to docker image format
+#21 DONE 2.4s
+Loaded image: localhost/easy-host-vite-spike:20261029T234714Z
+Successfully built image in 258.46s
+wall=258.53 s maxrss=69544 KB
+railpack_exit=0
+
+$ podman image inspect "$COLD" --format 'ref={{.RepoTags}} id={{.Id}} digest={{.Digest}} size={{.Size}} created={{.Created}}'
+ref=[localhost/easy-host-vite-spike:20261029T234714Z]
+id=dbf908718759ed46994b7c8cdeca33b11ccae9a51fcf820401befcacedf01f56
+digest=sha256:6899fb02bae1c94badafa68d5bb5cb9197f6bc204ac56e9e6cba1e43caad0173
+size=157364566
+created=2026-10-29 23:51:27.579308764 +0000 UTC
+
+================================================================================
+7. WARM BUILD
+================================================================================
+$ sleep 1
+$ WARM="localhost/easy-host-vite-spike:$(date -u +%Y%m%dT%H%M%SZ)"
+WARM_TAG=localhost/easy-host-vite-spike:20261029T235139Z
+$ /usr/bin/time -f 'wall=%e s maxrss=%M KB' \
+    railpack build "$ROOT/vite-spa" --name "$WARM" --progress plain
+... all steps CACHED ...
+#21 DONE 0.4s
+Loaded image: localhost/easy-host-vite-spike:20261029T235139Z
+Successfully built image in 1.35s
+wall=1.42 s maxrss=47496 KB
+railpack_exit=0
+
+$ podman image inspect "$WARM" --format 'ref={{.RepoTags}} id={{.Id}} digest={{.Digest}} size={{.Size}}'
+ref=[localhost/easy-host-vite-spike:20261029T235139Z]
+id=40f73e4c3f16b1f471a42e5016a90e1a98aa1208138a528a60edf3dca255ea0d
+digest=sha256:d2bf092a7439729e49e5a38e6bac4a2a126177b48c7dc046169d46ca439eac68
+size=157364566
+
+================================================================================
+8. SMOKE TEST
+================================================================================
+$ podman run -d --name eh-spike-smoke -p 18080:80 "$WARM"
+$ curl -sS -o /dev/null -w 'http_code=%{http_code}\n' http://127.0.0.1:18080/
+http_code=200
+$ curl -sS http://127.0.0.1:18080/ | head -5
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+$ podman rm -f eh-spike-smoke
+
+================================================================================
+9. NO-DOCKER-LOADER PROBE (failure mode)
+================================================================================
+$ env PATH=/usr/bin:/bin railpack build "$ROOT/vite-spa" \
+    --name localhost/easy-host-vite-spike:nodocker --progress plain
+... all steps CACHED ...
+#21 exporting to docker image format
+#21 exporting layers done
+#21 exporting manifest sha256:af0c99bfcceb47ce5d41a44c0b6f2040966363f85d674a7ccdfa3367479b5586 done
+#21 exporting config sha256:28b0d46c8389652847b345a47d2bbb92fb6aada6380b2de020698a3f0591ddf2 done
+#21 sending tarball
+<no output for 300 s; command killed by timeout>
+
+Interpretation: Railpack 0.43.0 shells out to `docker load` after a successful solve.
+When the binary is absent, the loader goroutine dies and nothing drains the image
+pipe, so the build hangs forever at "sending tarball" instead of failing.
+The same build completes in 1.42 s when /usr/local/bin/docker (the podman shim) is present.
+
+================================================================================
+10. CLEANUP
+================================================================================
+$ podman rm -f easy-host-buildkit-spike
+$ podman rmi localhost/easy-host-vite-spike:20261029T234714Z \
+               localhost/easy-host-vite-spike:20261029T235139Z
+$ rm -rf /tmp/opencode/easy-host-bld-0.1/buildkit/state/*

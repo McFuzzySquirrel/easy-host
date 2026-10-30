@@ -1,0 +1,17 @@
+{
+  "taskId": "BLD-0.1",
+  "taskDigest": "a7ab0c7f4b780b30158bbabb03808b80abc5fdce22e0a13147f133d8d39a7ef2",
+  "reviewer": "mcfuzzysquirrel",
+  "reviewedAt": "2026-10-30T00:03:13.540Z",
+  "decision": "approved",
+  "evidence": [
+    {
+      "path": "docs/reviews/bld-0.1-spike.md",
+      "sha256": "2fdb49e5c84c14fbaaacee9743c5193589a84a3bb7900fe7d4f62284087974a4"
+    },
+    {
+      "path": "docs/reviews/bld-0.1-spike-commands.log",
+      "sha256": "5c7bc2d6f39c80dd8b7f03e3e56266577c15796fc9ec16208e50ebfd7365330d"
+    }
+  ]
+}
