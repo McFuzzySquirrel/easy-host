@@ -1,10 +1,10 @@
 # Project Progress
 
 ## Current State
-**Phase**: BUILDKIT-AND-RAILPACK-2
+**Phase**: ADD-AND-LIFECYCLE-1
 **Status**: In Progress
-**Validation Gaps**: 5 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T01:06:33.061Z
+**Validation Gaps**: 6 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T01:12:09.510Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -44,6 +44,8 @@
   - Files: src/platform/lock.ts, src/registry/ports.ts, tests/unit/lock.test.ts, tests/unit/ports.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.5: Merge inline environment with the secrets file (@cli-engineer)
   - Files: src/config/env.ts, tests/unit/config-env.test.ts
+- [x] Phase ADD-AND-LIFECYCLE-1, Task ADD-1.1: Clone and prepare a git workspace (@platform-engineer)
+  - Files: src/platform/git.ts, tests/unit/git.test.ts
 
 ## Current Task
 - None currently running
@@ -68,6 +70,7 @@
 - Task BLD-1.4: Real Railpack/BuildKit image builds are deferred to the gated BLD-1.6 integration test; provider detection and local runtime behavior were verified here.
 - Task BLD-1.6: Build durations are network-dependent; the cold Vite build ranged from 248s to 277s across runs.
 - Task REG-1.4: The conditional gated host check `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts` was not run because tests/integration/add.test.ts does not exist yet (ADD phase).
+- Task ADD-1.1: The gated host check EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts was not run because that suite is ADD-1.6 scope and does not exist yet.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
