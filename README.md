@@ -164,6 +164,7 @@ podman volume rm easy-host-blog-blog-data
 | [Observability and output](docs/features/07-observability-and-output.md) | JSON documents, exit codes, TTY and color behavior |
 | [Docs and packaging](docs/features/08-docs-and-packaging.md) | Install paths, completions, and the documentation plan |
 | [v0.1.0 release-gate record](docs/reviews/v1-success-scenarios-evidence.md) | Verified host, commands, and observed results |
+| [Migration note](docs/MIGRATION.md) | The rename from the old project name, the manual repository rename, and changes for early users |
 | [Project idea and decisions](docs/IDEA.md) | Background and settled design choices |
 
 Shell completions are shipped as generated files: [bash](completions/easy-host.bash), [zsh](completions/easy-host.zsh), and [fish](completions/easy-host.fish). Each file's header names its install location. There is no completion subcommand.

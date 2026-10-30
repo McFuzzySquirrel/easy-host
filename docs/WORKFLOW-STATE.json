@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-30T20:57:15.662Z",
+  "lastUpdatedAt": "2026-10-30T20:59:06.210Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -1901,10 +1901,52 @@
     },
     "DOC-1.6": {
       "taskId": "DOC-1.6",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "docs-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 1,
+      "outputFiles": [
+        "docs/MIGRATION.md",
+        "README.md",
+        "tests/docs/links.test.ts",
+        "tests/docs/migration.test.ts"
+      ],
+      "startedAt": "2026-10-30T20:57:15.817Z",
+      "usage": {
+        "inputTokens": 55898,
+        "outputTokens": 6416,
+        "reasoningTokens": 9604,
+        "cacheReadTokens": 1082624,
+        "cacheWriteTokens": 0,
+        "costUsd": 0.021244572000000003,
+        "source": "harness"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/DOC-1.6.2026-10-30T20-59-06-198Z.attempt-1.result.json",
+          "usage": {
+            "inputTokens": 55898,
+            "outputTokens": 6416,
+            "reasoningTokens": 9604,
+            "cacheReadTokens": 1082624,
+            "cacheWriteTokens": 0,
+            "costUsd": 0.021244572000000003,
+            "source": "harness"
+          }
+        }
+      ],
+      "completedAt": "2026-10-30T20:59:06.204Z",
+      "agentOutput": "I'll start by reading the execution file to understand the task.\nI'll explore the repository structure and the relevant docs/tests first.\nNow let me read the key reference documents.\nNow I'll create the migration note, extend the docs drift suite, and add the focused migration test.\nNow let me run the declared validation and the new focused test.\n## Result report\n\n### Files created or changed\n\n| File | Change |\n|---|---|\n| `docs/MIGRATION.md` | New migration note: old/new names, manual repository rename, what the old README claimed, concrete changes, and behavioral differences. |\n| `tests/docs/migration.test.ts` | New 8-test drift suite for the migration note. |\n| `tests/docs/links.test.ts` | Extended `DOCUMENTED_MARKDOWN` with `docs/MIGRATION.md`, so every migration-note link and anchor is checked. |\n| `README.md` | Added the migration note to the Documentation index. |\n\nNo runtime source, `package.json`, completions, or execution artifacts were changed.\n\n### Requirement coverage\n\n- **DOC-FR-07** — Documents the rename from `react-hoster` to `easy-host`, states the repository is still named `react-hoster` and that renaming it is a manual step outside this work, quotes the old README, and lists install command, binary name, config location, Podman minimum, and behavioral differences.\n- **DOC-NF-02** — Plain Markdown, real ATX headings, no images, `<script>`, or ANSI escapes.\n- **Acceptance criteria** — Both names appear; the repository rename is explicitly manual; the four concrete changes are tabulated; all relative links resolve.\n\n### Exact facts documented\n\n- Podman: rootless `>= 5.7.0, < 6.0.0`; 6.x excluded while unstable and must be downgraded.\n- Node.js `24 or newer`; install commands `npm install` then `npm install -g .`.\n- Binary: `easy-host`, e.g. `easy-host doctor`.\n- Config: `<state-root>/apps/<app>/config.toml`; state root is `$EASY_HOST_HOME`, else `$XDG_DATA_HOME/easy-host`, else `~/.local/share/easy-host`.\n- The note documents no exit codes or file modes, so none were claimed.\n\n### Verification\n\n| Command | Result |\n|---|---|\n| `npm test -- tests/docs/links.test.ts` | 26/26 passed |\n| `npm test -- tests/docs/migration.test.ts` | 8/8 passed |\n| `npm test -- tests/docs/reference.test.ts` | 15/15 passed |\n| `npm run typecheck` | exit 0 |\n| `npm test` | 867/867 passed across 37 files |\n| `npm run lint` | exit 0 (3 pre-existing infos in `image-label` files) |\n\n### Warnings / limitations\n\n- The old README documented no install command, config location, or Podman minimum, so the note marks those old cells “Not documented”/“Not stated” rather than inventing values.\n- `docs/MIGRATION.md` is not in `package.json` `files`; changing that is out of scope for this task. The README already links other repository-only docs, so installed-tarball behavior is unchanged.\n\n```forge-result\n{\"summary\":\"Added docs/MIGRATION.md documenting the react-hoster to easy-host rename, the manual repository rename, the old README's claims, and the four concrete changes; extended the docs link test and added an 8-test migration drift suite. Links (26), migration (8), reference (15), typecheck, lint, and the full 867-test suite pass.\",\"unresolved\":[],\"decisions\":[\"The old README documented no install command, binary, config location, or Podman minimum, so the migration table marks those old values as not documented instead of inventing legacy values.\",\"The repository-rename test forbids claims about the repository while still allowing the statement that the project is now easy-host; a synthetic-claim test proves the detection is non-vacuous.\",\"The note links to the README, PRD, PRD version history, config location, prerequisites, supporting stacks, volume safety, CLI reference, and timer guide so every changed fact has a live reference.\"],\"interfaces\":[\"DOCUMENTED_MARKDOWN in tests/docs/links.test.ts now includes docs/MIGRATION.md, so later docs additions are checked for link and anchor resolution automatically.\",\"tests/docs/migration.test.ts exports no constants; its localLinkTargets and repositoryRenameClaims helpers are file-local.\"],\"tests\":[\"npm test -- tests/docs/links.test.ts: 26 passed\",\"npm test -- tests/docs/migration.test.ts: 8 passed\",\"npm test -- tests/docs/reference.test.ts: 15 passed\",\"npm run typecheck: exit 0\",\"npm test: 867 passed across 37 files\",\"npm run lint: exit 0 with 3 pre-existing infos\"],\"warnings\":[\"docs/MIGRATION.md is not included in package.json files; changing packaging is outside this task and prohibited by its constraints.\",\"The old README's claims were verified against the bootstrap commit 2ed0d57; the note does not invent pre-rename install, config, or Podman values that never existed.\"],\"validationLimitations\":[\"No clean-host manual walkthrough was run; this task changed documentation and documentation tests only.\"]}\n```\n",
+      "validationLimitations": [
+        "No clean-host manual walkthrough was run; this task changed documentation and documentation tests only."
+      ],
+      "artifactId": "work-doc-1-6-001",
+      "inputArtifactIds": [
+        "work-doc-1-3-001",
+        "work-doc-1-1-001",
+        "work-doc-1-2-001"
+      ]
     }
   },
   "phases": {

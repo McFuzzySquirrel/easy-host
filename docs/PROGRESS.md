@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: DOCS-AND-PACKAGING-2
 **Status**: In Progress
-**Validation Gaps**: 45 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T20:57:15.667Z
+**Validation Gaps**: 46 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T20:59:06.215Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -94,12 +94,14 @@
   - Files: docs/operations/prerequisites.md, docs/operations/systemd-timer.md, tests/docs/links.test.ts
 - [x] Phase DOCS-AND-PACKAGING-2, Task DOC-1.5: Write the CLI and config reference (@docs-engineer)
   - Files: docs/reference/cli.md, docs/reference/config.md, tests/docs/reference.test.ts, README.md, tests/docs/links.test.ts
+- [x] Phase DOCS-AND-PACKAGING-2, Task DOC-1.6: Document the rename and migration (@docs-engineer)
+  - Files: docs/MIGRATION.md, README.md, tests/docs/links.test.ts, tests/docs/migration.test.ts
 
 ## Current Task
 - None currently running
 
 ## Remaining
-- [ ] Phase DOCS-AND-PACKAGING-2: Phase 2: Operator Documentation
+- [x] No remaining phases
 
 ## Blockers
 - None
@@ -150,6 +152,7 @@
 - Task DOC-1.4: No clean-shell manual walkthrough of the guides was run; it requires network installs and a prepared Podman host.
 - Task DOC-1.5: No manual clean-shell walkthrough on a prepared Podman host was run; claims were verified against source and the CLI program.
 - Task DOC-1.5: Lint exits successfully but reports three pre-existing useTemplate infos in image-label source and test files.
+- Task DOC-1.6: No clean-host manual walkthrough was run; this task changed documentation and documentation tests only.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e

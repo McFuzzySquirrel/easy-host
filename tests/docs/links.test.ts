@@ -46,6 +46,7 @@ const DOCUMENTED_MARKDOWN = [
   "docs/operations/systemd-timer.md",
   "docs/reference/cli.md",
   "docs/reference/config.md",
+  "docs/MIGRATION.md",
 ] as const;
 
 const README_PATH = join(REPO_ROOT, "README.md");
