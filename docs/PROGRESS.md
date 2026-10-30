@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: BUILDKIT-AND-RAILPACK-2
 **Status**: In Progress
-**Validation Gaps**: 3 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T00:30:05.315Z
+**Validation Gaps**: 4 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T00:33:05.939Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -28,6 +28,8 @@
   - Files: src/platform/buildkit.ts, tests/unit/buildkit.test.ts
 - [x] Phase BUILDKIT-AND-RAILPACK-2, Task BLD-1.3: Build a workspace into a tagged image (@build-engineer)
   - Files: src/platform/build.ts, tests/unit/build.test.ts
+- [x] Phase BUILDKIT-AND-RAILPACK-2, Task BLD-1.4: Create the three supported stack fixtures (@build-engineer)
+  - Files: fixtures/vite-spa/package.json, fixtures/vite-spa/index.html, fixtures/vite-spa/vite.config.ts, fixtures/vite-spa/src/main.tsx, fixtures/express-api/package.json, fixtures/express-api/server.js, fixtures/fastapi-app/requirements.txt, fixtures/fastapi-app/main.py, tests/unit/fixtures.test.ts
 - [x] Phase BUILDKIT-AND-RAILPACK-2, Task BLD-1.5: Add build prerequisites to doctor (@cli-engineer)
   - Files: src/doctor/build-checks.ts, src/doctor/index.ts, tests/unit/doctor-build.test.ts, tests/unit/doctor.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.1: Parse and validate AppSpec from TOML (@cli-engineer)
@@ -62,6 +64,7 @@
 ## Validation Gaps
 - Task BLD-1.3: tests/integration/build.test.ts does not exist yet and was not run.
 - Task BLD-1.3: No buildkitd was started and no image was built on the real host in this task.
+- Task BLD-1.4: Real Railpack/BuildKit image builds are deferred to the gated BLD-1.6 integration test; provider detection and local runtime behavior were verified here.
 - Task REG-1.4: The conditional gated host check `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts` was not run because tests/integration/add.test.ts does not exist yet (ADD phase).
 
 ## Notes
