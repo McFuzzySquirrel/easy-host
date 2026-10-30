@@ -1,10 +1,10 @@
 # Project Progress
 
 ## Current State
-**Phase**: DOCS-AND-PACKAGING-1
+**Phase**: DOCS-AND-PACKAGING-2
 **Status**: In Progress
-**Validation Gaps**: 40 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T19:46:28.521Z
+**Validation Gaps**: 42 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T19:54:55.282Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -88,6 +88,8 @@
   - Files: package.json, tests/packaging/install.test.ts
 - [x] Phase DOCS-AND-PACKAGING-1, Task DOC-1.2: Generate shell completions from the command definitions (@cli-engineer)
   - Files: scripts/generate-completions.ts, completions/easy-host.bash, completions/easy-host.zsh, completions/easy-host.fish, tests/unit/completions.test.ts
+- [x] Phase DOCS-AND-PACKAGING-2, Task DOC-1.3: Rewrite the README for easy-host (@docs-engineer)
+  - Files: README.md, tests/docs/links.test.ts
 
 ## Current Task
 - None currently running
@@ -139,6 +141,8 @@
 - Task DOC-1.1: The clone and git-tag install paths were manually probed, not added to the automated packaging suite.
 - Task DOC-1.2: zsh and fish are not installed on this host, so those files were structurally validated but not executed by their shells.
 - Task DOC-1.2: The gated packaging install suite was not rerun (npm registry dependency); npm pack --dry-run verified the completion files are in the tarball.
+- Task DOC-1.3: A clean-shell manual walkthrough of the install and quickstart was not run; it requires network installs and a Podman host.
+- Task DOC-1.3: The gated packaging suite was not rerun because it requires registry access.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
