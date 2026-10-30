@@ -16,7 +16,7 @@
  * echoed or retained (`PRD-NF-10`).
  */
 
-import { text as clackText, isCancel } from "@clack/prompts";
+import { confirm as clackConfirm, text as clackText, isCancel } from "@clack/prompts";
 import { deriveAppName } from "../config/name.js";
 import { APP_SPEC_DEFAULTS, MAX_PORT, MIN_HOST_PORT } from "../config/schema.js";
 import { UsageError } from "./errors.js";
@@ -73,6 +73,39 @@ export function createClackPrompter(options: InteractiveSessionOptions = {}): Pr
         ...(prompt.validate === undefined
           ? {}
           : { validate: (value: string | undefined) => prompt.validate?.(value ?? "") }),
+      });
+
+      return isCancel(answer) ? undefined : answer;
+    },
+  };
+}
+
+/** One yes/no question. Tests implement this narrow shape. */
+export interface PromptConfirmOptions {
+  readonly message: string;
+  /** Answer selected when the operator just presses enter. */
+  readonly initialValue?: boolean;
+}
+
+/**
+ * The confirmation surface used by destructive commands. `undefined` means the
+ * operator cancelled the prompt, which every caller must treat as "do nothing".
+ */
+export interface Confirmer {
+  confirm(options: PromptConfirmOptions): Promise<boolean | undefined>;
+}
+
+/**
+ * A `@clack/prompts`-backed yes/no confirmer. Destructive commands only call it
+ * after `isInteractiveSession` returned true, so a piped invocation never
+ * reaches a prompt.
+ */
+export function createClackConfirmer(): Confirmer {
+  return {
+    async confirm(prompt) {
+      const answer = await clackConfirm({
+        message: prompt.message,
+        ...(prompt.initialValue === undefined ? {} : { initialValue: prompt.initialValue }),
       });
 
       return isCancel(answer) ? undefined : answer;

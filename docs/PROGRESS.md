@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: ROLLBACK-AND-REMOVE-1
 **Status**: In Progress
-**Validation Gaps**: 29 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T05:21:26.619Z
+**Validation Gaps**: 31 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T05:31:10.508Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -68,6 +68,8 @@
   - Files: src/lifecycle/rollback.ts, src/cli/commands/rollback.ts, tests/unit/rollback.test.ts
 - [x] Phase ROLLBACK-AND-REMOVE-1, Task RBK-1.2: Retain exactly two images per app (@lifecycle-engineer)
   - Files: src/lifecycle/retain.ts, tests/unit/retain.test.ts, src/lifecycle/rollback.ts, src/lifecycle/update.ts, tests/unit/rollback.test.ts, tests/unit/update.test.ts
+- [x] Phase ROLLBACK-AND-REMOVE-1, Task RBK-1.3: Remove an app without deleting data by accident (@lifecycle-engineer)
+  - Files: src/lifecycle/remove.ts, src/cli/commands/remove.ts, tests/unit/remove.test.ts, src/cli/prompts.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.1: Freeze the JSON output contract (@cli-engineer)
   - Files: src/cli/json.ts, src/cli/schemas.ts, tests/unit/json.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/not-implemented.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/errors.ts, src/cli/index.ts, src/cli/program.ts, src/doctor/index.ts, tests/unit/cli-entry.test.ts, tests/unit/program.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.2: Make human output TTY-aware and accessible (@cli-engineer)
@@ -81,7 +83,6 @@
 - None currently running
 
 ## Remaining
-- [ ] Phase ROLLBACK-AND-REMOVE-1: Phase 1: Rollback, Retention, and Remove
 - [ ] Phase ROLLBACK-AND-REMOVE-2: Phase 2: Proof and Release Gate
 - [ ] Phase DOCS-AND-PACKAGING-1: Phase 1: Install and Generate
 - [ ] Phase DOCS-AND-PACKAGING-2: Phase 2: Operator Documentation
@@ -111,6 +112,8 @@
 - Task RBK-1.1: No real Podman container swap, image, or HTTP probe was exercised; runtime, prober, and clock were injected fakes, and the state cache/registry were the real filesystem implementations under a temporary root.
 - Task RBK-1.2: No gated EASY_HOST_INTEGRATION suite was run; RBK-1.2's declared checks are unit-level, and the gated update/rollback suites (UPD-1.4, RBK-1.4) are qa-engineer-owned.
 - Task RBK-1.2: Real image removal was not exercised end to end because the host has no easy-host-labelled images; the real adapter's list and idempotent-remove paths were smoke-tested against Podman 5.7.0.
+- Task RBK-1.3: No gated EASY_HOST_INTEGRATION suite was run; RBK-1.5 is qa-engineer-owned. No real Podman container, image, or volume was exercised by this unit suite.
+- Task RBK-1.3: No command-registration change was made because program.ts is outside this task's expected outputs and owned by cli-engineer.
 - Task OBS-1.1: No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.
 - Task OBS-1.1: The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy.
 - Task OBS-1.2: Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software.
