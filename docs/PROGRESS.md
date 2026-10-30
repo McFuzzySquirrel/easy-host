@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: OBSERVABILITY-AND-OUTPUT-1
 **Status**: In Progress
-**Validation Gaps**: 15 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T03:20:53.555Z
+**Validation Gaps**: 16 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T03:25:32.861Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -58,6 +58,8 @@
   - Files: tests/integration/add.test.ts, src/platform/podman.ts, tests/unit/podman.test.ts
 - [x] Phase UPDATE-AND-HEALTH-GATE-1, Task UPD-1.1: Classify an update as no-op, config-only, or rebuild (@lifecycle-engineer)
   - Files: src/lifecycle/diff.ts, tests/unit/diff.test.ts
+- [x] Phase UPDATE-AND-HEALTH-GATE-1, Task UPD-1.2: Swap a container with auto-revert (@lifecycle-engineer)
+  - Files: src/lifecycle/swap.ts, tests/unit/swap.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.1: Freeze the JSON output contract (@cli-engineer)
   - Files: src/cli/json.ts, src/cli/schemas.ts, tests/unit/json.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/not-implemented.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/errors.ts, src/cli/index.ts, src/cli/program.ts, src/doctor/index.ts, tests/unit/cli-entry.test.ts, tests/unit/program.test.ts
 
@@ -65,7 +67,6 @@
 - None currently running
 
 ## Remaining
-- [ ] Phase UPDATE-AND-HEALTH-GATE-1: Phase 1: Diff and Swap
 - [ ] Phase UPDATE-AND-HEALTH-GATE-2: Phase 2: Update Command and Proof
 - [ ] Phase ROLLBACK-AND-REMOVE-1: Phase 1: Rollback, Retention, and Remove
 - [ ] Phase ROLLBACK-AND-REMOVE-2: Phase 2: Proof and Release Gate
@@ -90,6 +91,7 @@
 - Task ADD-1.6: A SIGKILL of the runner itself would bypass afterAll; the suite tolerates crashes by naming every resource uniquely and verifying removal, but that path is reasoned, not exercised.
 - Task ADD-1.6: ADD-FR-04's TCP probe mode is unit-tested (tests/unit/probe.test.ts) and not re-proven on the host, because all three v1 fixtures answer over HTTP.
 - Task UPD-1.1: No Podman, git, filesystem, or registry I/O is involved in this module by design; only the gated update integration suite (UPD-1.4, owned by qa-engineer) can prove the later swap path on a real host.
+- Task UPD-1.2: No real Podman container swap or HTTP probe was exercised here; all runtime and probe behavior was injected fakes.
 - Task OBS-1.1: No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.
 - Task OBS-1.1: The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy.
 

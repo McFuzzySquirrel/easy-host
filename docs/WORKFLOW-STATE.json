@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-30T03:20:53.553Z",
+  "lastUpdatedAt": "2026-10-30T03:25:32.859Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -1058,10 +1058,43 @@
     },
     "UPD-1.2": {
       "taskId": "UPD-1.2",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "lifecycle-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 1,
+      "outputFiles": [
+        "src/lifecycle/swap.ts",
+        "tests/unit/swap.test.ts"
+      ],
+      "startedAt": "2026-10-30T03:20:53.602Z",
+      "usage": {
+        "source": "unavailable",
+        "note": "opencode usage unavailable: Unterminated string in JSON at position 474036 (line 1885 column 21)"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/UPD-1.2.2026-10-30T03-25-32-852Z.attempt-1.result.json",
+          "usage": {
+            "source": "unavailable",
+            "note": "opencode usage unavailable: Unterminated string in JSON at position 474036 (line 1885 column 21)"
+          }
+        }
+      ],
+      "completedAt": "2026-10-30T03:25:32.855Z",
+      "agentOutput": "## Task report\n\nImplemented the health-gated swap primitive in `src/lifecycle/swap.ts` with an injectable runtime, probe, reporter, state writer, and clock.\n\n**Transition implemented**\n\n1. `stopping` — stop and remove the currently serving container so the fixed name and host port are free.\n2. `starting` — run the candidate with the same app, bind, host port, container port, environment, and named volumes.\n3. `probing` — probe the candidate with the injected probe, hard-bounded by the startup budget plus one capped settling interval.\n4. `keeping` — on health, record only `current = candidate` and `previous = replaced image`, then return `kept`.\n5. `reverting` — on any candidate failure after the old container stopped, stop and remove the candidate and restart the previously serving image.\n6. `reverted` — probe the restored container once, record health/container facts while leaving both image references unchanged, and return `reverted` with failure and recovery details.\n\nFailure/recovery paths are reported, never thrown: the caller maps `status === \"reverted\"` to `HealthError` (exit 4).\n\n**Verification**\n\n- `npm run typecheck` — pass\n- `npm run lint` — pass\n- `npm test -- tests/unit/swap.test.ts` — 14/14 pass\n- `npm test` — 603/603 pass across 24 files\n- `npm run build` — pass\n\n**Files created**\n\n- `src/lifecycle/swap.ts`\n- `tests/unit/swap.test.ts`\n\nNo other files were changed. The pre-existing modifications to `docs/EXECUTION-AUDIT.jsonl` and `docs/WORKFLOW-STATE.json` are engine-owned and were not touched.\n\n```forge-result\n{\"summary\":\"Implemented src/lifecycle/swap.ts with a health-gated stop/start/probe/keep-or-revert sequence, ordered phase reporting, a bounded hung-probe deadline, and state writes that update images only after candidate health. Added 14 focused tests covering keep, healthy and unhealthy recovery, candidate start failure, cleanup failure during recovery, hung candidate and recovery probes, missing current containers, state write failure, input validation, and secret-free output. Typecheck, lint, focused tests, full 603-test suite, and build pass.\",\"unresolved\":[],\"decisions\":[\"Any failure after the current container stops enters the revert path, including candidate start failure, so the previous image is always restarted before returning.\",\"The old container is stopped and removed before the candidate starts because the fixed container name must be free; only containers are deleted, never images.\",\"State is written with current=candidate and previous=replaced image only after a healthy probe; a revert writes health and container facts but omits images entirely.\",\"A probe that does not settle is cut off at the startup budget plus one capped probe interval, which absorbs timer ordering without letting a hung prober stall the operation.\",\"Recovery start and probe phases are folded into reverting/reverted so the emitted phase order stays stopping, starting, probing, reverting, reverted.\"],\"interfaces\":[\"swapApp(request, dependencies?): Promise<SwapResult>\",\"SwapRequest, SwapSpec, SwapDependencies, SwapRuntime, SwapProber, SwapReporter, SwapStateStore\",\"SwapKeptResult, SwapRevertedResult, SwapResult, SwapFailure, SwapRecovery, SwapImages\",\"SWAP_PHASES, SWAP_STATUSES, SWAP_FAILURE_CODES, SWAP_PROBE_SETTLE_MS, swapProbeDeadlineMs\",\"createDefaultSwapRuntime, createDefaultSwapProber, createDefaultSwapReporter\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/swap.test.ts: 14 passed\",\"npm test: 603 passed\",\"npm run build: exit 0\"],\"warnings\":[\"The gated host integration suite was not run; UPD-1.4 owns tests/integration/update.test.ts and is the real-host proof of this swap.\",\"swapApp returns a reverted result rather than throwing exit 4; the update orchestrator must map that status to HealthError, as documented in the module.\"],\"validationLimitations\":[\"No real Podman container swap or HTTP probe was exercised here; all runtime and probe behavior was injected fakes.\"]}\n```\n",
+      "validationLimitations": [
+        "No real Podman container swap or HTTP probe was exercised here; all runtime and probe behavior was injected fakes."
+      ],
+      "artifactId": "work-upd-1-2-001",
+      "inputArtifactIds": [
+        "work-upd-1-1-001",
+        "work-add-1-2-001",
+        "work-add-1-3-001",
+        "work-add-1-4-001",
+        "work-add-1-5-001",
+        "work-add-1-6-001"
+      ]
     },
     "UPD-1.3": {
       "taskId": "UPD-1.3",
