@@ -10,6 +10,7 @@ import {
 } from "./build-checks.js";
 import {
   checkBootRestart,
+  checkDockerLoader,
   checkGit,
   checkLinger,
   checkNode,
@@ -137,6 +138,7 @@ export function runDoctor(options: DoctorOptions = {}): DoctorReport {
   const checks = [
     checkPodman(environment),
     checkPodmanRootless(environment),
+    checkDockerLoader(environment),
     checkLinger(environment),
     checkBootRestart(environment),
     checkGit(environment),

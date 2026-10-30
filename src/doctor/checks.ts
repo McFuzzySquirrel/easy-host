@@ -260,6 +260,54 @@ export function checkPodmanRootless(environment: DoctorCheckEnvironment): Doctor
   };
 }
 
+/**
+ * A docker-compatible image loader.
+ *
+ * Railpack finishes a build by exporting the image through `docker load`; the
+ * managed BuildKit daemon only produces the tarball. Podman does not provide a
+ * `docker` command unless the `podman-docker` shim is installed, and `add`
+ * cannot install packages, so a host without a loader burns a full build
+ * before failing at the export step. Checking it here fails in milliseconds.
+ */
+export function checkDockerLoader(environment: DoctorCheckEnvironment): DoctorCheck {
+  const outcome = invoke(environment, "docker", ["--version"]);
+
+  if (outcome.ok) {
+    const found =
+      firstLine(outcome.stdout) ?? firstLine(outcome.stderr) ?? "docker-compatible loader";
+    return {
+      id: "docker-loader",
+      label: "Image loader",
+      status: "pass",
+      detail: `A docker-compatible loader is on PATH (${found}).`,
+      remediation: null,
+    };
+  }
+
+  if (isMissing(outcome)) {
+    return {
+      id: "docker-loader",
+      label: "Image loader",
+      status: "fail",
+      detail:
+        "No docker-compatible loader was found on PATH; Railpack cannot load the image it builds into Podman.",
+      remediation:
+        'Install the Podman docker shim (Ubuntu/Debian: sudo apt install podman-docker), then run "easy-host doctor" again.',
+    };
+  }
+
+  const found =
+    firstLine(outcome.stderr) ?? firstLine(outcome.stdout) ?? `exit ${outcome.exitCode}`;
+  return {
+    id: "docker-loader",
+    label: "Image loader",
+    status: "fail",
+    detail: `docker --version did not succeed (${found}).`,
+    remediation:
+      'Install or repair the Podman docker shim (Ubuntu/Debian: sudo apt install podman-docker), then run "easy-host doctor" again.',
+  };
+}
+
 /** systemd user lingering (`PRE-FR-03`). */
 export function checkLinger(environment: DoctorCheckEnvironment): DoctorCheck {
   const outcome = invoke(environment, "loginctl", [

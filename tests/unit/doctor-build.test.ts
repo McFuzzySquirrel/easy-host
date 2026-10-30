@@ -38,6 +38,7 @@ const ANSI_ESCAPE = "\u001B[";
 const EXPECTED_ORDER = [
   "podman",
   "podman-rootless",
+  "docker-loader",
   "linger",
   "boot-restart",
   "git",
@@ -127,6 +128,10 @@ function createHostRunner(options: HostRunnerOptions = {}): RecordingRunner {
 
     if (command === "podman" && args[0] === "info") {
       return ok("true\n");
+    }
+
+    if (command === "docker" && args[0] === "--version") {
+      return ok("Emulate Docker CLI using podman.\n");
     }
 
     if (command === "loginctl") {
@@ -536,10 +541,10 @@ describe("build checks in doctor composition", () => {
       "detail",
       "remediation",
     ]);
-    expect(document.checks[6]?.id).toBe("railpack");
-    expect(document.checks[7]?.id).toBe("buildkit");
-    expect(document.checks[6]?.remediation).toBeNull();
+    expect(document.checks[7]?.id).toBe("railpack");
+    expect(document.checks[8]?.id).toBe("buildkit");
     expect(document.checks[7]?.remediation).toBeNull();
+    expect(document.checks[8]?.remediation).toBeNull();
   });
 
   it("renders build-check failures in both human and JSON modes", () => {

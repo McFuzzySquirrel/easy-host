@@ -90,6 +90,7 @@ interface HostOptions {
   linger?: "yes" | "no" | null;
   gitVersion?: string | null;
   bootRestart?: "enabled" | "disabled" | null;
+  dockerLoader?: "present" | "missing";
 }
 
 function createHost(options: HostOptions = {}): RecordingRunner {
@@ -99,9 +100,16 @@ function createHost(options: HostOptions = {}): RecordingRunner {
     linger = "yes",
     gitVersion = "2.43.0",
     bootRestart = "enabled",
+    dockerLoader = "present",
   } = options;
 
   return new RecordingRunner((command, args) => {
+    if (command === "docker" && args[0] === "--version") {
+      return dockerLoader === "missing"
+        ? missing()
+        : ok("Emulate Docker CLI using podman. Create /etc/containers/nodocker to quiet msg.\n");
+    }
+
     if (command === "systemctl" && args[1] === "is-enabled") {
       if (bootRestart === null) {
         return missing();
@@ -193,6 +201,7 @@ describe("healthy host", () => {
     expect(report.checks.map((check) => check.id)).toEqual([
       "podman",
       "podman-rootless",
+      "docker-loader",
       "linger",
       "boot-restart",
       "git",
@@ -390,6 +399,27 @@ describe("reboot recovery", () => {
   });
 });
 
+describe("image loader", () => {
+  it("passes when a docker-compatible loader answers", () => {
+    const report = diagnose(createHost({ dockerLoader: "present" }));
+
+    const check = findCheck(report, "docker-loader");
+    expect(check.status).toBe("pass");
+    expect(check.detail).toContain("docker-compatible loader");
+    expect(check.remediation).toBeNull();
+  });
+
+  it("fails before a build when no loader is on PATH", () => {
+    const report = diagnose(createHost({ dockerLoader: "missing" }));
+
+    const check = findCheck(report, "docker-loader");
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain("Railpack cannot load the image");
+    expect(check.remediation).toContain("podman-docker");
+    expect(report.status).toBe("fail");
+  });
+});
+
 describe("git and Node.js", () => {
   it("fails for git 2.39.2 and prints the found version", () => {
     const report = diagnose(createHost({ gitVersion: "2.39.2" }));
@@ -483,6 +513,7 @@ describe("report rendering and JSON", () => {
     const positions = [
       "podman",
       "podman-rootless",
+      "docker-loader",
       "linger",
       "boot-restart",
       "git",
@@ -511,7 +542,7 @@ describe("report rendering and JSON", () => {
     expect(document.schemaVersion).toBe(1);
     expect(document.status).toBe("pass");
     expect(Array.isArray(document.checks)).toBe(true);
-    expect(document.checks).toHaveLength(9);
+    expect(document.checks).toHaveLength(10);
 
     for (const check of document.checks) {
       expect(Object.keys(check)).toEqual(["id", "status", "detail", "remediation"]);
@@ -563,6 +594,7 @@ describe("safety and budget", () => {
         linger: "no",
         gitVersion: "2.39.2",
         bootRestart: "disabled",
+        dockerLoader: "missing",
       }),
       {
         nodeVersion: "v22.11.0",
@@ -585,7 +617,14 @@ describe("safety and budget", () => {
     expect(report.durationMs).toBe(42);
     expect(report.durationMs).toBeLessThan(DOCTOR_BUDGET_MS);
 
-    const localCommands = new Set(["podman", "loginctl", "systemctl", "git", railpackPath]);
+    const localCommands = new Set([
+      "podman",
+      "docker",
+      "loginctl",
+      "systemctl",
+      "git",
+      railpackPath,
+    ]);
     const networkArguments = ["pull", "push", "search", "login", "clone", "fetch", "http"];
 
     expect(runner.calls.length).toBeGreaterThan(0);

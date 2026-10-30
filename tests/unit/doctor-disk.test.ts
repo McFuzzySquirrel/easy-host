@@ -146,6 +146,10 @@ function createHostRunner(options: RunnerOptions = {}): RecordingRunner {
       return options.systemDf === null ? failed() : ok(options.systemDf ?? "[]\n");
     }
 
+    if (command === "docker" && args[0] === "--version") {
+      return ok("Emulate Docker CLI using podman.\n");
+    }
+
     if (command === "loginctl") {
       return ok("Linger=yes\n");
     }
@@ -549,6 +553,7 @@ describe("doctor composition", () => {
     expect(document.checks.map((check) => check.id)).toEqual([
       "podman",
       "podman-rootless",
+      "docker-loader",
       "linger",
       "boot-restart",
       "git",
