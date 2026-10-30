@@ -32,9 +32,11 @@
  *   written only after a healthy candidate, so a failed rollback leaves
  *   `current` and `previous` untouched and a retry still targets the same
  *   older image.
- * - **No image is deleted here.** Rollback only removes containers (through the
- *   swap). Retention is a separate policy (`RBK-FR-02`), so a rollback can never
- *   destroy the image an operator is rolling back to or from.
+ * - **The swap deletes no image.** After the swapped pair is recorded, the
+ *   post-success retention pass (`RBK-FR-02`) keeps exactly those two and
+ *   removes only other images labelled for the app; it never touches an image
+ *   that is in use or shared. A retention failure is a warning because the
+ *   restored version is already serving.
  *
  * Runtime, prober, state writer, output, swap, lock options, and clock are
  * injected, so the unit suite runs the keep, revert, start-failure, contention,
@@ -50,7 +52,8 @@ import { acquireAppLock, type LockAcquireOptions } from "../platform/lock.js";
 import { createPaths } from "../platform/paths.js";
 import { containerName, removeContainer, runContainer, stopContainer } from "../platform/podman.js";
 import { type AppStatePatch, StateStore } from "../registry/state.js";
-import { type AppRecord, Registry } from "../registry/store.js";
+import { type AppListEntry, type AppRecord, Registry } from "../registry/store.js";
+import { type RetainImages, type RetainOutput, type RetainResult, retainImages } from "./retain.js";
 import {
   type SwapFailure,
   type SwapPhase,
@@ -100,6 +103,7 @@ export interface RollbackOutputStream {
 
 /** The registry operations `rollback` performs. `Registry` satisfies it. */
 export interface RollbackRegistry {
+  list(): readonly AppListEntry[];
   record(name: string): AppRecord;
   readConfig(name: string): AppSpec;
 }
@@ -129,6 +133,11 @@ export interface RollbackDependencies {
   readonly output: RollbackOutput;
   /** The health-gated swap. Defaults to {@link swapApp}; injectable for tests. */
   readonly swap?: typeof swapApp;
+  /**
+   * Two-image retention after the swapped pair is recorded (`RBK-FR-02`).
+   * Defaults to {@link retainImages}; injected so unit tests never call Podman.
+   */
+  readonly retain?: RetainImages;
   readonly environment: NodeJS.ProcessEnv;
   readonly clock: () => Date;
   readonly lock?: LockAcquireOptions;
@@ -299,6 +308,7 @@ async function rollbackWhileLocked(
     `recording ${pair.previous} as current and ${pair.current} as previous`,
   );
   const stateRecorded = recordKept(context, result.containerId, result.health);
+  await runRetention(context);
 
   return {
     status: "rolled-back",
@@ -321,7 +331,7 @@ async function rollbackWhileLocked(
     notes: [
       `restored ${pair.previous}; ${pair.current} is now the rollback target`,
       "Railpack and BuildKit were not invoked",
-      "no image was removed; keeping exactly two images is a separate retention step",
+      "the swap removed no image; retention keeps exactly the recorded pair",
     ],
   };
 }
@@ -511,10 +521,81 @@ function resolveDependencies(
     stateStore: overrides.stateStore ?? ((appDir) => new StateStore(appDir, { clock })),
     output: overrides.output ?? createDefaultRollbackOutput(),
     ...(overrides.swap === undefined ? {} : { swap: overrides.swap }),
+    retain: overrides.retain ?? retainImages,
     environment,
     clock,
     ...(overrides.lock === undefined ? {} : { lock: overrides.lock }),
   };
+}
+
+/**
+ * Prunes old images after the swapped pair is recorded (`RBK-FR-02`).
+ *
+ * The operation's registry and state cache are reused so retention reads the
+ * pair rollback just wrote. A failure is a warning: the restored version is
+ * already serving, so image cleanup must not turn a successful rollback into a
+ * failed one.
+ */
+async function runRetention(context: RollbackContext): Promise<void> {
+  const retain = context.dependencies.retain;
+  if (retain === undefined) {
+    return;
+  }
+
+  try {
+    const result = await retain(
+      { app: context.app, environment: context.dependencies.environment },
+      {
+        registry: context.dependencies.registry,
+        stateStore: context.dependencies.stateStore,
+        output: retentionOutput(context),
+        environment: context.dependencies.environment,
+      },
+    );
+    reportRetention(context, result);
+  } catch (error) {
+    warn(
+      context,
+      `the app is serving ${context.previousImage}, but old images could not be pruned: ` +
+        `${messageOf(error)}; run "easy-host doctor", then retry "easy-host rollback ${context.app}"`,
+    );
+  }
+}
+
+/** Narrates retention progress and warnings; removals are summarized by the caller. */
+function retentionOutput(context: RollbackContext): RetainOutput {
+  return {
+    phase(phase, message) {
+      info(context, `retention ${phase}: ${message}`);
+    },
+    info() {
+      // Summarized from the result so each removal is not printed twice.
+    },
+    warn(message) {
+      warn(context, message);
+    },
+  };
+}
+
+function reportRetention(context: RollbackContext, result: RetainResult): void {
+  if (result.status === "skipped") {
+    return;
+  }
+
+  if (result.removed.length > 0) {
+    info(
+      context,
+      `retention removed ${result.removed.length} old image(s): ${result.removed.join(", ")}`,
+    );
+  }
+
+  if (result.refused.length > 0) {
+    info(
+      context,
+      `retention kept ${result.refused.length} image(s) it could not remove: ` +
+        result.refused.map((entry) => `${entry.reference} (${entry.reason})`).join(", "),
+    );
+  }
 }
 
 function emit(context: RollbackContext, phase: RollbackPhase, message: string): void {
@@ -523,6 +604,14 @@ function emit(context: RollbackContext, phase: RollbackPhase, message: string): 
     context.output.phase(phase, message);
   } catch {
     // Progress output is advisory; a broken stream must not corrupt the rollback.
+  }
+}
+
+function info(context: RollbackContext, message: string): void {
+  try {
+    context.output.info(message);
+  } catch {
+    // Progress output is advisory.
   }
 }
 

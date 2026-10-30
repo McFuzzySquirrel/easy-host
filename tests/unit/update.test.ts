@@ -29,6 +29,7 @@ import type { AppSpec, AppSpecInput } from "../../src/config/schema.js";
 import type { ProbeAppSpec, ProbeResult } from "../../src/health/probe.js";
 import type { AddBuilder, AddBuildRequest } from "../../src/lifecycle/add.js";
 import type { UpdateContainerObservation } from "../../src/lifecycle/diff.js";
+import type { RetainRequest, RetainResult } from "../../src/lifecycle/retain.js";
 import type { SwapProber } from "../../src/lifecycle/swap.js";
 import {
   createDefaultUpdateOutput,
@@ -63,6 +64,7 @@ const REPO = "https://github.com/example/blog.git";
 const CURRENT = "localhost/easy-host-blog:20261029T120000Z";
 const OLDER = "localhost/easy-host-blog:20261028T120000Z";
 const CANDIDATE = "localhost/easy-host-blog:20261030T130000Z";
+const STALE_IMAGE = "localhost/easy-host-blog:20261026T120000Z";
 const COMMIT_ONE = "1111111111111111111111111111111111111111";
 const COMMIT_TWO = "2222222222222222222222222222222222222222";
 const FIXED_TIME = new Date("2026-10-30T12:00:00.000Z");
@@ -239,6 +241,44 @@ class FakeProber implements SwapProber {
   }
 }
 
+function emptyRetention(): RetainResult {
+  return {
+    status: "retained",
+    app: APP,
+    current: CURRENT,
+    previous: OLDER,
+    examined: 2,
+    retained: [
+      { reference: CURRENT, reasons: ["current"] },
+      { reference: OLDER, reasons: ["previous"] },
+    ],
+    removed: [],
+    refused: [],
+    missing: [],
+    skipped: [],
+    phases: [],
+    warnings: [],
+    notes: [],
+  };
+}
+
+class FakeRetention {
+  readonly requests: RetainRequest[] = [];
+  calls = 0;
+  result: RetainResult = emptyRetention();
+  failure: Error | undefined;
+
+  async retain(request: RetainRequest): Promise<RetainResult> {
+    this.calls += 1;
+    this.requests.push(request);
+    if (this.failure !== undefined) {
+      throw this.failure;
+    }
+
+    return this.result;
+  }
+}
+
 class FakeSource implements UpdateSource {
   readonly prepareCalls: PrepareWorkspaceOptions[] = [];
   headCalls = 0;
@@ -364,6 +404,7 @@ class Harness {
   readonly prober = new FakeProber();
   readonly source = new FakeSource();
   readonly output = new RecordingOutput();
+  readonly retention = new FakeRetention();
   readonly appSpec: AppSpec;
   readonly appDir: string;
 
@@ -435,6 +476,7 @@ class Harness {
       source: this.source,
       stateStore: () => this.stateStore(),
       output: this.output,
+      retain: (request) => this.retention.retain(request),
       environment: {},
       clock: () => FIXED_TIME,
       ...overrides,
@@ -894,6 +936,55 @@ describe("reporting", () => {
     output.phase("building", "building a candidate");
 
     expect(stream.text).toBe("update: building: building a candidate\n");
+  });
+});
+
+describe("RBK-FR-02 post-success retention", () => {
+  it("prunes old images after a successful rebuild and reports them", async () => {
+    const harness = new Harness();
+    harness.source.headCommit = COMMIT_ONE;
+    harness.source.prepared = { commit: COMMIT_TWO } as Partial<PreparedWorkspace>;
+    harness.prober.queue.push(healthyProbe());
+    harness.retention.result = {
+      ...emptyRetention(),
+      examined: 3,
+      removed: [STALE_IMAGE],
+      notes: [`removed ${STALE_IMAGE}`],
+    };
+
+    const result = await harness.run();
+
+    expect(result.status).toBe("updated");
+    expect(result.kind).toBe("rebuild");
+    expect(harness.retention.calls).toBe(1);
+    expect(harness.retention.requests[0]?.app).toBe(APP);
+    expect(harness.output.text).toContain(`retention removed 1 old image(s): ${STALE_IMAGE}`);
+  });
+
+  it("does not prune on a no-op", async () => {
+    const harness = new Harness();
+    harness.source.headCommit = COMMIT_ONE;
+    harness.source.prepared = { commit: COMMIT_ONE } as Partial<PreparedWorkspace>;
+
+    const result = await harness.run();
+
+    expect(result.status).toBe("no-op");
+    expect(harness.retention.calls).toBe(0);
+  });
+
+  it("treats a retention failure as a warning, not an update failure", async () => {
+    const harness = new Harness();
+    harness.retention.failure = new Error("podman images failed");
+    harness.prober.queue.push(healthyProbe());
+
+    const { exitCode, stdout } = await harness.command({
+      changes: { env: { LOG_LEVEL: "debug" } },
+    });
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('updated "blog"');
+    expect(harness.output.text).toContain("old images could not be pruned");
+    expect(harness.output.text).toContain("podman images failed");
   });
 });
 

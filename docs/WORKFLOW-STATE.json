@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-30T05:11:12.032Z",
+  "lastUpdatedAt": "2026-10-30T05:21:26.617Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -1227,10 +1227,46 @@
     },
     "RBK-1.2": {
       "taskId": "RBK-1.2",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "lifecycle-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 1,
+      "outputFiles": [
+        "src/lifecycle/retain.ts",
+        "tests/unit/retain.test.ts",
+        "src/lifecycle/rollback.ts",
+        "src/lifecycle/update.ts",
+        "tests/unit/rollback.test.ts",
+        "tests/unit/update.test.ts"
+      ],
+      "startedAt": "2026-10-30T05:11:12.078Z",
+      "usage": {
+        "source": "unavailable",
+        "note": "opencode usage unavailable: Expected ',' or '}' after property value in JSON at position 656537 (line 4632 column 31)"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/RBK-1.2.2026-10-30T05-21-26-610Z.attempt-1.result.json",
+          "usage": {
+            "source": "unavailable",
+            "note": "opencode usage unavailable: Expected ',' or '}' after property value in JSON at position 656537 (line 4632 column 31)"
+          }
+        }
+      ],
+      "completedAt": "2026-10-30T05:21:26.614Z",
+      "agentOutput": "I'll start by reading the execution file.\nNow I have the full picture. Let me write `src/lifecycle/retain.ts`.\nNow the test suite:\nThe module is solid, but the prior artifacts explicitly deferred retention wiring to RBK-1.2. I'll wire it into update and rollback so the requirement is operational, keeping the changes test-safe.\nRetention is implemented, wired, and verified. Final state:\n\n**Created**\n- `src/lifecycle/retain.ts` — label-scoped two-image retention with an injectable image store, registry, state cache, and output; default Podman image adapter; reports kept/removed/refused/missing images.\n- `tests/unit/retain.test.ts` — 23 tests covering two images, three images, in-use, shared, missing, clean app, foreign/unlabelled labels, failed removal, unreadable sibling app, skipped app, unknown/invalid app, plus the production store's argument array, JSON normalization, idempotent removal, and failure mapping.\n\n**Changed**\n- `src/lifecycle/update.ts` — post-success retention (rebuild, config-only, first start) using the operation's registry/state cache/environment; retention failures are warnings; no retention on a no-op or failed/reverted transition.\n- `src/lifecycle/rollback.ts` — retention after the swapped pair is recorded; `RollbackRegistry.list()`; retention failures are warnings.\n- `tests/unit/update.test.ts`, `tests/unit/rollback.test.ts` — injected retention fakes and wiring tests (prune-and-report, no prune on no-op/revert, warning-only failure, phase order unchanged).\n\n**Verification**\n- `npm run typecheck` — pass\n- `npm run lint` — pass (82 files)\n- `npm test -- tests/unit/retain.test.ts` — 23 passed\n- `npm test -- tests/unit/update.test.ts tests/unit/rollback.test.ts` — 67 passed\n- `npm test` — 30 files, 763 passed\n- `npm run build` — pass\n- Real-host smoke against Podman 5.7.0: label-filtered listing returned `[]`, and removing an absent image resolved `removed: false` (Podman's real `image not known` wording is handled).\n\n```forge-result\n{\"summary\":\"Implemented src/lifecycle/retain.ts (label-scoped two-image retention with in-use, shared, foreign-label, removal-failure, missing-image, and already-clean handling) and wired it into post-success update and rollback with warning-only failures and unchanged phase order. Added 23 retain tests plus update/rollback wiring tests; typecheck, lint, build, the focused suites, and the full 763-test suite pass. A real Podman 5.7.0 smoke of the default image store passed.\",\"unresolved\":[],\"decisions\":[\"Keep set = recorded current/previous + images used by running containers + references in any other app's recorded pair; everything else labelled for the app is removed.\",\"Every candidate is re-checked against its own io.easy-host.app label before removal; unlabelled or foreign-labelled images are reported and never removed, so tag patterns alone can never authorize a delete.\",\"If any sibling app's state.json cannot be read, sharing cannot be ruled out, so no candidate is removed and each is reported as unverified-shared.\",\"A failed per-image removal is a warning and retention continues; a failed listing raises PrerequisiteError because no safe decision can be made.\",\"Missing recorded references are reported in the result; the warning is suppressed when the app has no labelled images at all, since that means there is nothing retention could have removed.\",\"Retention runs after a successful config-only/rebuild/first-start update and after a healthy rollback, with the operation's registry, state cache, and environment; it never runs for a no-op, failed build, or reverted swap, and a retention failure never changes the command's exit code.\",\"Retention phases are narrated as informational lines so update/rollback phase arrays and command output contracts stay unchanged.\"],\"interfaces\":[\"retainImages(request, overrides?): Promise<RetainResult>\",\"RetainRequest, RetainDependencies, RetainDependencyOverrides, RetainResult, RetainedImage, RefusedImage, RetainImageStore, RetainedImageEntry, RetainImages\",\"createDefaultRetainImageStore(options), createDefaultRetainOutput(stream)\",\"RETAIN_FAILURE_CODES, RETAIN_PHASES, RETAIN_IMAGE_TIMEOUT_MS, RetainKeepReason, RetainRefusedReason\",\"UpdateDependencies.retain, RollbackDependencies.retain, RollbackRegistry.list()\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/retain.test.ts: 23 passed\",\"npm test -- tests/unit/update.test.ts tests/unit/rollback.test.ts: 67 passed\",\"npm test: 763 passed\",\"npm run build: exit 0\"],\"warnings\":[\"Railpack-built images do not yet carry the io.easy-host.app label, so the label-filtered listing finds no candidates on a real host until the build layer labels images; retention deliberately does not fall back to tag matching (task constraint). This needs a build-engineer interface change.\",\"src/platform/podman.ts has no image operations, so list/remove are implemented in retain.ts through the shared PodmanRunner; platform-engineer should absorb listImages/removeImage into the platform adapter without changing RetainImageStore.\",\"The retention pass means every successful update/rollback now runs `podman images --filter label=...` and `podman ps`; both are bounded at 60s and their failure is a warning.\"],\"validationLimitations\":[\"No gated EASY_HOST_INTEGRATION suite was run; RBK-1.2's declared checks are unit-level, and the gated update/rollback suites (UPD-1.4, RBK-1.4) are qa-engineer-owned.\",\"Real image removal was not exercised end to end because the host has no easy-host-labelled images; the real adapter's list and idempotent-remove paths were smoke-tested against Podman 5.7.0.\"]}\n```\n",
+      "validationLimitations": [
+        "No gated EASY_HOST_INTEGRATION suite was run; RBK-1.2's declared checks are unit-level, and the gated update/rollback suites (UPD-1.4, RBK-1.4) are qa-engineer-owned.",
+        "Real image removal was not exercised end to end because the host has no easy-host-labelled images; the real adapter's list and idempotent-remove paths were smoke-tested against Podman 5.7.0."
+      ],
+      "artifactId": "work-rbk-1-2-001",
+      "inputArtifactIds": [
+        "work-rbk-1-1-001",
+        "work-add-1-2-001",
+        "work-upd-1-3-001",
+        "work-upd-1-4-001"
+      ]
     },
     "RBK-1.3": {
       "taskId": "RBK-1.3",

@@ -30,6 +30,7 @@ import { validateAppSpec } from "../../src/config/parse.js";
 import type { AppSpec, AppSpecInput } from "../../src/config/schema.js";
 import type { ProbeAppSpec, ProbeResult } from "../../src/health/probe.js";
 import type { AddBuilder, AddBuildRequest } from "../../src/lifecycle/add.js";
+import type { RetainRequest, RetainResult } from "../../src/lifecycle/retain.js";
 import {
   createDefaultRollbackOutput,
   ROLLBACK_FAILURE_CODES,
@@ -56,6 +57,7 @@ const APP = "blog";
 const REPO = "https://github.com/example/blog.git";
 const CURRENT = "localhost/easy-host-blog:20261029T120000Z";
 const OLDER = "localhost/easy-host-blog:20261028T120000Z";
+const STALE_IMAGE = "localhost/easy-host-blog:20261026T120000Z";
 const FIXED_TIME = new Date("2026-10-30T12:00:00.000Z");
 const SECRET_VALUE = "super-secret-env-value";
 
@@ -206,6 +208,44 @@ class FailingStateStore implements RollbackStateStore {
   }
 }
 
+function emptyRetention(): RetainResult {
+  return {
+    status: "retained",
+    app: APP,
+    current: OLDER,
+    previous: CURRENT,
+    examined: 2,
+    retained: [
+      { reference: OLDER, reasons: ["current"] },
+      { reference: CURRENT, reasons: ["previous"] },
+    ],
+    removed: [],
+    refused: [],
+    missing: [],
+    skipped: [],
+    phases: [],
+    warnings: [],
+    notes: [],
+  };
+}
+
+class FakeRetention {
+  readonly requests: RetainRequest[] = [];
+  calls = 0;
+  result: RetainResult = emptyRetention();
+  failure: Error | undefined;
+
+  async retain(request: RetainRequest): Promise<RetainResult> {
+    this.calls += 1;
+    this.requests.push(request);
+    if (this.failure !== undefined) {
+      throw this.failure;
+    }
+
+    return this.result;
+  }
+}
+
 function spec(overrides: Partial<AppSpecInput> = {}): AppSpec {
   return validateAppSpec({
     repo: REPO,
@@ -292,6 +332,7 @@ class Harness {
   readonly prober = new FakeProber();
   readonly builder = new SpyBuilder();
   readonly output = new RecordingOutput();
+  readonly retention = new FakeRetention();
   readonly appDir: string;
 
   constructor(options: HarnessOptions = {}) {
@@ -341,6 +382,7 @@ class Harness {
       prober: this.prober,
       stateStore: stateStore ?? (() => this.stateStore()),
       output: this.output,
+      retain: (request) => this.retention.retain(request),
       environment: {},
       clock: () => FIXED_TIME,
       ...overrides,
@@ -415,7 +457,7 @@ describe("RBK-FR-01 health-gated rollback", () => {
     expect(result.phases).toEqual(["stopping", "starting", "probing", "keeping", "recording"]);
     expect(result.skipped).toEqual(["image build"]);
     expect(result.notes.join(" ")).toContain("Railpack and BuildKit were not invoked");
-    expect(result.notes.join(" ")).toContain("no image was removed");
+    expect(result.notes.join(" ")).toContain("the swap removed no image");
   });
 
   it("returns to the original image when rolled back a second time", async () => {
@@ -807,5 +849,55 @@ describe("preflight and reporting", () => {
 
     expect(pairOf(harness.state())).toEqual({ current: CURRENT, previous: null });
     expect(harness.output.phases).toEqual(["validating", "locking"]);
+  });
+});
+
+describe("RBK-FR-02 post-success retention", () => {
+  it("prunes old images after recording the swapped pair and reports them", async () => {
+    const harness = new Harness();
+    harness.runtime.runQueue.push(runResult(OLDER));
+    harness.prober.queue.push(healthyProbe());
+    harness.retention.result = {
+      ...emptyRetention(),
+      examined: 3,
+      removed: [STALE_IMAGE],
+      notes: [`removed ${STALE_IMAGE}`],
+    };
+
+    const result = await harness.run();
+
+    expect(result.status).toBe("rolled-back");
+    expect(pairOf(harness.state())).toEqual({ current: OLDER, previous: CURRENT });
+    expect(harness.retention.calls).toBe(1);
+    expect(harness.retention.requests[0]?.app).toBe(APP);
+    expect(harness.output.text).toContain(`retention removed 1 old image(s): ${STALE_IMAGE}`);
+    // Retention reports do not add swap phases or change the recorded pair.
+    expect(result.phases).toEqual(["stopping", "starting", "probing", "keeping", "recording"]);
+  });
+
+  it("treats a retention failure as a warning and still exits 0", async () => {
+    const harness = new Harness();
+    harness.runtime.runQueue.push(runResult(OLDER));
+    harness.prober.queue.push(healthyProbe());
+    harness.retention.failure = new Error("podman images failed");
+
+    const { exitCode, stdout } = await harness.command();
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain(`restored:   ${OLDER}`);
+    expect(harness.output.text).toContain("old images could not be pruned");
+    expect(harness.output.text).toContain("podman images failed");
+    expect(pairOf(harness.state())).toEqual({ current: OLDER, previous: CURRENT });
+  });
+
+  it("does not prune when the candidate fails and the rollback reverts", async () => {
+    const harness = new Harness();
+    harness.runtime.runQueue.push(runResult(OLDER), runResult(CURRENT));
+    harness.prober.queue.push(unhealthyProbe(), healthyProbe());
+
+    await harness.run().catch(() => undefined);
+
+    expect(harness.retention.calls).toBe(0);
+    expect(pairOf(harness.state())).toEqual({ current: CURRENT, previous: OLDER });
   });
 });

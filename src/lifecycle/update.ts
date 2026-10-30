@@ -32,7 +32,10 @@
  * 3. `config.toml` is written only after the operation succeeds, and never on a
  *    failed build or a reverted swap; the candidate image is recorded by the
  *    swap itself, only after a healthy probe;
- * 4. no image is removed or pruned here; retention is feature 06's job.
+ * 4. the recorded pair is pruned only after a successful transition: retention
+ *    keeps exactly the current and previous image and never touches an image
+ *    that is in use or shared (`RBK-FR-02`). A retention failure is a warning,
+ *    because the app is already serving.
  *
  * Every phase is reported through {@link UpdateOutput} so an operator can tell
  * a slow build from a stuck probe (`UPD-NF-02`). The builder, runtime, probe,
@@ -110,6 +113,7 @@ import {
   type UpdateDiffKind,
   type UpdateRecordedState,
 } from "./diff.js";
+import { type RetainImages, type RetainOutput, type RetainResult, retainImages } from "./retain.js";
 import {
   createDefaultSwapProber,
   type SwapFailure,
@@ -226,6 +230,11 @@ export interface UpdateDependencies {
   readonly output: UpdateOutput;
   /** The health-gated swap. Defaults to {@link swapApp}; injectable for tests. */
   readonly swap?: typeof swapApp;
+  /**
+   * Two-image retention after a successful transition (`RBK-FR-02`). Defaults
+   * to {@link retainImages}; injected so unit tests never call Podman.
+   */
+  readonly retain?: RetainImages;
   readonly buildStderr?: BuildOutputSink;
   readonly environment: NodeJS.ProcessEnv;
   readonly clock: () => Date;
@@ -627,6 +636,7 @@ async function configOnly(context: UpdateContext): Promise<UpdateResult> {
 
   const stateRecorded = recordConfigOnlyHealthy(context, result.containerId, result.health);
   const configApplied = applyConfig(context);
+  await runRetention(context);
 
   return {
     ...baseResult(context),
@@ -739,6 +749,7 @@ async function rebuild(
   }
 
   const configApplied = applyConfig(context);
+  await runRetention(context);
 
   return {
     ...baseResult(context),
@@ -833,6 +844,7 @@ async function firstStart(
   }
 
   const configApplied = applyConfig(context);
+  await runRetention(context);
 
   return {
     ...baseResult(context),
@@ -1001,6 +1013,77 @@ function applyConfig(context: UpdateContext): boolean {
         `retry "easy-host update ${context.app}" or edit it with "easy-host config ${context.app} --edit"`,
     );
     return false;
+  }
+}
+
+/**
+ * Prunes old images after a successful transition (`RBK-FR-02`).
+ *
+ * Retention runs with the operation's registry, state cache, and environment so
+ * it sees the same `state.json` the update just wrote, and with a quiet output
+ * adapter: update summarizes the outcome once instead of forwarding every
+ * retention phase. A failure here is a warning, never an error: the new version
+ * is serving and the old images are simply left for the next run.
+ */
+async function runRetention(context: UpdateContext): Promise<void> {
+  const retain = context.dependencies.retain;
+  if (retain === undefined) {
+    return;
+  }
+
+  try {
+    const result = await retain(
+      { app: context.app, environment: context.environment },
+      {
+        registry: context.dependencies.registry,
+        stateStore: context.dependencies.stateStore,
+        output: retentionOutput(context),
+        environment: context.environment,
+      },
+    );
+    reportRetention(context, result);
+  } catch (error) {
+    warn(
+      context,
+      `the app is serving, but old images could not be pruned: ${messageOf(error)}; ` +
+        `run "easy-host doctor", then retry "easy-host update ${context.app}"`,
+    );
+  }
+}
+
+/** Narrates retention progress and warnings; removals are summarized by the caller. */
+function retentionOutput(context: UpdateContext): RetainOutput {
+  return {
+    phase(phase, message) {
+      info(context, `retention ${phase}: ${message}`);
+    },
+    info() {
+      // Summarized from the result so each removal is not printed twice.
+    },
+    warn(message) {
+      warn(context, message);
+    },
+  };
+}
+
+function reportRetention(context: UpdateContext, result: RetainResult): void {
+  if (result.status === "skipped") {
+    return;
+  }
+
+  if (result.removed.length > 0) {
+    info(
+      context,
+      `retention removed ${result.removed.length} old image(s): ${result.removed.join(", ")}`,
+    );
+  }
+
+  if (result.refused.length > 0) {
+    info(
+      context,
+      `retention kept ${result.refused.length} image(s) it could not remove: ` +
+        result.refused.map((entry) => `${entry.reference} (${entry.reason})`).join(", "),
+    );
   }
 }
 
@@ -1383,6 +1466,14 @@ function emit(context: UpdateContext, phase: UpdatePhase, message: string): void
   }
 }
 
+function info(context: UpdateContext, message: string): void {
+  try {
+    context.output.info(message);
+  } catch {
+    // Progress output is advisory.
+  }
+}
+
 function warn(context: UpdateContext, message: string): void {
   context.warnings.push(message);
   try {
@@ -1416,6 +1507,7 @@ function resolveDependencies(
     stateStore: overrides.stateStore ?? ((appDir) => new StateStore(appDir, { clock })),
     output: overrides.output ?? createDefaultUpdateOutput(),
     ...(overrides.swap === undefined ? {} : { swap: overrides.swap }),
+    retain: overrides.retain ?? retainImages,
     ...(overrides.buildStderr === undefined ? {} : { buildStderr: overrides.buildStderr }),
     environment,
     clock,
