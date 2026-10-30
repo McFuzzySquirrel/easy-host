@@ -13,13 +13,12 @@
  */
 
 import { EXIT_CODES, type ExitCode, reportError } from "../errors.js";
+import { createFormatter, type Formatter, type TableColumn } from "../format.js";
 import { toListDocument, writeJsonDocument } from "../json.js";
 import type { ListAppDocument, ListDocument } from "../schemas.js";
 import {
   type AppRow,
   collectAppRows,
-  formatField,
-  formatTable,
   formatTimestamp,
   LIST_TABLE_COLUMNS,
   type ReadDependencyOverrides,
@@ -57,7 +56,7 @@ export async function runListCommand(options: ListCommandOptions = {}): Promise<
     if (options.json === true) {
       writeJsonDocument(stdout, toListDocument(rows));
     } else {
-      stdout.write(formatListReport(rows));
+      stdout.write(formatListReport(rows, createFormatter({ stream: stdout, env: environment })));
     }
 
     return EXIT_CODES.SUCCESS;
@@ -75,8 +74,15 @@ export async function runListCommand(options: ListCommandOptions = {}): Promise<
  * Renders the PRD 12.2 table plus an indented error and remediation line for
  * every broken app. Empty registries print an explicit sentence rather than an
  * empty header, so a script can distinguish "no apps" from "scan failed".
+ *
+ * Colour is decided by the supplied formatter (TTY plus `NO_COLOR`), and only
+ * the STATUS cell is painted; the status text is always present. Values that
+ * do not fit the table appear in full on detail lines.
  */
-export function formatListReport(rows: readonly AppRow[]): string {
+export function formatListReport(
+  rows: readonly AppRow[],
+  formatter: Formatter = createFormatter(),
+): string {
   if (rows.length === 0) {
     return "no apps\n";
   }
@@ -90,18 +96,25 @@ export function formatListReport(rows: readonly AppRow[]): string {
     shortImage(row.state?.images.current ?? row.container?.image),
   ]);
 
-  const lines = formatTable(LIST_TABLE_COLUMNS, cells);
+  const lines = formatter.table(listColumns(formatter), cells);
 
   for (const row of rows) {
     if (row.status !== "broken" || row.error === undefined) {
       continue;
     }
 
-    lines.push(...formatField("error", row.error.message));
+    lines.push(...formatter.field("error", row.error.message));
     if (row.error.remediation !== undefined && row.error.remediation.length > 0) {
-      lines.push(...formatField("next", row.error.remediation));
+      lines.push(...formatter.field("next", row.error.remediation));
     }
   }
 
   return `${lines.join("\n")}\n`;
+}
+
+/** The PRD columns with only the status cell coloured. */
+function listColumns(formatter: Formatter): readonly TableColumn[] {
+  return LIST_TABLE_COLUMNS.map((column) =>
+    column.header === "STATUS" ? { ...column, paint: formatter.status } : column,
+  );
 }

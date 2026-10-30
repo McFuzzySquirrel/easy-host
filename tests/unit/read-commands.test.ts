@@ -26,6 +26,7 @@ import { type LogsRuntime, runLogsCommand } from "../../src/cli/commands/logs.js
 import type { ReadRuntime } from "../../src/cli/commands/read-model.js";
 import { runStatusCommand } from "../../src/cli/commands/status.js";
 import { EXIT_CODES, NotFoundError } from "../../src/cli/errors.js";
+import { stripAnsi } from "../../src/cli/format.js";
 import { serializeConfig, validateAppSpec } from "../../src/config/parse.js";
 import type { AppSpec, AppSpecInput } from "../../src/config/schema.js";
 import { createPaths } from "../../src/platform/paths.js";
@@ -67,6 +68,11 @@ class RecordingStream {
   get text(): string {
     return this.chunks.join("");
   }
+}
+
+/** A recorder that claims to be a terminal, to force the colour decision. */
+class TtyRecordingStream extends RecordingStream {
+  readonly isTTY = true;
 }
 
 interface Fixture {
@@ -297,6 +303,48 @@ describe("list", () => {
     expect(code).toBe(EXIT_CODES.SUCCESS);
     linesWithinWidth(stdout.text);
     expectPlainText(stdout.text);
+  });
+
+  it("uses colour only for a TTY without NO_COLOR", async () => {
+    const fixture = createFixture();
+    const blog = addConfiguredApp(fixture, "blog", 8080);
+    writeHealthyState(blog.record);
+
+    const runtime = new FixtureRuntime();
+    runtime.containers.set("blog", runningContainer("blog"));
+
+    const tty = new TtyRecordingStream();
+    const colorCode = await runListCommand({
+      environment: { EASY_HOST_HOME: fixture.root },
+      runtime,
+      stdout: tty,
+      stderr: new RecordingStream(),
+    });
+
+    expect(colorCode).toBe(EXIT_CODES.SUCCESS);
+    expect(tty.text).toContain("\u001B[");
+    expect(tty.text).toContain("healthy");
+    linesWithinWidth(stripAnsi(tty.text));
+
+    const noColorTty = new TtyRecordingStream();
+    await runListCommand({
+      environment: { EASY_HOST_HOME: fixture.root, NO_COLOR: "1" },
+      runtime,
+      stdout: noColorTty,
+      stderr: new RecordingStream(),
+    });
+    expectPlainText(noColorTty.text);
+    expect(noColorTty.text).toContain("healthy");
+
+    const piped = new RecordingStream();
+    await runListCommand({
+      environment: { EASY_HOST_HOME: fixture.root },
+      runtime,
+      stdout: piped,
+      stderr: new RecordingStream(),
+    });
+    expectPlainText(piped.text);
+    expect(piped.text).toContain("healthy");
   });
 
   it("prints an explicit message when no apps are registered", async () => {

@@ -28,10 +28,10 @@ import {
   reportError,
   UsageError,
 } from "../errors.js";
+import { createFormatter, type Formatter } from "../format.js";
 import { toConfigDocument, writeJsonDocument } from "../json.js";
 import type { ConfigDocument } from "../schemas.js";
 import {
-  formatField,
   probeDescription,
   type ReadDependencyOverrides,
   type ReadOutputStream,
@@ -124,7 +124,9 @@ export async function runConfigCommand(options: ConfigCommandOptions): Promise<E
     if (mode === "json") {
       writeJsonDocument(stdout, toConfigDocument(record, spec));
     } else {
-      stdout.write(formatConfigReport(record, spec));
+      stdout.write(
+        formatConfigReport(record, spec, createFormatter({ stream: stdout, env: environment })),
+      );
     }
 
     return EXIT_CODES.SUCCESS;
@@ -328,27 +330,34 @@ function tokenize(input: string): string[] {
 /**
  * The human summary: path, validation result, source, port, probe settings,
  * declared volumes, and environment variable names. Values are never printed.
+ * The `valid` label is always text; colour is added only on an eligible TTY.
  */
-export function formatConfigReport(record: AppRecord, spec: AppSpec): string {
+export function formatConfigReport(
+  record: AppRecord,
+  spec: AppSpec,
+  formatter: Formatter = createFormatter(),
+): string {
   const lines = [
-    ...formatField("config", record.configPath),
-    ...formatField("status", "valid"),
-    ...formatField("app", record.name),
-    ...formatField("source", sourceDescription(spec)),
-    ...formatField("port", `${spec.port} -> ${spec.container_port} on ${spec.bind}`),
-    ...formatField("probe", probeDescription(spec)),
+    ...formatter.field("config", record.configPath),
+    ...formatter.field("status", "valid", {
+      paint: (value) => formatter.tone("success", value),
+    }),
+    ...formatter.field("app", record.name),
+    ...formatter.field("source", sourceDescription(spec)),
+    ...formatter.field("port", `${spec.port} -> ${spec.container_port} on ${spec.bind}`),
+    ...formatter.field("probe", probeDescription(spec)),
   ];
 
   const volumes = Object.entries(spec.volumes)
     .map(([name, target]) => `${name}:${target}`)
     .join(", ");
   if (volumes.length > 0) {
-    lines.push(...formatField("volumes", volumes));
+    lines.push(...formatter.field("volumes", volumes));
   }
 
   const environmentNames = Object.keys(spec.env).sort();
   if (environmentNames.length > 0) {
-    lines.push(...formatField("env", `${environmentNames.join(", ")} (values hidden)`));
+    lines.push(...formatter.field("env", `${environmentNames.join(", ")} (values hidden)`));
   }
 
   return `${lines.join("\n")}\n`;

@@ -17,13 +17,13 @@
 import type { AppSpec } from "../../config/schema.js";
 import type { OkAppEntry } from "../../registry/store.js";
 import { EXIT_CODES, type ExitCode, reportError } from "../errors.js";
+import { createFormatter, type Formatter } from "../format.js";
 import { toStatusDocument, writeJsonDocument } from "../json.js";
 import type { StatusAppDocument, StatusDocument } from "../schemas.js";
 import {
   type AppRow,
   collectAppRows,
   containerName,
-  formatField,
   formatTimestamp,
   inspectAppContainer,
   portsDescription,
@@ -76,7 +76,7 @@ export async function runStatusCommand(options: StatusCommandOptions = {}): Prom
     if (options.json === true) {
       writeJsonDocument(stdout, toStatusDocument(rows));
     } else {
-      stdout.write(formatStatusReport(rows));
+      stdout.write(formatStatusReport(rows, createFormatter({ stream: stdout, env: environment })));
     }
 
     if (options.app !== undefined) {
@@ -129,8 +129,13 @@ async function collectNamedAppRow(
 /**
  * Renders one block per app. Each block fits 80 columns, wraps long values
  * under their label, and ends with a blank line except for the last block.
+ * Status labels are always text; the formatter adds colour only on a TTY
+ * without `NO_COLOR`.
  */
-export function formatStatusReport(rows: readonly AppRow[]): string {
+export function formatStatusReport(
+  rows: readonly AppRow[],
+  formatter: Formatter = createFormatter(),
+): string {
   if (rows.length === 0) {
     return "no apps\n";
   }
@@ -138,15 +143,15 @@ export function formatStatusReport(rows: readonly AppRow[]): string {
   const lines: string[] = [];
 
   for (const row of rows) {
-    lines.push(...formatField("app", row.name));
-    lines.push(...formatField("status", row.status));
-    lines.push(...formatField("config", row.entry.configPath));
+    lines.push(...formatter.field("app", row.name));
+    lines.push(...formatter.field("status", row.status, { paint: formatter.status }));
+    lines.push(...formatter.field("config", row.entry.configPath));
 
     if (row.status === "broken" || row.spec === undefined) {
       if (row.error !== undefined) {
-        lines.push(...formatField("error", row.error.message));
+        lines.push(...formatter.field("error", row.error.message));
         if (row.error.remediation !== undefined && row.error.remediation.length > 0) {
-          lines.push(...formatField("next", row.error.remediation));
+          lines.push(...formatter.field("next", row.error.remediation));
         }
       }
 
@@ -155,14 +160,16 @@ export function formatStatusReport(rows: readonly AppRow[]): string {
     }
 
     const spec = row.spec;
-    lines.push(...formatField("source", sourceDescription(spec)));
-    lines.push(...formatField("port", `${spec.port} -> ${spec.container_port} on ${spec.bind}`));
-    lines.push(...formatField("probe", probeDescription(spec)));
-    lines.push(...formatField("current", row.state?.images.current ?? "none"));
-    lines.push(...formatField("previous", row.state?.images.previous ?? "none"));
-    lines.push(...formatContainer(row, spec));
-    lines.push(...formatHealth(row));
-    lines.push(...formatField("updated", formatTimestamp(row.state?.updatedAt)));
+    lines.push(...formatter.field("source", sourceDescription(spec)));
+    lines.push(
+      ...formatter.field("port", `${spec.port} -> ${spec.container_port} on ${spec.bind}`),
+    );
+    lines.push(...formatter.field("probe", probeDescription(spec)));
+    lines.push(...formatter.field("current", row.state?.images.current ?? "none"));
+    lines.push(...formatter.field("previous", row.state?.images.previous ?? "none"));
+    lines.push(...formatContainer(row, spec, formatter));
+    lines.push(...formatHealth(row, formatter));
+    lines.push(...formatter.field("updated", formatTimestamp(row.state?.updatedAt)));
     lines.push("");
   }
 
@@ -173,14 +180,14 @@ export function formatStatusReport(rows: readonly AppRow[]): string {
   return `${lines.join("\n")}\n`;
 }
 
-function formatContainer(row: AppRow, spec: AppSpec): string[] {
+function formatContainer(row: AppRow, spec: AppSpec, formatter: Formatter): string[] {
   const name = containerName(row.name);
   const container = row.container;
 
   if (container === undefined) {
     return [
-      ...formatField("container", `${name} missing`),
-      ...formatField("volumes", volumesDescription(undefined, row.name, spec)),
+      ...formatter.field("container", `${name} missing`),
+      ...formatter.field("volumes", volumesDescription(undefined, row.name, spec)),
     ];
   }
 
@@ -192,21 +199,21 @@ function formatContainer(row: AppRow, spec: AppSpec): string[] {
       } (id ${shortContainerId(container.id)})`;
 
   return [
-    ...formatField("container", summary),
-    ...formatField("image", container.image),
-    ...formatField("restart", container.restartPolicy ?? "unknown"),
-    ...formatField("started", formatTimestamp(state.startedAt)),
-    ...formatField("ports", portsDescription(container.ports)),
-    ...formatField("volumes", volumesDescription(container, row.name, spec)),
+    ...formatter.field("container", summary),
+    ...formatter.field("image", container.image),
+    ...formatter.field("restart", container.restartPolicy ?? "unknown"),
+    ...formatter.field("started", formatTimestamp(state.startedAt)),
+    ...formatter.field("ports", portsDescription(container.ports)),
+    ...formatter.field("volumes", volumesDescription(container, row.name, spec)),
   ];
 }
 
-function formatHealth(row: AppRow): string[] {
+function formatHealth(row: AppRow, formatter: Formatter): string[] {
   const health = row.state?.health;
 
   return [
-    ...formatField("health", health?.status ?? "unknown"),
-    ...formatField("checked", formatTimestamp(health?.checkedAt)),
-    ...formatField("detail", health?.detail ?? "no health result recorded"),
+    ...formatter.field("health", health?.status ?? "unknown", { paint: formatter.status }),
+    ...formatter.field("checked", formatTimestamp(health?.checkedAt)),
+    ...formatter.field("detail", health?.detail ?? "no health result recorded"),
   ];
 }

@@ -12,10 +12,10 @@
  * StateStore.update}, or {@link StateStore.reset}, so a read command cannot
  * create or modify `state.json` (`ADD-FR-06` read-only constraint).
  *
- * Output is deliberately plain text. The module emits no ANSI escapes at all,
- * which satisfies `PRD-ACC-02` for both a TTY with `NO_COLOR` set and a
- * non-TTY pipe. Status meaning is carried by a text label, never by colour
- * (`PRD-ACC-01`).
+ * Output is deliberately plain text unless `src/cli/format.ts` decides the
+ * terminal can render colour. This module emits no ANSI escapes itself, which
+ * satisfies `PRD-ACC-02` for both a TTY with `NO_COLOR` set and a non-TTY pipe.
+ * Status meaning is carried by a text label, never by colour (`PRD-ACC-01`).
  */
 
 import type { AppSpec } from "../../config/schema.js";
@@ -31,6 +31,7 @@ import {
 import { type AppState, StateStore } from "../../registry/state.js";
 import { type AppListEntry, type AppRecord, Registry } from "../../registry/store.js";
 import { type EasyHostError, EXIT_CODES, type ExitCode, NotFoundError } from "../errors.js";
+import type { TableColumn } from "../format.js";
 import type { AppStatusLabel } from "../schemas.js";
 
 export type { AppStatusLabel };
@@ -38,6 +39,8 @@ export type { AppStatusLabel };
 /** A writable stream, narrowed so tests can inject a recorder. */
 export interface ReadOutputStream {
   write(chunk: string): unknown;
+  /** Present on a real terminal; a pipe or recorder leaves it undefined. */
+  readonly isTTY?: boolean;
 }
 
 /** The container operations the read commands need. */
@@ -333,155 +336,37 @@ export function volumesDescription(
     .join(", ");
 }
 
-/** The fixed label column used by `status` and `config` output. */
-const FIELD_LABEL_WIDTH = 11;
-
-/** The maximum line width for human output (`PRD-ACC-03`). */
-export const READ_OUTPUT_WIDTH = 80;
-
 /**
- * Wraps `value` to `width` columns. It never returns a line wider than the
- * width, splitting a long unbroken token as a last resort.
+ * Human-output primitives live in `src/cli/format.ts` so `list`, `status`, and
+ * `config` share one TTY/`NO_COLOR` decision and one 80-column renderer. The
+ * names stay re-exported here because this module is the shared read model and
+ * existing importers use it.
  */
-export function wrapText(value: string, width: number): string[] {
-  const clean = value.replace(/\s+/g, " ").trim();
-  if (clean.length === 0) {
-    return ["-"];
-  }
-
-  const limit = Math.max(1, Math.trunc(width));
-  const lines: string[] = [];
-  let current = "";
-
-  for (const word of clean.split(" ")) {
-    if (current.length === 0) {
-      current = word;
-    } else if (current.length + 1 + word.length <= limit) {
-      current = `${current} ${word}`;
-    } else {
-      lines.push(current);
-      current = word;
-    }
-
-    while (current.length > limit) {
-      lines.push(current.slice(0, limit));
-      current = current.slice(limit);
-    }
-  }
-
-  if (current.length > 0) {
-    lines.push(current);
-  }
-
-  return lines;
-}
-
-/**
- * Renders one `label: value` field, wrapping the value and aligning any
- * continuation lines under the first character of the value.
- */
-export function formatField(label: string, value: string, indent = 2): string[] {
-  const prefix = `${" ".repeat(indent)}${label}:`.padEnd(indent + FIELD_LABEL_WIDTH);
-  const width = Math.max(12, READ_OUTPUT_WIDTH - prefix.length);
-  const wrapped = wrapText(value.length === 0 ? "-" : value, width);
-
-  return wrapped.map((line, index) =>
-    index === 0 ? `${prefix}${line}` : `${" ".repeat(prefix.length)}${line}`,
-  );
-}
-
-/** One table column: header, minimum width, and whether it may shrink. */
-export interface TableColumn {
-  readonly header: string;
-  readonly minWidth: number;
-  readonly shrink: boolean;
-}
-
-/**
- * Renders an aligned table that fits {@link READ_OUTPUT_WIDTH}. Shrinkable
- * columns give up width first; the full value remains available in `status`.
- */
-export function formatTable(
-  columns: readonly TableColumn[],
-  rows: readonly (readonly string[])[],
-): string[] {
-  const widths = columns.map((column, index) => {
-    const cells = rows.map((row) => (row[index] ?? "").length);
-    return Math.max(column.header.length, column.minWidth, ...cells);
-  });
-
-  const separators = Math.max(0, columns.length - 1);
-  const available = READ_OUTPUT_WIDTH - separators * 2;
-  let total = widths.reduce((sum, width) => sum + width, 0);
-
-  while (total > available) {
-    let candidate = -1;
-
-    for (let index = 0; index < columns.length; index += 1) {
-      const column = columns[index];
-      const width = widths[index];
-      if (column === undefined || width === undefined) {
-        continue;
-      }
-
-      if (!column.shrink || width <= column.minWidth) {
-        continue;
-      }
-
-      const candidateWidth = candidate < 0 ? undefined : widths[candidate];
-      if (candidate < 0 || (candidateWidth !== undefined && width > candidateWidth)) {
-        candidate = index;
-      }
-    }
-
-    if (candidate < 0) {
-      break;
-    }
-
-    const width = widths[candidate];
-    if (width === undefined) {
-      break;
-    }
-
-    widths[candidate] = width - 1;
-    total -= 1;
-  }
-
-  const render = (cells: readonly string[]): string => {
-    return columns
-      .map((_column, index) => fitCell(cells[index] ?? "", widths[index] ?? 0))
-      .join("  ")
-      .trimEnd();
-  };
-
-  return [render(columns.map((column) => column.header)), ...rows.map((row) => render(row))];
-}
-
-function fitCell(value: string, width: number): string {
-  if (width <= 0) {
-    return "";
-  }
-
-  if (value.length <= width) {
-    return value.padEnd(width);
-  }
-
-  if (width === 1) {
-    return value.slice(0, 1);
-  }
-
-  return `${value.slice(0, width - 1)}…`;
-}
+export {
+  formatField,
+  formatTable,
+  OUTPUT_WIDTH as READ_OUTPUT_WIDTH,
+  type TableColumn,
+  type TableRow,
+  type TableRowInput,
+  wrapText,
+} from "../format.js";
 
 /** The canonical container name for an app, exposed for status rendering. */
 export { containerName };
 
-/** The dimensions of the `list` table, from PRD 12.2. */
+/**
+ * The dimensions of the `list` table, from PRD 12.2.
+ *
+ * NAME and PORT never shrink: a long value moves wholesale to a detail line
+ * rather than being truncated. REF and IMAGE are optional columns that shrink
+ * and, as a last resort, move below the table.
+ */
 export const LIST_TABLE_COLUMNS: readonly TableColumn[] = [
-  { header: "NAME", minWidth: 6, shrink: true },
+  { header: "NAME", minWidth: 6, shrink: false },
   { header: "STATUS", minWidth: 9, shrink: false },
   { header: "PORT", minWidth: 5, shrink: false },
-  { header: "REF", minWidth: 4, shrink: true },
+  { header: "REF", minWidth: 4, shrink: true, droppable: true },
   { header: "UPDATED", minWidth: 16, shrink: false },
-  { header: "IMAGE", minWidth: 8, shrink: true },
+  { header: "IMAGE", minWidth: 8, shrink: true, droppable: true },
 ];

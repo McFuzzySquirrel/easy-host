@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: OBSERVABILITY-AND-OUTPUT-1
 **Status**: In Progress
-**Validation Gaps**: 16 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T03:25:32.861Z
+**Validation Gaps**: 17 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T03:32:23.152Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -62,6 +62,8 @@
   - Files: src/lifecycle/swap.ts, tests/unit/swap.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.1: Freeze the JSON output contract (@cli-engineer)
   - Files: src/cli/json.ts, src/cli/schemas.ts, tests/unit/json.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/not-implemented.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/errors.ts, src/cli/index.ts, src/cli/program.ts, src/doctor/index.ts, tests/unit/cli-entry.test.ts, tests/unit/program.test.ts
+- [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.2: Make human output TTY-aware and accessible (@cli-engineer)
+  - Files: src/cli/format.ts, tests/unit/format.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, tests/unit/read-commands.test.ts
 
 ## Current Task
 - None currently running
@@ -94,6 +96,7 @@
 - Task UPD-1.2: No real Podman container swap or HTTP probe was exercised here; all runtime and probe behavior was injected fakes.
 - Task OBS-1.1: No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.
 - Task OBS-1.1: The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy.
+- Task OBS-1.2: Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
