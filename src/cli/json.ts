@@ -219,8 +219,9 @@ function sourceDocument(spec: AppSpec): StatusAppDocument["source"] {
 
 /**
  * Converts a doctor report into the stable `doctor --json` document. The
- * check order is preserved, `checks` is always an array, and a passing check
- * carries `remediation: null`.
+ * check order is preserved, `checks` and `disk` are always present, and a
+ * passing check carries `remediation: null`. Disk figures are additive in
+ * `schemaVersion: 1` (`OBS-FR-04`) and keep `null` for an unmeasurable value.
  */
 export function toDoctorDocument(report: DoctorReport): DoctorDocument {
   return {
@@ -232,7 +233,29 @@ export function toDoctorDocument(report: DoctorReport): DoctorDocument {
       detail: text(check.detail),
       remediation: nullableText(check.remediation),
     })),
+    disk: {
+      freeBytes: byteCount(report.disk.freeBytes),
+      totalBytes: byteCount(report.disk.totalBytes),
+      appImages: report.disk.appImages.map((entry) => ({
+        app: text(entry.app),
+        bytes: byteCount(entry.bytes),
+      })),
+      imagesTotalBytes: byteCount(report.disk.imagesTotalBytes),
+      buildkitCacheBytes: byteCount(report.disk.buildkitCacheBytes),
+      workspaces: report.disk.workspaces.map((entry) => ({
+        app: text(entry.app),
+        bytes: byteCount(entry.bytes),
+      })),
+      workspaceTotalBytes: byteCount(report.disk.workspaceTotalBytes),
+      toolsBytes: byteCount(report.disk.toolsBytes),
+      approximate: true,
+    },
   };
+}
+
+/** A finite, non-negative byte count; anything else is unknown (`null`). */
+function byteCount(value: number | null): number | null {
+  return value !== null && Number.isFinite(value) && value >= 0 ? Math.trunc(value) : null;
 }
 
 /**

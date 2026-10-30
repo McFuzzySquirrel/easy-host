@@ -82,6 +82,21 @@ class RecordingStream {
   }
 }
 
+/** A report with no disk facts; individual tests only care about another check. */
+function emptyDiskUsage() {
+  return {
+    freeBytes: null,
+    totalBytes: null,
+    appImages: [],
+    imagesTotalBytes: null,
+    buildkitCacheBytes: null,
+    workspaces: [],
+    workspaceTotalBytes: null,
+    toolsBytes: null,
+    approximate: true as const,
+  };
+}
+
 interface Fixture {
   readonly root: string;
   readonly appsDir: string;
@@ -260,7 +275,14 @@ describe("json serializers", () => {
 
     expect(list).toEqual({ schemaVersion: 1, apps: [] });
     expect(status).toEqual({ schemaVersion: 1, apps: [] });
-    expect(toDoctorDocument({ status: "pass", checks: [], durationMs: 0 }).checks).toEqual([]);
+    expect(
+      toDoctorDocument({
+        status: "pass",
+        checks: [],
+        durationMs: 0,
+        disk: emptyDiskUsage(),
+      }).checks,
+    ).toEqual([]);
 
     const stream = new RecordingStream();
     writeJsonDocument(stream, list);
@@ -288,6 +310,7 @@ describe("json serializers", () => {
     const report: DoctorReport = {
       status: "warn",
       durationMs: 1,
+      disk: emptyDiskUsage(),
       checks: [
         {
           id: "podman",
@@ -705,9 +728,25 @@ describe("doctor --json", () => {
     expect(code).toBe(EXIT_CODES.SUCCESS);
 
     const document = parseSingleDocument(stdout);
-    expect(Object.keys(document)).toEqual(["schemaVersion", "status", "checks"]);
+    expect(Object.keys(document)).toEqual(["schemaVersion", "status", "checks", "disk"]);
     expect(document.schemaVersion).toBe(1);
     expect(document.status).toBe("pass");
+
+    const disk = document.disk as Record<string, unknown>;
+    expect(Object.keys(disk)).toEqual([
+      "freeBytes",
+      "totalBytes",
+      "appImages",
+      "imagesTotalBytes",
+      "buildkitCacheBytes",
+      "workspaces",
+      "workspaceTotalBytes",
+      "toolsBytes",
+      "approximate",
+    ]);
+    expect(disk.approximate).toBe(true);
+    expect(disk.appImages).toEqual([]);
+    expect(disk.workspaces).toEqual([]);
 
     const checks = document.checks as Array<Record<string, unknown>>;
     expect(checks).toHaveLength(8);

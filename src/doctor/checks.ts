@@ -410,8 +410,14 @@ export function checkNode(environment: DoctorCheckEnvironment): DoctorCheck {
   };
 }
 
-/** Free disk space for the state root (`PRE-FR-07`, `OBS-FR-04` thresholds). */
-export function checkDisk(environment: DoctorCheckEnvironment): DoctorCheck {
+/**
+ * Free disk space for the state root (`PRE-FR-07`, `OBS-FR-04` thresholds).
+ * Narrowed to the two facts it reads so the disk-usage group can reuse it with
+ * a single measurement.
+ */
+export function checkDisk(
+  environment: Pick<DoctorCheckEnvironment, "readDiskSpace" | "diskPath">,
+): DoctorCheck {
   let space: DiskSpace;
 
   try {

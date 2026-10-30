@@ -140,11 +140,41 @@ export interface DoctorCheckDocument {
   readonly remediation: string | null;
 }
 
-/** The stable `doctor --json` document. `checks` is always an array. */
+/** One app's summed image size; `bytes` is `null` when it could not be read. */
+export interface DoctorAppImageDocument {
+  readonly app: string;
+  readonly bytes: number | null;
+}
+
+/** One app's workspace size; `bytes` is `null` when it could not be read. */
+export interface DoctorWorkspaceDocument {
+  readonly app: string;
+  readonly bytes: number | null;
+}
+
+/**
+ * Approximate disk figures carried by `doctor --json` (`OBS-FR-04`, additive
+ * in `schemaVersion: 1`). An unmeasurable value is `null`, never `0`.
+ */
+export interface DoctorDiskDocument {
+  readonly freeBytes: number | null;
+  readonly totalBytes: number | null;
+  readonly appImages: readonly DoctorAppImageDocument[];
+  readonly imagesTotalBytes: number | null;
+  readonly buildkitCacheBytes: number | null;
+  readonly workspaces: readonly DoctorWorkspaceDocument[];
+  readonly workspaceTotalBytes: number | null;
+  readonly toolsBytes: number | null;
+  readonly approximate: true;
+}
+
+/** The stable `doctor --json` document. `checks` and `disk` are always present. */
 export interface DoctorDocument {
   readonly schemaVersion: JsonSchemaVersion;
   readonly status: "pass" | "warn" | "fail";
   readonly checks: readonly DoctorCheckDocument[];
+  /** Additive in schemaVersion 1 (`OBS-FR-04`, `OBS-NF-02`). */
+  readonly disk: DoctorDiskDocument;
 }
 
 /** The stable `config --json` document with every `[env]` value redacted. */

@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: OBSERVABILITY-AND-OUTPUT-1
 **Status**: In Progress
-**Validation Gaps**: 23 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T04:58:00.884Z
+**Validation Gaps**: 26 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T05:06:32.275Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -70,6 +70,8 @@
   - Files: src/cli/format.ts, tests/unit/format.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, tests/unit/read-commands.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.3: Detect drift between state and Podman (@cli-engineer)
   - Files: src/registry/drift.ts, tests/unit/drift.test.ts, src/cli/commands/list.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/json.ts, src/cli/schemas.ts, tests/unit/format.test.ts, tests/unit/json.test.ts, tests/unit/read-commands.test.ts
+- [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.4: Report disk usage in doctor (@cli-engineer)
+  - Files: src/doctor/disk-checks.ts, src/doctor/index.ts, tests/unit/doctor-disk.test.ts, src/cli/json.ts, src/cli/schemas.ts, src/doctor/checks.ts, tests/unit/json.test.ts
 
 ## Current Task
 - None currently running
@@ -77,7 +79,6 @@
 ## Remaining
 - [ ] Phase ROLLBACK-AND-REMOVE-1: Phase 1: Rollback, Retention, and Remove
 - [ ] Phase ROLLBACK-AND-REMOVE-2: Phase 2: Proof and Release Gate
-- [ ] Phase OBSERVABILITY-AND-OUTPUT-1: Phase 1: Output Contracts and Drift
 - [ ] Phase DOCS-AND-PACKAGING-1: Phase 1: Install and Generate
 - [ ] Phase DOCS-AND-PACKAGING-2: Phase 2: Operator Documentation
 
@@ -108,6 +109,9 @@
 - Task OBS-1.2: Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software.
 - Task OBS-1.3: Drift unit coverage injects inspect observations, so no real container with a wrong image or unhealthy probe was exercised; the manual CLI run confirmed missing-container against the host Podman.
 - Task OBS-1.3: No gated integration or packaging suite was run because no Podman lifecycle, build, or packaging code changed.
+- Task OBS-1.4: No real easy-host image or gated Podman integration suite was exercised; Podman output was injected, while workspace/tools/cache filesystem paths were real temporary directories.
+- Task OBS-1.4: The manual doctor run exits 2 because Railpack and BuildKit are absent on this host; that is host state, not a disk-reporting failure.
+- Task OBS-1.4: The 2-second budget is asserted with an injected clock and observed at 1.83s wall time on this host; no healthy-host run with Railpack and BuildKit installed was available.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e

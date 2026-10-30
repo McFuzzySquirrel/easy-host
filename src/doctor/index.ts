@@ -9,7 +9,6 @@ import {
   runBuildChecks,
 } from "./build-checks.js";
 import {
-  checkDisk,
   checkGit,
   checkLinger,
   checkNode,
@@ -26,6 +25,12 @@ import {
   readDiskSpace,
   readOsRelease,
 } from "./checks.js";
+import {
+  type DirectorySizeReader,
+  type DiskUsageReport,
+  readDirectorySize,
+  runDiskChecks,
+} from "./disk-checks.js";
 
 /**
  * Doctor composition, human rendering, and the `--json` document.
@@ -44,6 +49,8 @@ export type DoctorStatus = "pass" | "warn" | "fail";
 export interface DoctorReport {
   status: DoctorStatus;
   checks: DoctorCheck[];
+  /** Approximate disk figures also carried by the JSON document (`OBS-FR-04`). */
+  disk: DiskUsageReport;
   /** Wall-clock duration measured with the injectable clock. */
   durationMs: number;
 }
@@ -61,6 +68,10 @@ export interface DoctorOptions {
   toolsDir?: string;
   /** `<root>/buildkit`; defaults to the state-root layout. */
   buildkitDir?: string;
+  /** `<root>/apps`; defaults to the state-root layout. */
+  appsDir?: string;
+  /** Recursive directory-size reader for workspace and tools usage. */
+  readDirectorySize?: DirectorySizeReader;
   /** Base directory for a relative Railpack override. Defaults to `process.cwd()`. */
   cwd?: string;
   /** Home directory for `~/` expansion. Defaults to `os.homedir()`. */
@@ -75,6 +86,12 @@ export interface DoctorOptions {
 
 /** Stable shape of `doctor --json` under `schemaVersion: 1`. */
 export type { DoctorDocument } from "../cli/schemas.js";
+export type {
+  AppDiskUsage,
+  DirectorySizeReader,
+  DiskUsageReport,
+  WorkspaceDiskUsage,
+} from "./disk-checks.js";
 export { toDoctorDocument };
 
 /** The report is required to fit an 80-column terminal (`OBS-FR-02`). */
@@ -123,12 +140,25 @@ export function runDoctor(options: DoctorOptions = {}): DoctorReport {
     checkGit(environment),
     checkNode(environment),
     ...runBuildChecks(buildEnvironment),
-    checkDisk(environment),
   ];
+
+  // The disk group runs last so its measurements are included in the elapsed
+  // time and cannot delay the prerequisite checks ahead of it.
+  const disk = runDiskChecks({
+    runner: environment.runner,
+    readDiskSpace: environment.readDiskSpace,
+    diskPath: environment.diskPath,
+    appsDir: options.appsDir ?? paths.appsDir,
+    toolsDir: buildEnvironment.toolsDir,
+    buildkitDir: buildEnvironment.buildkitDir,
+    readDirectorySize: options.readDirectorySize ?? readDirectorySize,
+  });
+  checks.push(disk.check);
 
   return {
     status: overallStatus(checks),
     checks,
+    disk: disk.usage,
     durationMs: Math.max(0, now() - startedAt),
   };
 }
