@@ -1,10 +1,10 @@
 # Project Progress
 
 ## Current State
-**Phase**: OBSERVABILITY-AND-OUTPUT-1
+**Phase**: ROLLBACK-AND-REMOVE-1
 **Status**: In Progress
-**Validation Gaps**: 26 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T05:06:32.275Z
+**Validation Gaps**: 27 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T05:11:12.033Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -64,6 +64,8 @@
   - Files: src/lifecycle/update.ts, src/cli/commands/update.ts, tests/unit/update.test.ts, src/lifecycle/swap.ts, tests/unit/swap.test.ts
 - [x] Phase UPDATE-AND-HEALTH-GATE-2, Task UPD-1.4: Prove a broken update keeps the old version (@qa-engineer)
   - Files: tests/integration/update.test.ts, vitest.config.ts
+- [x] Phase ROLLBACK-AND-REMOVE-1, Task RBK-1.1: Implement health-gated rollback (@lifecycle-engineer)
+  - Files: src/lifecycle/rollback.ts, src/cli/commands/rollback.ts, tests/unit/rollback.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.1: Freeze the JSON output contract (@cli-engineer)
   - Files: src/cli/json.ts, src/cli/schemas.ts, tests/unit/json.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/not-implemented.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/errors.ts, src/cli/index.ts, src/cli/program.ts, src/doctor/index.ts, tests/unit/cli-entry.test.ts, tests/unit/program.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.2: Make human output TTY-aware and accessible (@cli-engineer)
@@ -104,6 +106,7 @@
 - Task UPD-1.4: Real builds ran on x86_64 only; the cold fixture build was ~237s per run and the suite remains network-dependent for npm and Railpack/BuildKit acquisition.
 - Task UPD-1.4: A SIGKILL of the runner itself would bypass afterAll; unique names make that safe to retry, but the path is reasoned, not exercised.
 - Task UPD-1.4: npm run test:packaging cannot pass until the packaging suite is authored; it is outside UPD-1.4's scope.
+- Task RBK-1.1: No real Podman container swap, image, or HTTP probe was exercised; runtime, prober, and clock were injected fakes, and the state cache/registry were the real filesystem implementations under a temporary root.
 - Task OBS-1.1: No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.
 - Task OBS-1.1: The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy.
 - Task OBS-1.2: Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software.
