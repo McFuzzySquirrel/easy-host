@@ -1,10 +1,10 @@
 # Project Progress
 
 ## Current State
-**Phase**: ADD-AND-LIFECYCLE-1
+**Phase**: ADD-AND-LIFECYCLE-2
 **Status**: In Progress
-**Validation Gaps**: 7 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T01:21:08.393Z
+**Validation Gaps**: 8 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T01:30:48.315Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -50,6 +50,8 @@
   - Files: src/platform/podman.ts, tests/unit/podman.test.ts
 - [x] Phase ADD-AND-LIFECYCLE-1, Task ADD-1.3: Probe HTTP and TCP health with a bounded budget (@platform-engineer)
   - Files: src/health/probe.ts, tests/unit/probe.test.ts
+- [x] Phase ADD-AND-LIFECYCLE-2, Task ADD-1.4: Orchestrate add with prompts and failure cleanup (@lifecycle-engineer)
+  - Files: src/lifecycle/add.ts, src/cli/prompts.ts, src/cli/commands/add.ts, tests/unit/add.test.ts
 
 ## Current Task
 - None currently running
@@ -75,6 +77,7 @@
 - Task REG-1.4: The conditional gated host check `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts` was not run because tests/integration/add.test.ts does not exist yet (ADD phase).
 - Task ADD-1.1: The gated host check EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts was not run because that suite is ADD-1.6 scope and does not exist yet.
 - Task ADD-1.3: Gated host integration was not run; tests/integration/add.test.ts does not exist yet and this task requires no real host.
+- Task ADD-1.4: No real clone, Railpack build, container start, or HTTP probe was performed in this unit-only task.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
