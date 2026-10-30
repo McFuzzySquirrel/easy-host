@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: ADD-AND-LIFECYCLE-1
 **Status**: In Progress
-**Validation Gaps**: 6 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T01:17:05.563Z
+**Validation Gaps**: 7 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T01:21:08.393Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -48,12 +48,13 @@
   - Files: src/platform/git.ts, tests/unit/git.test.ts
 - [x] Phase ADD-AND-LIFECYCLE-1, Task ADD-1.2: Wrap Podman container and volume operations (@platform-engineer)
   - Files: src/platform/podman.ts, tests/unit/podman.test.ts
+- [x] Phase ADD-AND-LIFECYCLE-1, Task ADD-1.3: Probe HTTP and TCP health with a bounded budget (@platform-engineer)
+  - Files: src/health/probe.ts, tests/unit/probe.test.ts
 
 ## Current Task
 - None currently running
 
 ## Remaining
-- [ ] Phase ADD-AND-LIFECYCLE-1: Phase 1: Building Blocks
 - [ ] Phase ADD-AND-LIFECYCLE-2: Phase 2: Add and Read Commands
 - [ ] Phase UPDATE-AND-HEALTH-GATE-1: Phase 1: Diff and Swap
 - [ ] Phase UPDATE-AND-HEALTH-GATE-2: Phase 2: Update Command and Proof
@@ -73,6 +74,7 @@
 - Task BLD-1.6: Build durations are network-dependent; the cold Vite build ranged from 248s to 277s across runs.
 - Task REG-1.4: The conditional gated host check `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts` was not run because tests/integration/add.test.ts does not exist yet (ADD phase).
 - Task ADD-1.1: The gated host check EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts was not run because that suite is ADD-1.6 scope and does not exist yet.
+- Task ADD-1.3: Gated host integration was not run; tests/integration/add.test.ts does not exist yet and this task requires no real host.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
