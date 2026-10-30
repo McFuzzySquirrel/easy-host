@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-30T00:33:05.938Z",
+  "lastUpdatedAt": "2026-10-30T01:06:33.060Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -442,10 +442,39 @@
     },
     "BLD-1.6": {
       "taskId": "BLD-1.6",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "build-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 1,
+      "outputFiles": [
+        "tests/integration/build.test.ts"
+      ],
+      "startedAt": "2026-10-30T00:33:05.970Z",
+      "usage": {
+        "source": "unavailable",
+        "note": "opencode usage unavailable: Unexpected end of JSON input"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/BLD-1.6.2026-10-30T01-06-33-056Z.attempt-1.result.json",
+          "usage": {
+            "source": "unavailable",
+            "note": "opencode usage unavailable: Unexpected end of JSON input"
+          }
+        }
+      ],
+      "completedAt": "2026-10-30T01:06:33.058Z",
+      "agentOutput": "I'll start by reading the execution file and the referenced documentation.\nNow I have the full picture. Let me write the gated integration suite.\nThe suite is type- and lint-clean, and the gate fails loudly when loaded without the variable. Now I'll run the real gated build on this host.\nThe builds all passed, but cleanup hit the known rootless-overlayfs ownership problem: BuildKit snapshots contain `000` work dirs and subuid-owned mount points that a plain `rm -rf` cannot traverse. I'll fix cleanup to fall back to `podman unshare rm -rf`, and write durable duration evidence.\nThe real-host run now passes end to end with a clean teardown. Let me run the remaining required checks and the build-layer unit suite.\nI'll run the exact declared validation command once more with no extra tuning, to prove the default evidence path and the final file exactly as specified.\n## Result report — BLD-1.6\n\nImplemented the gated real-host build proof in `tests/integration/build.test.ts`. The suite:\n\n- Fails during collection with a clear message when `EASY_HOST_INTEGRATION` is not `\"1\"`; it never skips or passes vacuously.\n- Preflights Linux, rootless Podman `>= 5.7.0, < 6.0.0`, and the docker-compatible loader Railpack needs for export.\n- Uses an isolated temporary state root, unique app names, a unique buildkitd container name, and a unique socket.\n- Builds all three fixtures through the real managed buildkitd and pinned Railpack: Vite/React SPA, Node/Express, Python/FastAPI.\n- Asserts each image exists by exact reference and carries the expected immutable `localhost/easy-host-<app>:<yyyymmddThhmmssZ>` tag.\n- Asserts the second build of the same fixture resolves the cached Railpack binary, uses the same executable path, and performs no second download.\n- Fails if no Railpack output reaches stderr before the build resolves.\n- Writes duration evidence as JSON after every build and after cleanup (`EASY_HOST_BUILD_EVIDENCE`, defaulting under the OS temp directory).\n- Cleans up its images (including any image discovered by this run's unique prefix if a build failed after export), its daemon, and its temp root. Rootless overlay snapshot directories are removed with `podman unshare rm -rf` when a plain recursive delete hits mapped-ID permission errors.\n\n### Pinned artifacts used\n\n| Artifact | Pin |\n|---|---|\n| Railpack | `0.43.0` |\n| Railpack x86_64 archive SHA-256 | `248a8f60f36854aabed6124113631078a802de3461660855fc4de9c26065c1fb` |\n| BuildKit image | `docker.io/moby/buildkit:v0.34.1-rootless` |\n| BuildKit digest | `sha256:f68752a5a94acfcdad2d07867b7075601a421638e17fc5f28efc1c814d0c4f89` |\n| Podman under test | `5.7.0`, rootless, `linux/x64` |\n\n### Validation commands\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | Passed |\n| `npm run lint` | Passed |\n| `npm test -- tests/unit/build.test.ts tests/unit/buildkit.test.ts tests/unit/railpack.test.ts tests/unit/fixtures.test.ts` | 78 passed |\n| `npm test` | 393 passed, 16 files |\n| `npm run build` | Passed |\n| `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/build.test.ts` | **2 passed**, exit 0, 303.39 s |\n| Gate-absence check (integration file loaded without the variable) | Failed with `EASY_HOST_INTEGRATION must be set to \"1\"...` as intended |\n\n### Observed build durations (final exact validation run)\n\n| Build | Duration | Railpack source | Streamed lines |\n|---|---:|---|---:|\n| Vite/React SPA, cold | 247,896 ms | download (verified once) | 438 |\n| Node/Express | 17,166 ms | cache | 139 |\n| Python/FastAPI | 32,869 ms | cache | 181 |\n| Vite/React SPA, warm re-build | 860 ms | cache | 130 |\n\n`railpackDownloads: 1`, `cleanup: \"ok\"`. All four test images, the buildkitd container, and the temporary root were verified absent after the run.\n\n### Files created or changed\n\n| File | Change |\n|---|---|\n| `tests/integration/build.test.ts` | Created — gated real-host build proof, evidence recording, and guaranteed cleanup |\n\nGenerated evidence (outside the repository, not committed): `/tmp/opencode/bld16-evidence-final.json` and the final default-path `/tmp/easy-host-build-evidence-<pid>.json`.\n\n```forge-result\n{\"summary\":\"Implemented and ran the gated real-host build proof. All three fixtures built into distinct timestamped images through the managed rootless buildkitd and pinned Railpack 0.43.0, the second Vite build reused the cached binary with exactly one download, and cleanup removed all test images, the daemon, and the temporary root. Typecheck, lint, 78 focused build-layer tests, the 393-test unit suite, the production build, and the exact gated integration command all pass.\",\"unresolved\":[],\"decisions\":[\"The integration file throws during collection when EASY_HOST_INTEGRATION is not \\\"1\\\"; the default vitest config still excludes tests/integration so unit runs need no Podman or network.\",\"Each run uses a unique temporary state root, app suffix, buildkitd container name, and socket so it never touches the operator root or a concurrent run.\",\"Railpack is resolved before every build against an empty environment, ignoring EASY_HOST_RAILPACK_BIN, to prove one managed download followed by cache hits.\",\"Build evidence is written to EASY_HOST_BUILD_EVIDENCE (default OS temp dir) after each build and after cleanup; it is not committed.\",\"Cleanup falls back to podman unshare rm -rf for BuildKit overlay snapshots containing 000 work directories and subuid-owned mount points.\",\"Cleanup discovers images by this run's unique app prefix as well as by returned reference, so an image loaded before a failed build cannot leak.\"],\"interfaces\":[\"tests/integration/build.test.ts consumes buildWorkspace, createBuildkit, resolveRailpack, and the pinned versions module; no product interface changed.\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/build.test.ts tests/unit/buildkit.test.ts tests/unit/railpack.test.ts tests/unit/fixtures.test.ts: 78 passed\",\"npm test: 393 passed\",\"npm run build: exit 0\",\"EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/build.test.ts: 2 passed, exit 0, 303.39s\"],\"warnings\":[\"Real builds were executed on x86_64 only; aarch64 remains verified by pinned URL and SHA-256 only.\",\"The suite requires a docker-compatible loader on PATH for Railpack 0.43.0's docker load export; it fails fast if none is present.\",\"A bare vitest run of the integration file without a config that includes tests/integration reports no test files because the default config excludes the directory; the suite's own gate was verified with an including config.\"],\"validationLimitations\":[\"Build durations are network-dependent; the cold Vite build ranged from 248s to 277s across runs.\"]}\n```\n",
+      "validationLimitations": [
+        "Build durations are network-dependent; the cold Vite build ranged from 248s to 277s across runs."
+      ],
+      "artifactId": "work-bld-1-6-001",
+      "inputArtifactIds": [
+        "work-bld-1-3-001",
+        "work-bld-1-4-001",
+        "work-bld-0-1-001"
+      ]
     },
     "REG-1.1": {
       "taskId": "REG-1.1",
