@@ -44,6 +44,8 @@ const DOCUMENTED_MARKDOWN = [
   "README.md",
   "docs/operations/prerequisites.md",
   "docs/operations/systemd-timer.md",
+  "docs/reference/cli.md",
+  "docs/reference/config.md",
 ] as const;
 
 const README_PATH = join(REPO_ROOT, "README.md");
@@ -649,7 +651,12 @@ describe("operations guides", () => {
   it("is linked from the README documentation index", () => {
     const documentation = sectionBody(README, "## Documentation");
 
-    for (const target of ["docs/operations/prerequisites.md", "docs/operations/systemd-timer.md"]) {
+    for (const target of [
+      "docs/operations/prerequisites.md",
+      "docs/operations/systemd-timer.md",
+      "docs/reference/cli.md",
+      "docs/reference/config.md",
+    ]) {
       expect(documentation, `README documentation index is missing ${target}`).toContain(
         `](${target})`,
       );

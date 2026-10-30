@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: DOCS-AND-PACKAGING-2
 **Status**: In Progress
-**Validation Gaps**: 43 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T20:51:51.853Z
+**Validation Gaps**: 45 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T20:57:15.667Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -92,6 +92,8 @@
   - Files: README.md, tests/docs/links.test.ts
 - [x] Phase DOCS-AND-PACKAGING-2, Task DOC-1.4: Write the prerequisite and systemd timer guides (@docs-engineer)
   - Files: docs/operations/prerequisites.md, docs/operations/systemd-timer.md, tests/docs/links.test.ts
+- [x] Phase DOCS-AND-PACKAGING-2, Task DOC-1.5: Write the CLI and config reference (@docs-engineer)
+  - Files: docs/reference/cli.md, docs/reference/config.md, tests/docs/reference.test.ts, README.md, tests/docs/links.test.ts
 
 ## Current Task
 - None currently running
@@ -146,6 +148,8 @@
 - Task DOC-1.3: A clean-shell manual walkthrough of the install and quickstart was not run; it requires network installs and a Podman host.
 - Task DOC-1.3: The gated packaging suite was not rerun because it requires registry access.
 - Task DOC-1.4: No clean-shell manual walkthrough of the guides was run; it requires network installs and a prepared Podman host.
+- Task DOC-1.5: No manual clean-shell walkthrough on a prepared Podman host was run; claims were verified against source and the CLI program.
+- Task DOC-1.5: Lint exits successfully but reports three pre-existing useTemplate infos in image-label source and test files.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e

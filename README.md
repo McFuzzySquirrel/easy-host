@@ -148,6 +148,8 @@ podman volume rm easy-host-blog-blog-data
 | --- | --- |
 | [Product definition](docs/PRD.md) | Scope, success criteria, constraints |
 | [CLI command surface](docs/PRD.md#121-command-surface) | Every command and flag |
+| [CLI reference](docs/reference/cli.md) | Every command, flag, argument, exit code, and example |
+| [Configuration reference](docs/reference/config.md) | Every `config.toml` key, type, default, validation rule, volume, and env precedence |
 | [Error shape](docs/PRD.md#123-error-shape) | Operator-facing failure block |
 | [Exit codes](docs/features/01-prerequisites-and-doctor.md) | Exit-code taxonomy |
 | [Operator-supplied services and ports](docs/PRD.md#63-what-the-operator-must-provide) | What the host and operator must provide |
