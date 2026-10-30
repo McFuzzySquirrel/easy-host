@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: OBSERVABILITY-AND-OUTPUT-1
 **Status**: In Progress
-**Validation Gaps**: 20 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T03:57:43.609Z
+**Validation Gaps**: 23 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T04:58:00.884Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -62,6 +62,8 @@
   - Files: src/lifecycle/swap.ts, tests/unit/swap.test.ts
 - [x] Phase UPDATE-AND-HEALTH-GATE-2, Task UPD-1.3: Wire the update command (@lifecycle-engineer)
   - Files: src/lifecycle/update.ts, src/cli/commands/update.ts, tests/unit/update.test.ts, src/lifecycle/swap.ts, tests/unit/swap.test.ts
+- [x] Phase UPDATE-AND-HEALTH-GATE-2, Task UPD-1.4: Prove a broken update keeps the old version (@qa-engineer)
+  - Files: tests/integration/update.test.ts, vitest.config.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.1: Freeze the JSON output contract (@cli-engineer)
   - Files: src/cli/json.ts, src/cli/schemas.ts, tests/unit/json.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/not-implemented.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/errors.ts, src/cli/index.ts, src/cli/program.ts, src/doctor/index.ts, tests/unit/cli-entry.test.ts, tests/unit/program.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.2: Make human output TTY-aware and accessible (@cli-engineer)
@@ -73,7 +75,6 @@
 - None currently running
 
 ## Remaining
-- [ ] Phase UPDATE-AND-HEALTH-GATE-2: Phase 2: Update Command and Proof
 - [ ] Phase ROLLBACK-AND-REMOVE-1: Phase 1: Rollback, Retention, and Remove
 - [ ] Phase ROLLBACK-AND-REMOVE-2: Phase 2: Proof and Release Gate
 - [ ] Phase OBSERVABILITY-AND-OUTPUT-1: Phase 1: Output Contracts and Drift
@@ -99,6 +100,9 @@
 - Task UPD-1.1: No Podman, git, filesystem, or registry I/O is involved in this module by design; only the gated update integration suite (UPD-1.4, owned by qa-engineer) can prove the later swap path on a real host.
 - Task UPD-1.2: No real Podman container swap or HTTP probe was exercised here; all runtime and probe behavior was injected fakes.
 - Task UPD-1.3: The gated real-host update integration suite (tests/integration/update.test.ts, UPD-1.4) is owned by qa-engineer and was not run here; no real Podman, git, Railpack, or BuildKit was exercised by the unit suite.
+- Task UPD-1.4: Real builds ran on x86_64 only; the cold fixture build was ~237s per run and the suite remains network-dependent for npm and Railpack/BuildKit acquisition.
+- Task UPD-1.4: A SIGKILL of the runner itself would bypass afterAll; unique names make that safe to retry, but the path is reasoned, not exercised.
+- Task UPD-1.4: npm run test:packaging cannot pass until the packaging suite is authored; it is outside UPD-1.4's scope.
 - Task OBS-1.1: No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.
 - Task OBS-1.1: The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy.
 - Task OBS-1.2: Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software.

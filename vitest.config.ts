@@ -15,6 +15,12 @@ export default defineConfig({
     ],
     testTimeout: 10_000,
     hookTimeout: 10_000,
+    // The gated integration suites mutate host-global state: add and update
+    // share the single managed `easy-host-buildkitd` container, and a second
+    // suite's `ensureBuildkit` replaces a daemon it did not start. Running the
+    // files concurrently makes each suite stomp the other's build, so they run
+    // one at a time. Unit files keep Vitest's default parallelism.
+    fileParallelism: !integrationEnabled,
     clearMocks: true,
     restoreMocks: true,
   },
