@@ -10,8 +10,17 @@
   "bin": {
     "easy-host": "dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "completions",
+    "README.md",
+    "LICENSE",
+    "docs/operations",
+    "docs/reference"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "biome check .",
     "test": "vitest run",

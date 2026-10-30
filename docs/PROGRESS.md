@@ -1,10 +1,10 @@
 # Project Progress
 
 ## Current State
-**Phase**: ROLLBACK-AND-REMOVE-2
+**Phase**: DOCS-AND-PACKAGING-1
 **Status**: In Progress
-**Validation Gaps**: 36 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T19:31:27.452Z
+**Validation Gaps**: 38 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T19:40:10.488Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -84,6 +84,8 @@
   - Files: src/registry/drift.ts, tests/unit/drift.test.ts, src/cli/commands/list.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/json.ts, src/cli/schemas.ts, tests/unit/format.test.ts, tests/unit/json.test.ts, tests/unit/read-commands.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.4: Report disk usage in doctor (@cli-engineer)
   - Files: src/doctor/disk-checks.ts, src/doctor/index.ts, tests/unit/doctor-disk.test.ts, src/cli/json.ts, src/cli/schemas.ts, src/doctor/checks.ts, tests/unit/json.test.ts
+- [x] Phase DOCS-AND-PACKAGING-1, Task DOC-1.1: Make the package installable from the repository (@cli-engineer)
+  - Files: package.json, tests/packaging/install.test.ts
 
 ## Current Task
 - None currently running
@@ -132,6 +134,8 @@
 - Task OBS-1.4: No real easy-host image or gated Podman integration suite was exercised; Podman output was injected, while workspace/tools/cache filesystem paths were real temporary directories.
 - Task OBS-1.4: The manual doctor run exits 2 because Railpack and BuildKit are absent on this host; that is host state, not a disk-reporting failure.
 - Task OBS-1.4: The 2-second budget is asserted with an injected clock and observed at 1.83s wall time on this host; no healthy-host run with Railpack and BuildKit installed was available.
+- Task DOC-1.1: Installation was proven into a temporary global prefix, not the host system prefix.
+- Task DOC-1.1: The clone and git-tag install paths were manually probed, not added to the automated packaging suite.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
