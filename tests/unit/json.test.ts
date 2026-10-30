@@ -353,6 +353,7 @@ describe("list --json", () => {
       "currentImage",
       "previousImage",
       "containerId",
+      "drift",
       "error",
     ]);
     expect(app?.name).toBe("blog");
@@ -366,6 +367,11 @@ describe("list --json", () => {
     expect(app?.previousImage).toBe(PREVIOUS_IMAGE);
     expect(app?.containerId).toBe("container-blog-0123456789abcdef");
     expect(app?.error).toBeNull();
+
+    const drift = app?.drift as Record<string, unknown>;
+    expect(drift.class).toBe("none");
+    expect(drift.drifted).toBe(false);
+    expect(drift.statePresent).toBe(true);
 
     expect(stdout.text).not.toContain(SECRET_VALUE);
   });
@@ -465,6 +471,7 @@ describe("status --json", () => {
       "container",
       "health",
       "updatedAt",
+      "drift",
       "error",
     ]);
 
@@ -505,6 +512,12 @@ describe("status --json", () => {
     expect(app?.updatedAt).toBe(FIXED_ISO);
     expect(String(app?.updatedAt)).toMatch(ISO_UTC);
     expect(app?.error).toBeNull();
+
+    const drift = app?.drift as Record<string, unknown>;
+    expect(drift.class).toBe("none");
+    expect(drift.drifted).toBe(false);
+    expect(drift.recommendedAction).toMatchObject({ kind: "no-op", command: null });
+
     expect(stdout.text).not.toContain(SECRET_VALUE);
   });
 

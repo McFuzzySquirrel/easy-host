@@ -25,7 +25,7 @@ import { runListCommand } from "../../src/cli/commands/list.js";
 import { type LogsRuntime, runLogsCommand } from "../../src/cli/commands/logs.js";
 import type { ReadRuntime } from "../../src/cli/commands/read-model.js";
 import { runStatusCommand } from "../../src/cli/commands/status.js";
-import { EXIT_CODES, NotFoundError } from "../../src/cli/errors.js";
+import { EXIT_CODES, NotFoundError, PrerequisiteError } from "../../src/cli/errors.js";
 import { stripAnsi } from "../../src/cli/format.js";
 import { serializeConfig, validateAppSpec } from "../../src/config/parse.js";
 import type { AppSpec, AppSpecInput } from "../../src/config/schema.js";
@@ -347,6 +347,63 @@ describe("list", () => {
     expect(piped.text).toContain("healthy");
   });
 
+  it("marks a drifted app below the table without changing the status label", async () => {
+    const fixture = createFixture();
+    const blog = addConfiguredApp(fixture, "blog", 8080);
+    writeHealthyState(blog.record, { current: BLOG_IMAGE });
+
+    const runtime = new FixtureRuntime();
+    runtime.containers.set(
+      "blog",
+      runningContainer("blog", { image: "localhost/easy-host-blog:20261031T080000Z" }),
+    );
+
+    const stdout = new RecordingStream();
+    const code = await runListCommand({
+      environment: fixture.environment,
+      runtime,
+      stdout,
+      stderr: new RecordingStream(),
+    });
+
+    expect(code).toBe(EXIT_CODES.SUCCESS);
+    const text = stdout.text;
+    expect(text).toMatch(/blog\s+healthy/);
+    expect(text).toMatch(/drift:\s+blog: image-mismatch/);
+    expect(text).toContain("easy-host update blog --rebuild");
+    expectPlainText(text);
+    linesWithinWidth(text);
+  });
+
+  it("reports a failed inspect as unknown and keeps the environment exit code", async () => {
+    const fixture = createFixture();
+    addConfiguredApp(fixture, "blog", 8080);
+
+    const runtime = new FixtureRuntime();
+    runtime.containers.set(
+      "blog",
+      new PrerequisiteError("podman is not reachable", {
+        code: "PODMAN_UNAVAILABLE",
+        remediation: 'Run "easy-host doctor".',
+      }),
+    );
+
+    const stdout = new RecordingStream();
+    const code = await runListCommand({
+      environment: fixture.environment,
+      runtime,
+      stdout,
+      stderr: new RecordingStream(),
+    });
+
+    expect(code).toBe(EXIT_CODES.PREREQUISITE);
+    expect(stdout.text).toMatch(/blog\s+unknown/);
+    expect(stdout.text).toMatch(/drift:\s+blog: unknown/);
+    expect(stdout.text).not.toMatch(/blog\s+healthy/);
+    expectPlainText(stdout.text);
+    linesWithinWidth(stdout.text);
+  });
+
   it("prints an explicit message when no apps are registered", async () => {
     const fixture = createFixture();
     const stdout = new RecordingStream();
@@ -548,6 +605,66 @@ describe("status", () => {
     expect(stdout.text).toMatch(/status:\s+missing/);
     expect(stdout.text).toContain("easy-host-api missing");
     expect(stdout.text).toContain("config:");
+  });
+
+  it("reports the drift class and the update that would repair it", async () => {
+    const fixture = createFixture();
+    const blog = addConfiguredApp(fixture, "blog", 8080);
+    writeHealthyState(blog.record, { current: BLOG_IMAGE });
+
+    const runtime = new FixtureRuntime();
+    runtime.containers.set(
+      "blog",
+      runningContainer("blog", { image: "localhost/easy-host-blog:20261031T080000Z" }),
+    );
+
+    const stdout = new RecordingStream();
+    const code = await runStatusCommand({
+      app: "blog",
+      environment: fixture.environment,
+      runtime,
+      stdout,
+      stderr: new RecordingStream(),
+    });
+
+    expect(code).toBe(EXIT_CODES.SUCCESS);
+    expect(stdout.text).toMatch(/drift:\s+image-mismatch/);
+    expect(stdout.text).toContain("easy-host update blog --rebuild");
+    expectPlainText(stdout.text);
+    linesWithinWidth(stdout.text);
+  });
+
+  it("reports a failed inspect as unknown rather than healthy", async () => {
+    const fixture = createFixture();
+    const blog = addConfiguredApp(fixture, "blog", 8080);
+    writeHealthyState(blog.record);
+
+    const runtime = new FixtureRuntime();
+    runtime.containers.set(
+      "blog",
+      new PrerequisiteError("podman is not reachable", {
+        code: "PODMAN_UNAVAILABLE",
+        remediation: 'Run "easy-host doctor".',
+      }),
+    );
+
+    const stdout = new RecordingStream();
+    const code = await runStatusCommand({
+      app: "blog",
+      environment: fixture.environment,
+      runtime,
+      stdout,
+      stderr: new RecordingStream(),
+    });
+
+    expect(code).toBe(EXIT_CODES.PREREQUISITE);
+    expect(stdout.text).toMatch(/status:\s+unknown/);
+    expect(stdout.text).not.toMatch(/status:\s+healthy/);
+    expect(stdout.text).toMatch(/drift:\s+unknown/);
+    expect(stdout.text).toContain("easy-host doctor");
+    expect(stdout.text).toContain("podman is not reachable");
+    expectPlainText(stdout.text);
+    linesWithinWidth(stdout.text);
   });
 
   it("reports every app, including a broken directory, when no app is named", async () => {

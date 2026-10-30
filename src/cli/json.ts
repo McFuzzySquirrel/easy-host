@@ -18,11 +18,13 @@
 
 import type { AppSpec } from "../config/schema.js";
 import type { DoctorReport } from "../doctor/index.js";
+import type { DriftReport } from "../registry/drift.js";
 import type { AppRow } from "./commands/read-model.js";
 import { REDACTED, redactText } from "./errors.js";
 import {
   type ConfigDocument,
   type DoctorDocument,
+  type DriftDocument,
   JSON_SCHEMA_VERSION,
   type JsonDocument,
   type ListAppDocument,
@@ -122,6 +124,7 @@ function toListAppDocument(row: AppRow): ListAppDocument {
     currentImage: nullableText(row.state?.images.current),
     previousImage: nullableText(row.state?.images.previous),
     containerId: nullableText(row.container?.id ?? row.state?.containerId),
+    drift: toDriftDocument(row.drift),
     error: errorDocument(row),
   };
 }
@@ -179,7 +182,30 @@ function toStatusAppDocument(row: AppRow): StatusAppDocument {
       detail: nullableText(state?.health.detail),
     },
     updatedAt: toIsoUtc(state?.updatedAt),
+    drift: toDriftDocument(row.drift),
     error: errorDocument(row),
+  };
+}
+
+/**
+ * Projects the typed drift report into the additive document. Every field is
+ * present, and all strings pass through {@link redactText} so a credential in
+ * a recorded probe detail cannot reach stdout (`PRD-NF-10`).
+ */
+export function toDriftDocument(report: DriftReport): DriftDocument {
+  return {
+    class: report.drift,
+    drifted: report.drifted,
+    statePresent: report.statePresent,
+    recordedImage: nullableText(report.recordedImage),
+    liveImage: nullableText(report.liveImage),
+    containerIdMatches: report.containerIdMatches,
+    summary: text(report.summary),
+    recommendedAction: {
+      kind: report.recommendedAction.kind,
+      command: nullableText(report.recommendedAction.command),
+      description: text(report.recommendedAction.description),
+    },
   };
 }
 

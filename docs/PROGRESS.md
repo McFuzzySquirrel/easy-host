@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: OBSERVABILITY-AND-OUTPUT-1
 **Status**: In Progress
-**Validation Gaps**: 18 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T03:48:02.223Z
+**Validation Gaps**: 20 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T03:57:43.609Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -66,6 +66,8 @@
   - Files: src/cli/json.ts, src/cli/schemas.ts, tests/unit/json.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/not-implemented.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/errors.ts, src/cli/index.ts, src/cli/program.ts, src/doctor/index.ts, tests/unit/cli-entry.test.ts, tests/unit/program.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.2: Make human output TTY-aware and accessible (@cli-engineer)
   - Files: src/cli/format.ts, tests/unit/format.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, tests/unit/read-commands.test.ts
+- [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.3: Detect drift between state and Podman (@cli-engineer)
+  - Files: src/registry/drift.ts, tests/unit/drift.test.ts, src/cli/commands/list.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/json.ts, src/cli/schemas.ts, tests/unit/format.test.ts, tests/unit/json.test.ts, tests/unit/read-commands.test.ts
 
 ## Current Task
 - None currently running
@@ -100,6 +102,8 @@
 - Task OBS-1.1: No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.
 - Task OBS-1.1: The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy.
 - Task OBS-1.2: Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software.
+- Task OBS-1.3: Drift unit coverage injects inspect observations, so no real container with a wrong image or unhealthy probe was exercised; the manual CLI run confirmed missing-container against the host Podman.
+- Task OBS-1.3: No gated integration or packaging suite was run because no Podman lifecycle, build, or packaging code changed.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e

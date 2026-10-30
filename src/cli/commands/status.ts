@@ -22,22 +22,21 @@ import { toStatusDocument, writeJsonDocument } from "../json.js";
 import type { StatusAppDocument, StatusDocument } from "../schemas.js";
 import {
   type AppRow,
+  collectAppRow,
   collectAppRows,
   containerName,
+  driftDescription,
   formatTimestamp,
-  inspectAppContainer,
   portsDescription,
   probeDescription,
   type ReadDependencies,
   type ReadDependencyOverrides,
   type ReadOutputStream,
   type ReadRegistry,
-  readAppState,
   resolveReadDependencies,
   shortContainerId,
   sourceDescription,
   statusExitCode,
-  statusLabel,
   volumesDescription,
 } from "./read-model.js";
 
@@ -81,7 +80,20 @@ export async function runStatusCommand(options: StatusCommandOptions = {}): Prom
 
     if (options.app !== undefined) {
       const row = rows[0];
-      return row === undefined ? EXIT_CODES.SUCCESS : statusExitCode(row.status);
+      if (row === undefined) {
+        return EXIT_CODES.SUCCESS;
+      }
+
+      // A Podman inspect failure keeps its documented exit code (usually 2 for
+      // an environment fault), and is never treated as a serving app.
+      return row.inspectionError === undefined
+        ? statusExitCode(row.status)
+        : row.inspectionError.exitCode;
+    }
+
+    const failedInspection = rows.find((row) => row.inspectionError !== undefined);
+    if (failedInspection?.inspectionError !== undefined) {
+      return failedInspection.inspectionError.exitCode;
     }
 
     return rows.some((row) => row.status !== "healthy" && row.status !== "unknown")
@@ -104,8 +116,6 @@ async function collectNamedAppRow(
 ): Promise<AppRow> {
   const record = registry.record(app);
   const spec = registry.readConfig(record.name);
-  const state = readAppState(dependencies.stateStore(record.directory));
-  const container = await inspectAppContainer(dependencies.runtime, record.name);
 
   const entry: OkAppEntry = {
     status: "ok",
@@ -115,15 +125,7 @@ async function collectNamedAppRow(
     spec,
   };
 
-  return {
-    name: record.name,
-    status: statusLabel(container, state),
-    entry,
-    spec,
-    state,
-    container,
-    error: undefined,
-  };
+  return collectAppRow(entry, dependencies);
 }
 
 /**
@@ -169,6 +171,7 @@ export function formatStatusReport(
     lines.push(...formatter.field("previous", row.state?.images.previous ?? "none"));
     lines.push(...formatContainer(row, spec, formatter));
     lines.push(...formatHealth(row, formatter));
+    lines.push(...formatDrift(row, formatter));
     lines.push(...formatter.field("updated", formatTimestamp(row.state?.updatedAt)));
     lines.push("");
   }
@@ -183,6 +186,16 @@ export function formatStatusReport(
 function formatContainer(row: AppRow, spec: AppSpec, formatter: Formatter): string[] {
   const name = containerName(row.name);
   const container = row.container;
+
+  if (row.inspectionError !== undefined) {
+    return [
+      ...formatter.field(
+        "container",
+        `${name} could not be inspected (${row.inspectionError.code})`,
+      ),
+      ...formatter.field("volumes", volumesDescription(undefined, row.name, spec)),
+    ];
+  }
 
   if (container === undefined) {
     return [
@@ -206,6 +219,24 @@ function formatContainer(row: AppRow, spec: AppSpec, formatter: Formatter): stri
     ...formatter.field("ports", portsDescription(container.ports)),
     ...formatter.field("volumes", volumesDescription(container, row.name, spec)),
   ];
+}
+
+/**
+ * Renders the drift class and, for anything that needs work, the update that
+ * would repair it. The class text is always present, so the recommendation is
+ * legible without colour (`OBS-FR-03`, `PRD-ACC-01`).
+ */
+function formatDrift(row: AppRow, formatter: Formatter): string[] {
+  const lines = formatter.field("drift", driftDescription(row.drift));
+  const action = row.drift.recommendedAction;
+
+  // Only a proven or unverifiable divergence needs follow-up; a clean app
+  // shows the `none` label and no nagging command (`OBS-FR-03`).
+  if (action.command !== null && row.drift.drift !== "none") {
+    lines.push(...formatter.field("next", `${action.command} (${action.description})`));
+  }
+
+  return lines;
 }
 
 function formatHealth(row: AppRow, formatter: Formatter): string[] {

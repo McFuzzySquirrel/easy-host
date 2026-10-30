@@ -28,9 +28,21 @@ import {
   inspectContainer as inspectWithPodman,
   volumeName,
 } from "../../platform/podman.js";
+import {
+  type DriftObservation,
+  type DriftReport,
+  detectDrift,
+  uncheckedDrift,
+} from "../../registry/drift.js";
 import { type AppState, StateStore } from "../../registry/state.js";
 import { type AppListEntry, type AppRecord, Registry } from "../../registry/store.js";
-import { type EasyHostError, EXIT_CODES, type ExitCode, NotFoundError } from "../errors.js";
+import {
+  type EasyHostError,
+  EXIT_CODES,
+  type ExitCode,
+  NotFoundError,
+  toEasyHostError,
+} from "../errors.js";
 import type { TableColumn } from "../format.js";
 import type { AppStatusLabel } from "../schemas.js";
 
@@ -95,6 +107,13 @@ export interface AppRow {
   readonly state: AppState | undefined;
   /** Absent when the container is missing or the entry is broken. */
   readonly container: ContainerInspect | undefined;
+  /** Read-only drift classification for this row. */
+  readonly drift: DriftReport;
+  /**
+   * Present when Podman inspect failed for a reason other than an absent
+   * container. The row is then `unknown`, never `healthy` (`OBS-FR-03`).
+   */
+  readonly inspectionError: EasyHostError | undefined;
   /** Present for a broken entry; every other row carries `undefined`. */
   readonly error: EasyHostError | undefined;
 }
@@ -128,16 +147,32 @@ export function resolveReadDependencies(overrides: ReadDependencyOverrides = {})
  * `status` show a useful last-update value without mutating the app.
  */
 export function readAppState(store: StateStore): AppState {
+  return readAppStateRecord(store).state;
+}
+
+/** A state read plus whether it came from the cache or an in-memory rebuild. */
+export interface ReadAppStateResult {
+  readonly state: AppState;
+  /** `rebuilt` means `state.json` was absent or unusable. */
+  readonly source: "cache" | "rebuilt";
+}
+
+/**
+ * The presence-aware form used by drift detection. A rebuilt state is useful
+ * for display but is not recorded history, so drift must treat it as absent
+ * (`PRD-NF-06`).
+ */
+export function readAppStateRecord(store: StateStore): ReadAppStateResult {
   const cached = store.readCache();
   if (cached !== undefined) {
-    return cached;
+    return { state: cached, source: "cache" };
   }
 
   const rebuilt = store.rebuild();
   // A cache-less app has never recorded an update. `rebuild` stamps `now` as
   // `updatedAt` for its own bookkeeping, so display the config's creation time
   // instead of pretending the app was just updated.
-  return { ...rebuilt, updatedAt: rebuilt.createdAt };
+  return { state: { ...rebuilt, updatedAt: rebuilt.createdAt }, source: "rebuilt" };
 }
 
 /** Inspects one app container, treating a missing container as `undefined`. */
@@ -223,22 +258,84 @@ export async function collectAppRow(
       spec: undefined,
       state: undefined,
       container: undefined,
+      drift: uncheckedDrift(entry.name, "the app directory has no valid config.toml"),
+      inspectionError: undefined,
       error: entry.error,
     };
   }
 
-  const state = readAppState(dependencies.stateStore(entry.directory));
-  const container = await inspectAppContainer(dependencies.runtime, entry.name);
+  const record = readAppStateRecord(dependencies.stateStore(entry.directory));
+  const inspected = await inspectForRow(entry.name, dependencies.runtime);
 
   return {
     name: entry.name,
-    status: statusLabel(container, state),
+    // A failed inspect is an unknown environment, never a serving app.
+    status:
+      inspected.error === undefined ? statusLabel(inspected.container, record.state) : "unknown",
     entry,
     spec: entry.spec,
-    state,
-    container,
+    state: record.state,
+    container: inspected.container,
+    drift: detectDrift({
+      app: entry.name,
+      // A rebuilt cache is display-only: drift must not treat it as history.
+      state: record.source === "cache" ? record.state : null,
+      observation: inspected.observation,
+    }),
+    inspectionError: inspected.error,
     error: undefined,
   };
+}
+
+interface InspectedRow {
+  readonly container: ContainerInspect | undefined;
+  readonly observation: DriftObservation;
+  readonly error: EasyHostError | undefined;
+}
+
+/**
+ * Inspects one container without letting a Podman failure abort a read
+ * command. An absent container is a normal `missing` observation; any other
+ * failure is kept as a typed error and reported as `unknown` drift.
+ */
+async function inspectForRow(app: string, runtime: ReadRuntime): Promise<InspectedRow> {
+  try {
+    const container = await runtime.inspectContainer({ app });
+    return {
+      container,
+      observation: {
+        status: "observed",
+        container: {
+          id: container.id,
+          image: container.image,
+          running: container.state.running,
+          state: container.state.status,
+          exitCode: container.state.exitCode,
+        },
+      },
+      error: undefined,
+    };
+  } catch (caught) {
+    const error = toEasyHostError(caught);
+
+    if (error instanceof NotFoundError) {
+      return { container: undefined, observation: { status: "missing" }, error: undefined };
+    }
+
+    return {
+      container: undefined,
+      observation: { status: "failed", reason: error.message, code: error.code },
+      error,
+    };
+  }
+}
+
+/**
+ * A readable one-line drift description for human output. The class label is
+ * always present so meaning never depends on colour (`PRD-ACC-01`).
+ */
+export function driftDescription(report: DriftReport): string {
+  return report.drift === "none" ? "none" : `${report.drift} (${report.summary})`;
 }
 
 /**

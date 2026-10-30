@@ -41,8 +41,10 @@ export interface ListCommandOptions extends ReadDependencyOverrides {
 }
 
 /**
- * Runs `list`, writes the table (or JSON document), and returns 0. A broken
- * app or an unhealthy app does not fail the listing; `list` is a survey.
+ * Runs `list`, writes the table (or JSON document), and returns 0 unless an
+ * inspect failed. A broken app, a missing container, or an unhealthy app does
+ * not fail the listing; `list` is a survey. A Podman inspect failure keeps its
+ * documented environment exit code while still printing every row.
  */
 export async function runListCommand(options: ListCommandOptions = {}): Promise<ExitCode> {
   const stdout = options.stdout ?? process.stdout;
@@ -59,7 +61,10 @@ export async function runListCommand(options: ListCommandOptions = {}): Promise<
       stdout.write(formatListReport(rows, createFormatter({ stream: stdout, env: environment })));
     }
 
-    return EXIT_CODES.SUCCESS;
+    // A Podman inspect failure is an environment fault, not a clean survey.
+    // The table is still printed with the affected row marked unknown.
+    const failed = rows.find((row) => row.inspectionError !== undefined);
+    return failed?.inspectionError?.exitCode ?? EXIT_CODES.SUCCESS;
   } catch (error) {
     return reportError(error, {
       stdout,
@@ -99,14 +104,26 @@ export function formatListReport(
   const lines = formatter.table(listColumns(formatter), cells);
 
   for (const row of rows) {
-    if (row.status !== "broken" || row.error === undefined) {
+    if (row.status === "broken") {
+      if (row.error !== undefined) {
+        lines.push(...formatter.field("error", row.error.message));
+        if (row.error.remediation !== undefined && row.error.remediation.length > 0) {
+          lines.push(...formatter.field("next", row.error.remediation));
+        }
+      }
       continue;
     }
 
-    lines.push(...formatter.field("error", row.error.message));
-    if (row.error.remediation !== undefined && row.error.remediation.length > 0) {
-      lines.push(...formatter.field("next", row.error.remediation));
+    // Drift is marked below the table so the documented column shape stays
+    // intact and a long class or command can wrap instead of being truncated
+    // (`OBS-FR-03`, `PRD-ACC-03`).
+    if (row.drift.drift === "none") {
+      continue;
     }
+
+    const command = row.drift.recommendedAction.command;
+    const detail = command === null ? row.drift.drift : `${row.drift.drift} -> ${command}`;
+    lines.push(...formatter.field("drift", `${row.name}: ${detail}`));
   }
 
   return `${lines.join("\n")}\n`;

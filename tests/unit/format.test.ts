@@ -28,6 +28,7 @@ import {
 } from "../../src/cli/format.js";
 import { validateAppSpec } from "../../src/config/parse.js";
 import type { AppSpec } from "../../src/config/schema.js";
+import { detectDrift } from "../../src/registry/drift.js";
 import type { AppState } from "../../src/registry/state.js";
 import type { OkAppEntry } from "../../src/registry/store.js";
 
@@ -104,6 +105,21 @@ function createRow(overrides: { readonly spec?: AppSpec; readonly name?: string 
     spec,
     state: createState(),
     container: undefined,
+    drift: detectDrift({
+      app: name,
+      state: createState(),
+      observation: {
+        status: "observed",
+        container: {
+          id: "container-0123456789abcdef",
+          image: "localhost/easy-host-blog:20261030T120000Z",
+          running: true,
+          state: "running",
+          exitCode: 0,
+        },
+      },
+    }),
+    inspectionError: undefined,
     error: undefined,
   };
 }

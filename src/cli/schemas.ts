@@ -14,6 +14,8 @@
  * them before serialization).
  */
 
+import type { DriftActionKind, DriftClass } from "../registry/drift.js";
+
 /** The only supported machine-readable contract version. */
 export const JSON_SCHEMA_VERSION = 1;
 
@@ -28,6 +30,30 @@ export type AppStatusLabel = "healthy" | "unhealthy" | "stopped" | "missing" | "
 
 /** Last recorded health outcome; `unknown` means the app was never probed. */
 export type JsonHealthStatus = "healthy" | "unhealthy" | "unknown";
+
+/** The recommended update action carried by every drift document. */
+export interface DriftActionDocument {
+  readonly kind: DriftActionKind;
+  /** Operator-ready command, or `null` when no command is needed. */
+  readonly command: string | null;
+  readonly description: string;
+}
+
+/**
+ * Additive drift projection (`OBS-FR-03`). `class` is `none` when recorded
+ * state and Podman agree, and `unknown` when inspect failed or drift was not
+ * checked; `unknown` is never a healthy verdict.
+ */
+export interface DriftDocument {
+  readonly class: DriftClass;
+  readonly drifted: boolean;
+  readonly statePresent: boolean;
+  readonly recordedImage: string | null;
+  readonly liveImage: string | null;
+  readonly containerIdMatches: boolean | null;
+  readonly summary: string;
+  readonly recommendedAction: DriftActionDocument;
+}
 
 /** `version --json` (`OBS-FR-01`). */
 export interface VersionDocument {
@@ -47,6 +73,8 @@ export interface ListAppDocument {
   readonly currentImage: string | null;
   readonly previousImage: string | null;
   readonly containerId: string | null;
+  /** Additive in schemaVersion 1 (`OBS-NF-02`). */
+  readonly drift: DriftDocument;
   readonly error: { readonly code: string; readonly summary: string } | null;
 }
 
@@ -93,6 +121,8 @@ export interface StatusAppDocument {
   readonly container: StatusContainerDocument | null;
   readonly health: StatusHealthDocument;
   readonly updatedAt: string | null;
+  /** Additive in schemaVersion 1 (`OBS-NF-02`). */
+  readonly drift: DriftDocument;
   readonly error: { readonly code: string; readonly summary: string } | null;
 }
 
