@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-30T01:12:09.508Z",
+  "lastUpdatedAt": "2026-10-30T01:17:05.561Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -756,10 +756,56 @@
     },
     "ADD-1.2": {
       "taskId": "ADD-1.2",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "platform-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 1,
+      "outputFiles": [
+        "src/platform/podman.ts",
+        "tests/unit/podman.test.ts"
+      ],
+      "startedAt": "2026-10-30T01:12:09.541Z",
+      "usage": {
+        "inputTokens": 74575,
+        "outputTokens": 23803,
+        "reasoningTokens": 27206,
+        "cacheReadTokens": 2692480,
+        "cacheWriteTokens": 0,
+        "costUsd": 0.04986909,
+        "source": "harness"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/ADD-1.2.2026-10-30T01-17-05-556Z.attempt-1.result.json",
+          "usage": {
+            "inputTokens": 74575,
+            "outputTokens": 23803,
+            "reasoningTokens": 27206,
+            "cacheReadTokens": 2692480,
+            "cacheWriteTokens": 0,
+            "costUsd": 0.04986909,
+            "source": "harness"
+          }
+        }
+      ],
+      "completedAt": "2026-10-30T01:17:05.559Z",
+      "agentOutput": "Now I'll implement `src/platform/podman.ts` following the established adapter patterns.\nImplemented the Podman container/volume adapter and verified it.\n\n```forge-result\n{\"summary\":\"Implemented src/platform/podman.ts with shell-free run/stop/remove/inspect/logs and volume create/list/remove, plus 38 recording-runner tests. Typecheck, lint, focused tests, the full 463-test suite, and the production build all pass.\",\"unresolved\":[],\"decisions\":[\"Every Podman call uses an argument array and a finite timeout; run defaults to 600s, stop/remove/volume to 60s, inspect to 15s, and logs to 1h.\",\"run emits exactly one --restart=always, one --publish, one --env PORT=<containerPort>, three io.easy-host labels, and one --volume easy-host-<app>-<volume>:<path> per declared mount.\",\"The merged environment is passed as --env KEY=VALUE pairs in deterministic key order; PORT always overrides any app-supplied value. Diagnostics expose only environment variable names and redact known values from Podman output.\",\"Error mapping keeps host/runtime failures as PrerequisiteError (exit 2), name/port/volume collisions as ConflictError (exit 6), missing containers/volumes as NotFoundError (exit 5), and invalid inputs as UsageError (exit 1).\",\"inspect normalizes Podman JSON into a typed view with id, name, image, state, restart policy, labels, port bindings, named-volume mounts, and environment names (never values).\",\"Volumes are created with io.easy-host.app=<app>; listing supports the label filter; create only adds --ignore when explicitly requested; removeContainer defaults to ignoreMissing for idempotent cleanup.\"],\"interfaces\":[\"PodmanRunner { run(command, args, {timeoutMs}) } and createDefaultPodmanRunner()\",\"podmanRunArguments(spec): string[]; runContainer(options): Promise<ContainerRunResult>\",\"stopContainer, removeContainer, inspectContainer, containerLogs\",\"createVolume, listVolumes, removeVolume\",\"containerName(app), volumeName(app, volume), publishSpec(bind, port, containerPort)\",\"ContainerInspect, ContainerProcessState, ContainerPortBinding, ContainerVolumeMount, VolumeSummary\",\"PODMAN_*_TIMEOUT_MS, DEFAULT_LOGS_TAIL, APP_LABEL, ROLE_LABEL, APP_ROLE_VALUE, IMAGE_LABEL, RESTART_POLICY, PODMAN_FAILURE_CODES\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/podman.test.ts: exit 0 (38 tests)\",\"npm test: exit 0 (463 tests)\",\"npm run build: exit 0\"],\"warnings\":[\"containerLogs defaults to follow=true and is still bounded by the 1h PODMAN_LOGS_TIMEOUT_MS to satisfy the finite-timeout rule.\",\"The gated tests/integration/add.test.ts suite does not exist yet, so end-to-end Podman integration was not run.\",\"No real Podman container or volume was created; all unit coverage uses the injected recording runner.\"]}\n```\n\nFiles created/changed:\n- `src/platform/podman.ts` (created)\n- `tests/unit/podman.test.ts` (created)\n",
+      "artifactId": "work-add-1-2-001",
+      "inputArtifactIds": [
+        "work-reg-1-4-001",
+        "work-reg-1-5-001",
+        "work-pre-1-3-001",
+        "work-bld-1-1-001",
+        "work-bld-1-2-001",
+        "work-bld-1-3-001",
+        "work-bld-1-4-001",
+        "work-bld-1-5-001",
+        "work-bld-1-6-001",
+        "work-reg-1-1-001",
+        "work-reg-1-2-001",
+        "work-reg-1-3-001"
+      ]
     },
     "ADD-1.3": {
       "taskId": "ADD-1.3",
