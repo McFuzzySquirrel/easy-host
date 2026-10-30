@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: DOCS-AND-PACKAGING-1
 **Status**: In Progress
-**Validation Gaps**: 38 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T19:40:10.488Z
+**Validation Gaps**: 40 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T19:46:28.521Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -86,12 +86,13 @@
   - Files: src/doctor/disk-checks.ts, src/doctor/index.ts, tests/unit/doctor-disk.test.ts, src/cli/json.ts, src/cli/schemas.ts, src/doctor/checks.ts, tests/unit/json.test.ts
 - [x] Phase DOCS-AND-PACKAGING-1, Task DOC-1.1: Make the package installable from the repository (@cli-engineer)
   - Files: package.json, tests/packaging/install.test.ts
+- [x] Phase DOCS-AND-PACKAGING-1, Task DOC-1.2: Generate shell completions from the command definitions (@cli-engineer)
+  - Files: scripts/generate-completions.ts, completions/easy-host.bash, completions/easy-host.zsh, completions/easy-host.fish, tests/unit/completions.test.ts
 
 ## Current Task
 - None currently running
 
 ## Remaining
-- [ ] Phase DOCS-AND-PACKAGING-1: Phase 1: Install and Generate
 - [ ] Phase DOCS-AND-PACKAGING-2: Phase 2: Operator Documentation
 
 ## Blockers
@@ -136,6 +137,8 @@
 - Task OBS-1.4: The 2-second budget is asserted with an injected clock and observed at 1.83s wall time on this host; no healthy-host run with Railpack and BuildKit installed was available.
 - Task DOC-1.1: Installation was proven into a temporary global prefix, not the host system prefix.
 - Task DOC-1.1: The clone and git-tag install paths were manually probed, not added to the automated packaging suite.
+- Task DOC-1.2: zsh and fish are not installed on this host, so those files were structurally validated but not executed by their shells.
+- Task DOC-1.2: The gated packaging install suite was not rerun (npm registry dependency); npm pack --dry-run verified the completion files are in the tarball.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
