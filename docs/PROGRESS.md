@@ -1,10 +1,10 @@
 # Project Progress
 
 ## Current State
-**Phase**: ADD-AND-LIFECYCLE-2
+**Phase**: OBSERVABILITY-AND-OUTPUT-1
 **Status**: In Progress
-**Validation Gaps**: 12 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T03:03:41.069Z
+**Validation Gaps**: 13 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T03:08:03.123Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -56,6 +56,8 @@
   - Files: src/cli/commands/list.ts, src/cli/commands/status.ts, src/cli/commands/logs.ts, src/cli/commands/config.ts, tests/unit/read-commands.test.ts, src/cli/commands/read-model.ts
 - [x] Phase ADD-AND-LIFECYCLE-2, Task ADD-1.6: Prove add end to end on the host (@qa-engineer)
   - Files: tests/integration/add.test.ts, src/platform/podman.ts, tests/unit/podman.test.ts
+- [x] Phase UPDATE-AND-HEALTH-GATE-1, Task UPD-1.1: Classify an update as no-op, config-only, or rebuild (@lifecycle-engineer)
+  - Files: src/lifecycle/diff.ts, tests/unit/diff.test.ts
 
 ## Current Task
 - None currently running
@@ -85,6 +87,7 @@
 - Task ADD-1.6: Real builds ran on x86_64 only; the Vite cold build ranged 472-509s across runs, so the suite's timeouts (15 min per test, 15 min setup, 5 min cleanup) carry headroom but remain network-dependent.
 - Task ADD-1.6: A SIGKILL of the runner itself would bypass afterAll; the suite tolerates crashes by naming every resource uniquely and verifying removal, but that path is reasoned, not exercised.
 - Task ADD-1.6: ADD-FR-04's TCP probe mode is unit-tested (tests/unit/probe.test.ts) and not re-proven on the host, because all three v1 fixtures answer over HTTP.
+- Task UPD-1.1: No Podman, git, filesystem, or registry I/O is involved in this module by design; only the gated update integration suite (UPD-1.4, owned by qa-engineer) can prove the later swap path on a real host.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e
