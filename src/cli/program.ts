@@ -1,10 +1,14 @@
 import { readFileSync } from "node:fs";
 import { Command, CommanderError, type OptionValues } from "commander";
+import { type AddCommandOptions, runAddCommand } from "./commands/add.js";
 import { type ConfigCommandOptions, runConfigCommand } from "./commands/config.js";
 import { type DoctorCommandOptions, runDoctorCommand } from "./commands/doctor.js";
 import { type ListCommandOptions, runListCommand } from "./commands/list.js";
-import { createNotImplementedHandler } from "./commands/not-implemented.js";
+import { type LogsCommandOptions, runLogsCommand } from "./commands/logs.js";
+import { type RemoveCommandOptions, runRemoveCommand } from "./commands/remove.js";
+import { type RollbackCommandOptions, runRollbackCommand } from "./commands/rollback.js";
 import { runStatusCommand, type StatusCommandOptions } from "./commands/status.js";
+import { runUpdateCommand, type UpdateCommandOptions } from "./commands/update.js";
 import {
   type ErrorRenderOptions,
   EXIT_CODES,
@@ -70,6 +74,15 @@ export interface ProgramOptions {
   runList?: (options: ListCommandOptions) => ExitCode | Promise<ExitCode>;
   runStatus?: (options: StatusCommandOptions) => ExitCode | Promise<ExitCode>;
   runConfig?: (options: ConfigCommandOptions) => ExitCode | Promise<ExitCode>;
+  /**
+   * Runs the lifecycle commands. The defaults are the real handlers; tests and
+   * embedders replace one handler without touching the others.
+   */
+  runAdd?: (options: AddCommandOptions) => ExitCode | Promise<ExitCode>;
+  runLogs?: (options: LogsCommandOptions) => number | Promise<number>;
+  runUpdate?: (options: UpdateCommandOptions) => ExitCode | Promise<ExitCode>;
+  runRollback?: (options: RollbackCommandOptions) => ExitCode | Promise<ExitCode>;
+  runRemove?: (options: RemoveCommandOptions) => ExitCode | Promise<ExitCode>;
 }
 
 /**
@@ -114,9 +127,8 @@ export function readPackageVersion(): string {
 
 /**
  * Creates the commander program with exactly ten subcommands, the documented
- * flags, and the global `--json` flag. `version`, `doctor`, `list`, `status`,
- * and `config` perform work here; the lifecycle commands and `logs` remain
- * placeholders until later tasks wire them.
+ * flags, and the global `--json` flag. Every command performs work here; the
+ * handlers are injectable so a test can replace one without touching the rest.
  */
 export function createProgram(options: ProgramOptions = {}): Command {
   const stdout = options.stdout ?? process.stdout;
@@ -125,6 +137,11 @@ export function createProgram(options: ProgramOptions = {}): Command {
   const runList = options.runList ?? runListCommand;
   const runStatus = options.runStatus ?? runStatusCommand;
   const runConfig = options.runConfig ?? runConfigCommand;
+  const runAdd = options.runAdd ?? runAddCommand;
+  const runLogs = options.runLogs ?? runLogsCommand;
+  const runUpdate = options.runUpdate ?? runUpdateCommand;
+  const runRollback = options.runRollback ?? runRollbackCommand;
+  const runRemove = options.runRemove ?? runRemoveCommand;
 
   const program = new Command();
   const exitState: ExitState = { exitCode: EXIT_CODES.SUCCESS };
@@ -150,13 +167,13 @@ export function createProgram(options: ProgramOptions = {}): Command {
     // document `--json` also declare it so it appears in their own help.
     .option("--json", "write one machine-readable JSON document to stdout");
 
-  registerAdd(program);
+  registerAdd(program, exitState, runAdd, stdout, stderr, options.env);
   registerList(program, exitState, runList, stdout, stderr, options.env);
   registerStatus(program, exitState, runStatus, stdout, stderr, options.env);
-  registerLogs(program);
-  registerUpdate(program);
-  registerRollback(program);
-  registerRemove(program);
+  registerLogs(program, exitState, runLogs, stdout, stderr, options.env);
+  registerUpdate(program, exitState, runUpdate, stdout, stderr, options.env);
+  registerRollback(program, exitState, runRollback, stdout, stderr, options.env);
+  registerRemove(program, exitState, runRemove, stdout, stderr, options.env);
   registerConfig(program, exitState, runConfig, stdout, stderr, options.env);
   registerDoctor(program, exitState, options.runDoctor ?? runDoctorCommand, stdout, options.env);
   registerVersion(program, readVersion, stdout);
@@ -209,7 +226,19 @@ export async function runCli(
   }
 }
 
-function registerAdd(program: Command): void {
+/** Commander collector for the repeatable `--volume` flag. */
+function collect(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
+function registerAdd(
+  program: Command,
+  exitState: ExitState,
+  runAdd: (options: AddCommandOptions) => ExitCode | Promise<ExitCode>,
+  stdout: OutputStream,
+  stderr: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("add")
     .description("Add an app from a git repository or local path")
@@ -223,9 +252,45 @@ function registerAdd(program: Command): void {
     .option("--env-file <path>", "environment file for the app")
     .option("--health-path <path>", "HTTP path used by the readiness probe")
     .option("--probe <http|tcp>", "probe type used for readiness")
-    .option("--volume <name:container-path>", "named volume to mount (repeatable)")
+    .option("--volume <name:container-path>", "named volume to mount (repeatable)", collect, [])
     .option("--yes", "accept prompts without asking")
-    .action(createNotImplementedHandler("add"));
+    .option("--json", "write one machine-readable JSON document to stdout")
+    .action(async (url: string | undefined, _options: OptionValues, command: Command) => {
+      const opts = command.optsWithGlobals<{
+        local?: string;
+        name?: string;
+        ref?: string;
+        port?: string;
+        containerPort?: string;
+        bind?: string;
+        envFile?: string;
+        healthPath?: string;
+        probe?: string;
+        volume?: string[];
+        yes?: boolean;
+        json?: boolean;
+      }>();
+      const volumes = opts.volume ?? [];
+
+      exitState.exitCode = await runAdd({
+        ...(url === undefined ? {} : { url }),
+        ...(opts.local === undefined ? {} : { local: opts.local }),
+        ...(opts.name === undefined ? {} : { name: opts.name }),
+        ...(opts.ref === undefined ? {} : { ref: opts.ref }),
+        ...(opts.port === undefined ? {} : { port: opts.port }),
+        ...(opts.containerPort === undefined ? {} : { containerPort: opts.containerPort }),
+        ...(opts.bind === undefined ? {} : { bind: opts.bind }),
+        ...(opts.envFile === undefined ? {} : { envFile: opts.envFile }),
+        ...(opts.healthPath === undefined ? {} : { healthPath: opts.healthPath }),
+        ...(opts.probe === undefined ? {} : { probe: opts.probe }),
+        ...(volumes.length === 0 ? {} : { volume: volumes }),
+        ...(opts.yes === undefined ? {} : { yes: opts.yes }),
+        json: opts.json === true,
+        stdout,
+        stderr,
+        ...(env === undefined ? {} : { environment: env }),
+      });
+    });
 }
 
 function registerList(
@@ -278,41 +343,124 @@ function registerStatus(
     });
 }
 
-function registerLogs(program: Command): void {
+function registerLogs(
+  program: Command,
+  exitState: ExitState,
+  runLogs: (options: LogsCommandOptions) => number | Promise<number>,
+  stdout: OutputStream,
+  stderr: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("logs")
     .description("Stream an app's container logs")
     .argument("<app>", "app name")
     .option("-f, --follow", "follow log output")
     .option("--tail <n>", "number of lines to show before following")
-    .action(createNotImplementedHandler("logs"));
+    .action(async (app: string, _options: OptionValues, command: Command) => {
+      const opts = command.optsWithGlobals<{ follow?: boolean; tail?: string; json?: boolean }>();
+
+      // The logs handler returns the Podman exit status, which is a number.
+      exitState.exitCode = (await runLogs({
+        app,
+        ...(opts.follow === undefined ? {} : { follow: opts.follow }),
+        ...(opts.tail === undefined ? {} : { tail: opts.tail }),
+        stdout,
+        stderr,
+        ...(env === undefined ? {} : { environment: env }),
+      })) as ExitCode;
+    });
 }
 
-function registerUpdate(program: Command): void {
+function registerUpdate(
+  program: Command,
+  exitState: ExitState,
+  runUpdate: (options: UpdateCommandOptions) => ExitCode | Promise<ExitCode>,
+  stdout: OutputStream,
+  stderr: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("update")
     .description("Rebuild or recreate an app")
     .argument("<app>", "app name")
     .option("--rebuild", "force a rebuild even when the ref is unchanged")
-    .action(createNotImplementedHandler("update"));
+    .option("--json", "write one machine-readable JSON document to stdout")
+    .action(async (app: string, _options: OptionValues, command: Command) => {
+      const opts = command.optsWithGlobals<{ rebuild?: boolean; json?: boolean }>();
+
+      exitState.exitCode = await runUpdate({
+        app,
+        ...(opts.rebuild === undefined ? {} : { rebuild: opts.rebuild }),
+        json: opts.json === true,
+        stdout,
+        stderr,
+        ...(env === undefined ? {} : { environment: env }),
+      });
+    });
 }
 
-function registerRollback(program: Command): void {
+function registerRollback(
+  program: Command,
+  exitState: ExitState,
+  runRollback: (options: RollbackCommandOptions) => ExitCode | Promise<ExitCode>,
+  stdout: OutputStream,
+  stderr: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("rollback")
     .description("Swap an app back to its previous image")
     .argument("<app>", "app name")
-    .action(createNotImplementedHandler("rollback"));
+    .option("--json", "write one machine-readable JSON document to stdout")
+    .action(async (app: string, _options: OptionValues, command: Command) => {
+      const opts = command.optsWithGlobals<{ json?: boolean }>();
+
+      exitState.exitCode = await runRollback({
+        app,
+        json: opts.json === true,
+        stdout,
+        stderr,
+        ...(env === undefined ? {} : { environment: env }),
+      });
+    });
 }
 
-function registerRemove(program: Command): void {
+function registerRemove(
+  program: Command,
+  exitState: ExitState,
+  runRemove: (options: RemoveCommandOptions) => ExitCode | Promise<ExitCode>,
+  stdout: OutputStream,
+  stderr: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("remove")
     .description("Remove an app and its resources")
     .argument("<app>", "app name")
     .option("--volumes", "also delete the app's named volumes")
+    .option("--yes", "confirm non-interactively")
     .option("--force", "remove without confirmation prompts")
-    .action(createNotImplementedHandler("remove"));
+    .option("--json", "write one machine-readable JSON document to stdout")
+    .action(async (app: string, _options: OptionValues, command: Command) => {
+      const opts = command.optsWithGlobals<{
+        volumes?: boolean;
+        yes?: boolean;
+        force?: boolean;
+        json?: boolean;
+      }>();
+
+      exitState.exitCode = await runRemove({
+        app,
+        ...(opts.volumes === undefined ? {} : { volumes: opts.volumes }),
+        ...(opts.yes === undefined ? {} : { yes: opts.yes }),
+        ...(opts.force === undefined ? {} : { force: opts.force }),
+        json: opts.json === true,
+        stdout,
+        stderr,
+        ...(env === undefined ? {} : { environment: env }),
+      });
+    });
 }
 
 function registerConfig(

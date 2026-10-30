@@ -1,8 +1,13 @@
 import { describe, expect, it } from "vitest";
+import type { AddCommandOptions } from "../../src/cli/commands/add.js";
 import type { ConfigCommandOptions } from "../../src/cli/commands/config.js";
 import type { DoctorCommandOptions } from "../../src/cli/commands/doctor.js";
 import type { ListCommandOptions } from "../../src/cli/commands/list.js";
+import type { LogsCommandOptions } from "../../src/cli/commands/logs.js";
+import type { RemoveCommandOptions } from "../../src/cli/commands/remove.js";
+import type { RollbackCommandOptions } from "../../src/cli/commands/rollback.js";
 import type { StatusCommandOptions } from "../../src/cli/commands/status.js";
+import type { UpdateCommandOptions } from "../../src/cli/commands/update.js";
 import {
   COMMAND_NAMES,
   type CommandName,
@@ -34,26 +39,30 @@ const DOCUMENTED_FLAGS: Readonly<Record<CommandName, readonly string[]>> = {
   logs: ["--follow", "--tail"],
   update: ["--rebuild"],
   rollback: [],
-  remove: ["--volumes", "--force"],
+  remove: ["--volumes", "--yes", "--force"],
   config: ["--path", "--edit"],
   doctor: [],
   version: [],
 };
 
-const JSON_COMMANDS: readonly CommandName[] = ["list", "status", "config", "doctor", "version"];
+const JSON_COMMANDS: readonly CommandName[] = [
+  "add",
+  "list",
+  "status",
+  "logs",
+  "update",
+  "rollback",
+  "remove",
+  "config",
+  "doctor",
+  "version",
+];
 const APP_ARGUMENT_COMMANDS: readonly CommandName[] = [
   "logs",
   "update",
   "rollback",
   "remove",
   "config",
-];
-const PLACEHOLDER_COMMANDS: readonly CommandName[] = [
-  "add",
-  "logs",
-  "update",
-  "rollback",
-  "remove",
 ];
 
 class RecordingStream {
@@ -90,6 +99,13 @@ function createCli(options: ProgramOptions = {}) {
         runList: options.runList ?? (() => 0),
         runStatus: options.runStatus ?? (() => 0),
         runConfig: options.runConfig ?? (() => 0),
+        // The lifecycle handlers would mutate the host; this suite injects a
+        // no-op for each and asserts the forwarded options separately.
+        runAdd: options.runAdd ?? (() => 0),
+        runLogs: options.runLogs ?? (() => 0),
+        runUpdate: options.runUpdate ?? (() => 0),
+        runRollback: options.runRollback ?? (() => 0),
+        runRemove: options.runRemove ?? (() => 0),
       });
     },
   };
@@ -135,6 +151,10 @@ describe("command registration", () => {
     }
 
     for (const name of JSON_COMMANDS) {
+      if (name === "logs") {
+        continue;
+      }
+
       const command = program.commands.find((candidate) => candidate.name() === name);
       expect(
         command?.options.map((option) => option.long),
@@ -144,18 +164,17 @@ describe("command registration", () => {
   });
 
   it("accepts the global --json flag after a command that does not list it", async () => {
-    const { run, stdout, stderr } = createCli();
+    const calls: LogsCommandOptions[] = [];
+    const { run, stderr } = createCli({
+      runLogs: (options) => {
+        calls.push(options);
+        return 0;
+      },
+    });
 
-    expect(await run(["add", "https://example.com/app.git", "--json"])).toBe(1);
+    expect(await run(["logs", "api", "--json"])).toBe(0);
     expect(stderr.text).toBe("");
-
-    const document = JSON.parse(stdout.text) as {
-      schemaVersion: number;
-      error: { code: string };
-    };
-
-    expect(document.schemaVersion).toBe(1);
-    expect(document.error.code).toBe("NOT_IMPLEMENTED");
+    expect(calls).toHaveLength(1);
   });
 
   it("declares the global --json flag", () => {
@@ -320,36 +339,103 @@ describe("usage failures", () => {
   });
 });
 
-describe("placeholder handlers", () => {
-  it("exits 1 with a not-implemented usage message", async () => {
-    for (const name of PLACEHOLDER_COMMANDS) {
-      const { run, stderr } = createCli();
-      const argv = name === "add" ? [name, "https://example.com/app.git"] : [name];
+describe("lifecycle command wiring", () => {
+  it("forwards add flags, including repeatable --volume and --yes", async () => {
+    const calls: AddCommandOptions[] = [];
+    const { run, stdout, stderr } = createCli({
+      runAdd: (options) => {
+        calls.push(options);
+        return 0;
+      },
+    });
 
-      if (APP_ARGUMENT_COMMANDS.includes(name)) {
-        argv.push("api");
-      }
+    expect(
+      await run([
+        "add",
+        "file:///srv/git/demo.git",
+        "--name",
+        "demo",
+        "--port",
+        "8080",
+        "--volume",
+        "data:/data",
+        "--volume",
+        "cache:/cache",
+        "--yes",
+      ]),
+    ).toBe(0);
 
-      expect(await run(argv), name).toBe(1);
-      expect(stderr.text, name).toContain("not implemented");
-      expect(stderr.text, name).toContain("next:");
-    }
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.url).toBe("file:///srv/git/demo.git");
+    expect(calls[0]?.name).toBe("demo");
+    expect(calls[0]?.port).toBe("8080");
+    expect(calls[0]?.volume).toEqual(["data:/data", "cache:/cache"]);
+    expect(calls[0]?.yes).toBe(true);
+    expect(calls[0]?.stdout).toBe(stdout);
+    expect(calls[0]?.stderr).toBe(stderr);
   });
 
-  it("accepts --json on a placeholder and reports the error as JSON", async () => {
-    const { run, stdout, stderr } = createCli();
+  it("forwards logs --follow and --tail", async () => {
+    const calls: LogsCommandOptions[] = [];
+    const { run } = createCli({
+      runLogs: (options) => {
+        calls.push(options);
+        return 0;
+      },
+    });
 
-    expect(await run(["logs", "api", "--json"])).toBe(1);
-    expect(stderr.text).toBe("");
+    expect(await run(["logs", "demo", "--follow", "--tail", "50"])).toBe(0);
+    expect(calls[0]?.app).toBe("demo");
+    expect(calls[0]?.follow).toBe(true);
+    expect(calls[0]?.tail).toBe("50");
+  });
 
-    const document = JSON.parse(stdout.text) as {
-      schemaVersion: number;
-      error: { code: string; exitCode: number };
-    };
+  it("forwards update --rebuild", async () => {
+    const calls: UpdateCommandOptions[] = [];
+    const { run } = createCli({
+      runUpdate: (options) => {
+        calls.push(options);
+        return 0;
+      },
+    });
 
-    expect(document.schemaVersion).toBe(1);
-    expect(document.error.code).toBe("NOT_IMPLEMENTED");
-    expect(document.error.exitCode).toBe(1);
+    expect(await run(["update", "demo", "--rebuild"])).toBe(0);
+    expect(calls[0]?.app).toBe("demo");
+    expect(calls[0]?.rebuild).toBe(true);
+  });
+
+  it("forwards rollback for one app", async () => {
+    const calls: RollbackCommandOptions[] = [];
+    const { run } = createCli({
+      runRollback: (options) => {
+        calls.push(options);
+        return 0;
+      },
+    });
+
+    expect(await run(["rollback", "demo"])).toBe(0);
+    expect(calls[0]?.app).toBe("demo");
+  });
+
+  it("forwards remove --volumes, --yes and --force", async () => {
+    const calls: RemoveCommandOptions[] = [];
+    const { run } = createCli({
+      runRemove: (options) => {
+        calls.push(options);
+        return 0;
+      },
+    });
+
+    expect(await run(["remove", "demo", "--volumes", "--yes", "--force"])).toBe(0);
+    expect(calls[0]?.app).toBe("demo");
+    expect(calls[0]?.volumes).toBe(true);
+    expect(calls[0]?.yes).toBe(true);
+    expect(calls[0]?.force).toBe(true);
+  });
+
+  it("returns the handler exit code instead of masking it", async () => {
+    const { run } = createCli({ runUpdate: () => 4 });
+    expect(await run(["update", "demo"])).toBe(4);
   });
 });
 
