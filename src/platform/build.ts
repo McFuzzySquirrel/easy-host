@@ -40,6 +40,7 @@ import {
   UsageError,
 } from "../cli/errors.js";
 import { validateAppName } from "../config/name.js";
+import { type LabelImageResult, labelImageForApp } from "./image-label.js";
 import { acquireLock } from "./lock.js";
 
 /** Prefix of every image this tool builds. */
@@ -130,6 +131,15 @@ export interface BuildWorkspaceOptions {
   readonly now?: () => Date;
   /** Process runner. Defaults to a shell-free `spawn` implementation. */
   readonly runner?: BuildRunner;
+  /**
+   * Applies the easy-host labels to the built image. Defaults to the real
+   * derived-image build; tests inject a no-op so a unit test never touches
+   * image storage.
+   */
+  readonly labelImage?: (options: {
+    readonly image: string;
+    readonly app: string;
+  }) => Promise<LabelImageResult>;
   /** Build budget. Defaults to {@link BUILD_DEFAULT_TIMEOUT_MS}. */
   readonly timeoutMs?: number;
   /**
@@ -389,6 +399,8 @@ export async function buildWorkspace(options: BuildWorkspaceOptions): Promise<Bu
     }
 
     if (exit.code === 0) {
+      await labelBuiltImage(options, app, image, workspace);
+
       return {
         app,
         image,
@@ -546,6 +558,33 @@ function infrastructureReasonOf(signals: BuildSignals): BuildInfrastructureReaso
 
 function exportingThroughLoader(output: string): boolean {
   return /exporting to docker image format|sending tarball/i.test(output);
+}
+
+/**
+ * Labels the image Railpack produced so retention and removal can find it by
+ * `io.easy-host.app`. A build that cannot be labelled is a build failure: the
+ * container would otherwise run an image that no later step can discover.
+ */
+async function labelBuiltImage(
+  options: BuildWorkspaceOptions,
+  app: string,
+  image: string,
+  workspace: string,
+): Promise<void> {
+  try {
+    await (options.labelImage ?? labelImageForApp)({ image, app });
+  } catch (error) {
+    throw new ProviderBuildError(
+      `built image "${image}" for app "${app}" but could not apply the easy-host labels: ${messageOf(error)}`,
+      {
+        code: "BUILD_IMAGE_LABEL_FAILED",
+        details: { app, image, workspace, reason: "image-label-failed" },
+        remediation:
+          'Run "podman images" to confirm the derived image can be created, then retry "easy-host update <app>".',
+        cause: error,
+      },
+    );
+  }
 }
 
 function unsupportedSourceError(

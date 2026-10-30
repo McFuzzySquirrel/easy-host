@@ -190,6 +190,9 @@ function optionsFor(
     buildkitHost: BUILDKIT_HOST,
     now: () => FIXED_NOW,
     runner,
+    // Labelling would rebuild a derived image through Podman; the seam keeps
+    // this suite off image storage. image-label.test.ts covers the real path.
+    labelImage: async ({ image }) => ({ image, labels: {} }),
     stderr: new RecordingSink(),
     ...overrides,
   };
