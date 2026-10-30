@@ -1,10 +1,10 @@
 # Project Progress
 
 ## Current State
-**Phase**: BUILDKIT-AND-RAILPACK-1
+**Phase**: BUILDKIT-AND-RAILPACK-2
 **Status**: In Progress
 **Validation Gaps**: 1 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T00:04:17.286Z
+**Last Updated**: 2026-10-30T00:09:39.070Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -22,6 +22,8 @@
   - Files: src/doctor/checks.ts, src/doctor/index.ts, src/cli/commands/doctor.ts, tests/unit/doctor.test.ts, src/cli/commands/not-implemented.ts, src/cli/program.ts, tests/unit/program.test.ts
 - [x] Phase BUILDKIT-AND-RAILPACK-1, Task BLD-0.1: Verify Railpack and BuildKit on rootless Podman 5.7.0
   - Files: docs/reviews/buildkit-spike.json
+- [x] Phase BUILDKIT-AND-RAILPACK-2, Task BLD-1.1: Resolve, verify, and cache the Railpack binary (@build-engineer)
+  - Files: src/platform/versions.ts, src/platform/railpack.ts, tests/unit/railpack.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.1: Parse and validate AppSpec from TOML (@cli-engineer)
   - Files: src/config/schema.ts, src/config/parse.ts, tests/unit/config-parse.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.2: Derive and validate app names (@cli-engineer)
