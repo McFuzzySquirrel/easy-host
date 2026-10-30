@@ -1,12 +1,17 @@
 /**
- * README drift checks (`DOC-FR-01`, `DOC-NF-02`, `PRD-ACC-06`).
+ * Documentation drift checks (`DOC-FR-01`, `DOC-FR-02`, `DOC-FR-03`,
+ * `DOC-NF-02`, `PRD-ACC-06`).
  *
- * The README is the front door for an operator, so this suite treats it as a
- * contract rather than prose:
+ * The README and the two operations guides are the operator's front door, so
+ * this suite treats them as a contract rather than prose:
  *
  * - every relative link resolves (and a Markdown anchor names a real heading);
- * - the required sections and the four documented success scenarios exist as
- *   real ATX headings, not bold text or images;
+ * - the README's required sections and four success scenarios exist as real
+ *   ATX headings, not bold text or images;
+ * - the prerequisite guide keeps a verification command and a doctor check for
+ *   every prerequisite, the code's Podman window, and the explicit 4.9 upgrade;
+ * - the timer guide keeps complete user units, the journal log location, the
+ *   app-lock overlap rule, and every public exit code;
  * - every `easy-host <command>` example names a command registered by
  *   `src/cli/program.ts`;
  * - the old React-only branding is gone outside an explicit migration section.
@@ -20,15 +25,31 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { EXIT_CODES } from "../../src/cli/errors.js";
 import { COMMAND_NAMES } from "../../src/cli/program.js";
+import { MAX_PORT, MIN_HOST_PORT } from "../../src/config/schema.js";
+import {
+  GIT_MIN_VERSION,
+  NODE_MIN_MAJOR,
+  PODMAN_EXCLUSIVE_MAX_MAJOR,
+  PODMAN_VERSION_RANGE,
+} from "../../src/doctor/checks.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
-/** Every markdown file this suite owns. DOC-1.4 through DOC-1.6 extend this. */
-const DOCUMENTED_MARKDOWN = ["README.md"] as const;
+/** Every markdown file this suite owns. DOC-1.5 and DOC-1.6 extend this. */
+const DOCUMENTED_MARKDOWN = [
+  "README.md",
+  "docs/operations/prerequisites.md",
+  "docs/operations/systemd-timer.md",
+] as const;
 
 const README_PATH = join(REPO_ROOT, "README.md");
 const README = readFileSync(README_PATH, "utf8");
+const PREREQUISITES_PATH = join(REPO_ROOT, "docs/operations/prerequisites.md");
+const PREREQUISITES = readFileSync(PREREQUISITES_PATH, "utf8");
+const TIMER_PATH = join(REPO_ROOT, "docs/operations/systemd-timer.md");
+const TIMER = readFileSync(TIMER_PATH, "utf8");
 
 /**
  * Headings the README must carry. Exact text keeps the check honest: renaming a
@@ -50,6 +71,61 @@ const SCENARIO_HEADINGS = [
   "### 2. The app returns after a reboot",
   "### 3. A broken update keeps the previous version serving",
   "### 4. Rollback restores the previous image",
+] as const;
+
+/** Headings the prerequisite guide must keep (`DOC-FR-02`). */
+const PREREQUISITE_HEADINGS = [
+  "# Host prerequisites",
+  "## Summary",
+  "## Rootless Podman",
+  "### Upgrade from Podman 4.9 on Ubuntu 24.04",
+  "### Upgrade from Podman 4.9 on Debian 12",
+  "### If you are already on Podman 6.x",
+  "## User lingering",
+  "## git 2.40 or newer",
+  "## Node.js 24 or newer",
+  "## A host port at or above 1024",
+  "## Other doctor checks",
+] as const;
+
+/** Headings the timer guide must keep (`DOC-FR-03`). */
+const TIMER_HEADINGS = [
+  "# Scheduled updates with a systemd user timer",
+  "## Before you start",
+  "## Unit files",
+  "## Enable and verify",
+  "## Where the output goes",
+  "## Overlapping runs and the app lock",
+  "## What each exit code means for the timer",
+  "## Disable or remove the schedule",
+  "## What this timer is not",
+] as const;
+
+/** The ten checks `runDoctor` reports, in report order. */
+const DOCTOR_CHECK_IDS = [
+  "podman",
+  "podman-rootless",
+  "docker-loader",
+  "linger",
+  "boot-restart",
+  "git",
+  "node",
+  "railpack",
+  "buildkit",
+  "disk",
+] as const;
+
+/** One verification command per documented prerequisite. */
+const PREREQUISITE_VERIFICATIONS = [
+  "podman --version",
+  "podman info --format '{{.Host.Security.Rootless}}'",
+  'loginctl show-user "$USER" -p Linger',
+  'sudo loginctl enable-linger "$USER"',
+  "git --version",
+  "node --version",
+  'ss -ltnH "sport = :$PORT"',
+  "docker --version",
+  "easy-host doctor",
 ] as const;
 
 /** Commands that must never appear, even in an example (`PRD-C-01`, `PRD-C-04`). */
@@ -134,8 +210,18 @@ function slugifyHeading(heading: string): string {
 
 function headingSlugs(markdown: string): Set<string> {
   const slugs = new Set<string>();
+  let inFence = false;
 
   for (const line of markdown.split(/\r?\n/)) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+
+    if (inFence) {
+      continue;
+    }
+
     const match = /^(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
     const heading = match?.[2];
     if (heading !== undefined) {
@@ -144,6 +230,25 @@ function headingSlugs(markdown: string): Set<string> {
   }
 
   return slugs;
+}
+
+/** ATX headings outside fenced code blocks, in document order. */
+function markdownHeadings(markdown: string): string[] {
+  const headings: string[] = [];
+  let inFence = false;
+
+  for (const line of markdown.split(/\r?\n/)) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+
+    if (!inFence && /^#{1,6}\s+/.test(line)) {
+      headings.push(line.trim());
+    }
+  }
+
+  return headings;
 }
 
 function isExternal(target: string): boolean {
@@ -390,6 +495,159 @@ describe("README branding", () => {
     expect(README).not.toMatch(/<img\b/i);
     expect(README).not.toMatch(/<script\b/i);
     expect(README).not.toContain("\u001B[");
+  });
+});
+
+describe("operations guides", () => {
+  it("keeps the prerequisite guide's required sections", () => {
+    const headings = markdownHeadings(PREREQUISITES);
+
+    for (const heading of PREREQUISITE_HEADINGS) {
+      expect(headings, `missing heading: ${heading}`).toContain(heading);
+    }
+  });
+
+  it("gives every prerequisite a verification command and a doctor check", () => {
+    for (const command of PREREQUISITE_VERIFICATIONS) {
+      expect(PREREQUISITES, `missing verification command: ${command}`).toContain(command);
+    }
+
+    for (const id of DOCTOR_CHECK_IDS) {
+      expect(PREREQUISITES, `missing doctor check: ${id}`).toContain(`\`${id}\``);
+    }
+  });
+
+  it("documents the code's Podman window and the 6.x exclusion", () => {
+    expect(PREREQUISITES).toContain(PODMAN_VERSION_RANGE);
+    expect(PREREQUISITES).toContain(`${PODMAN_EXCLUSIVE_MAX_MAJOR}.0.0`);
+    expect(PREREQUISITES).toContain("6.x");
+    expect(PREREQUISITES.toLowerCase()).toContain("unstable");
+    expect(PREREQUISITES.toLowerCase()).toContain("downgrade");
+  });
+
+  it("documents the explicit 4.9 upgrade path on Ubuntu 24.04 and Debian 12", () => {
+    for (const fact of [
+      "Ubuntu 24.04",
+      "Debian 12",
+      "4.9.3",
+      "Ubuntu 25.04",
+      "Debian 13",
+      "trixie",
+      "sudo apt install --only-upgrade podman",
+    ]) {
+      expect(PREREQUISITES, `missing upgrade fact: ${fact}`).toContain(fact);
+    }
+
+    expect(PREREQUISITES.toLowerCase()).toContain("not verified by this project");
+  });
+
+  it("ties lingering to reboot recovery", () => {
+    expect(PREREQUISITES).toContain('sudo loginctl enable-linger "$USER"');
+    expect(PREREQUISITES).toContain("podman-restart.service");
+    expect(PREREQUISITES).toContain("Linger=yes");
+    expect(PREREQUISITES.toLowerCase()).toContain("mandatory");
+    expect(PREREQUISITES.toLowerCase()).toContain("reboot");
+  });
+
+  it("states the documented git, Node, and port minimums", () => {
+    expect(PREREQUISITES).toContain(`${GIT_MIN_VERSION.major}.${GIT_MIN_VERSION.minor}`);
+    expect(PREREQUISITES).toContain(`Node.js ${NODE_MIN_MAJOR}`);
+    expect(PREREQUISITES).toContain(String(MIN_HOST_PORT));
+    expect(PREREQUISITES).toContain(String(MAX_PORT));
+  });
+
+  it("keeps the timer guide's required sections", () => {
+    const headings = markdownHeadings(TIMER);
+
+    for (const heading of TIMER_HEADINGS) {
+      expect(headings, `missing heading: ${heading}`).toContain(heading);
+    }
+  });
+
+  it("ships complete user units, enable commands, and a journal log location", () => {
+    for (const literal of [
+      "[Unit]",
+      "[Service]",
+      "[Timer]",
+      "Type=oneshot",
+      "ExecStart=%h/.local/bin/easy-host update blog",
+      "OnCalendar=daily",
+      "Persistent=true",
+      "WantedBy=timers.target",
+      "systemctl --user daemon-reload",
+      "systemctl --user enable --now easy-host-update-blog.timer",
+      "journalctl --user -u easy-host-update-blog.service",
+    ]) {
+      expect(TIMER, `missing timer literal: ${literal}`).toContain(literal);
+    }
+
+    expect(TIMER).toContain("ships no daemon");
+    expect(TIMER).toContain("scheduler");
+  });
+
+  it("explains the app lock for overlapping runs", () => {
+    expect(TIMER).toContain(".lock");
+    expect(TIMER).toContain("LOCK_HELD");
+    expect(TIMER.toLowerCase()).toContain("non-blocking");
+    expect(TIMER).toContain("exits **`6`**");
+  });
+
+  it("maps every public exit code in the timer guide", () => {
+    const documented = new Set<number>();
+
+    for (const match of TIMER.matchAll(/^\|\s*`(\d+)`\s*\|/gm)) {
+      const code = match[1];
+      if (code !== undefined) {
+        documented.add(Number(code));
+      }
+    }
+
+    expect([...documented].sort((left, right) => left - right)).toEqual(
+      [...Object.values(EXIT_CODES)].sort((left, right) => left - right),
+    );
+  });
+
+  it("only names registered commands and no forbidden command", () => {
+    for (const [filePath, markdown] of [
+      [PREREQUISITES_PATH, PREREQUISITES],
+      [TIMER_PATH, TIMER],
+    ] as const) {
+      const invoked = commandInvocations(markdown);
+      const source = relative(REPO_ROOT, filePath);
+
+      expect(invoked.length, `${source} has no command example`).toBeGreaterThan(0);
+
+      for (const name of invoked) {
+        expect(
+          COMMAND_NAMES as readonly string[],
+          `"${name}" in ${source} is not a registered command`,
+        ).toContain(name);
+      }
+
+      for (const forbidden of FORBIDDEN_COMMAND_NAMES) {
+        expect(invoked, `${source} documents "${forbidden}"`).not.toContain(forbidden);
+      }
+    }
+  });
+
+  it("uses plain markdown for both guides", () => {
+    for (const markdown of [PREREQUISITES, TIMER]) {
+      expect(markdown).not.toMatch(/!\[[^\]]*\]\([^)]*\)/);
+      expect(markdown).not.toMatch(/<img\b/i);
+      expect(markdown).not.toMatch(/<script\b/i);
+      expect(markdown).not.toContain("\u001B[");
+      expect(markdown).not.toContain("react-hoster");
+    }
+  });
+
+  it("is linked from the README documentation index", () => {
+    const documentation = sectionBody(README, "## Documentation");
+
+    for (const target of ["docs/operations/prerequisites.md", "docs/operations/systemd-timer.md"]) {
+      expect(documentation, `README documentation index is missing ${target}`).toContain(
+        `](${target})`,
+      );
+    }
   });
 });
 

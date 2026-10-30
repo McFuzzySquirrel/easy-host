@@ -32,7 +32,7 @@ Three points are easy to miss:
 - **Lingering is mandatory.** Without lingering, the user's systemd manager does not start at boot, so `--restart=always` containers do not come back after a reboot. Enable it with `sudo loginctl enable-linger "$USER"`. easy-host enables `podman-restart.service` on `add`, but that user unit can only replay containers once lingering has started the user manager.
 - **Privileged ports are unsupported.** Rootless Podman cannot bind a port below 1024 without a host-wide sysctl change, which easy-host does not make. Use port 1024 or above.
 
-Run `easy-host doctor` after installing. It checks Podman, rootless mode, a Docker-compatible image loader, lingering, reboot recovery, git, Node.js, Railpack, BuildKit, and disk, and every failing check prints a remediation command. Railpack exports images through a Docker-compatible loader; on the Ubuntu host used for the v0.1.0 release gate, the `podman-docker` package provided that loader. The normative requirements and every check are in [Prerequisites and Doctor](docs/features/01-prerequisites-and-doctor.md); the verified host evidence is in the [v0.1.0 release-gate record](docs/reviews/v1-success-scenarios-evidence.md).
+Run `easy-host doctor` after installing. It checks Podman, rootless mode, a Docker-compatible image loader, lingering, reboot recovery, git, Node.js, Railpack, BuildKit, and disk, and every failing check prints a remediation command. Railpack exports images through a Docker-compatible loader; on the Ubuntu host used for the v0.1.0 release gate, the `podman-docker` package provided that loader. The step-by-step guide, including the Podman 4.9 upgrade path and a verification command for each requirement, is [Host prerequisites](docs/operations/prerequisites.md). The normative requirements and every check are in [Prerequisites and Doctor](docs/features/01-prerequisites-and-doctor.md); the verified host evidence is in the [v0.1.0 release-gate record](docs/reviews/v1-success-scenarios-evidence.md).
 
 ## Install
 
@@ -93,6 +93,8 @@ easy-host update blog
 
 The app is reachable from another machine on the LAN at `http://<host-lan-address>:8080/`. easy-host publishes the port on the LAN; it does not terminate TLS or act as a reverse proxy, so internet exposure and HTTPS are the operator's responsibility.
 
+easy-host ships no scheduler. To repeat `update` on a schedule, write a systemd user timer that calls it; the [scheduled updates guide](docs/operations/systemd-timer.md) has complete unit files, enable commands, log location, and the lock behavior when runs overlap.
+
 ## Success scenarios
 
 The v0.1.0 release gate exercises the four outcomes below on a fresh Linux host with rootless Podman `>= 5.7.0, < 6.0.0`, lingering enabled, and an empty state root. The [release-gate record](docs/reviews/v1-success-scenarios-evidence.md) contains the commands, exit codes, and observed output.
@@ -150,6 +152,8 @@ podman volume rm easy-host-blog-blog-data
 | [Exit codes](docs/features/01-prerequisites-and-doctor.md) | Exit-code taxonomy |
 | [Operator-supplied services and ports](docs/PRD.md#63-what-the-operator-must-provide) | What the host and operator must provide |
 | [Host prerequisites and doctor checks](docs/features/01-prerequisites-and-doctor.md) | Host checks, exit codes, state root |
+| [Host prerequisites and upgrade](docs/operations/prerequisites.md) | Podman support window, the 4.9 upgrade, lingering, git, Node, ports |
+| [Scheduled updates with a systemd timer](docs/operations/systemd-timer.md) | User units that call `update`, enable commands, logs, and lock behavior |
 | [BuildKit and Railpack](docs/features/02-buildkit-and-railpack.md) | Pinned build tooling and the build lifecycle |
 | [Configuration keys and validation](docs/features/03-app-registry-and-config.md) | `config.toml` keys, defaults, and validation |
 | [Add and lifecycle](docs/features/04-add-and-lifecycle.md) | `add`, `list`, `status`, `logs`, and `config` behavior |
