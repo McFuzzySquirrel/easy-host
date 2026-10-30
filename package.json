@@ -15,7 +15,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "biome check .",
     "test": "vitest run",
-    "test:integration": "EASY_HOST_INTEGRATION=1 vitest run tests/integration",
+    "test:integration": "EASY_HOST_INTEGRATION=1 sh -c 'if [ \"$#\" -eq 0 ]; then set -- tests/integration; fi; exec vitest run \"$@\"' --",
     "test:packaging": "EASY_HOST_PACKAGING=1 vitest run tests/packaging"
   },
   "dependencies": {

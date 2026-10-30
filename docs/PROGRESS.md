@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: ROLLBACK-AND-REMOVE-2
 **Status**: In Progress
-**Validation Gaps**: 34 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T06:26:40.157Z
+**Validation Gaps**: 36 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T08:32:54.000Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -72,6 +72,8 @@
   - Files: src/lifecycle/remove.ts, src/cli/commands/remove.ts, tests/unit/remove.test.ts, src/cli/prompts.ts
 - [x] Phase ROLLBACK-AND-REMOVE-2, Task RBK-1.4: Prove rollback on the host (@qa-engineer)
   - Files: tests/integration/rollback.test.ts
+- [x] Phase ROLLBACK-AND-REMOVE-2, Task RBK-1.5: Prove removal leaves no orphans but keeps data (@qa-engineer)
+  - Files: tests/integration/remove.test.ts, package.json, src/platform/podman.ts, tests/unit/podman.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.1: Freeze the JSON output contract (@cli-engineer)
   - Files: src/cli/json.ts, src/cli/schemas.ts, tests/unit/json.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/not-implemented.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/errors.ts, src/cli/index.ts, src/cli/program.ts, src/doctor/index.ts, tests/unit/cli-entry.test.ts, tests/unit/program.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.2: Make human output TTY-aware and accessible (@cli-engineer)
@@ -119,6 +121,8 @@
 - Task RBK-1.4: The failed-rollback revert path (delete the rollback target image, expect exit 4 and an unchanged pair) is covered only by tests/unit/rollback.test.ts; it was not injected on the real host because it would consume one of the two images the required success scenarios depend on.
 - Task RBK-1.4: Real builds ran on x86_64 only; the fixture build is cold (~250s) because each run owns and deletes its BuildKit state, and the host remains network-dependent for npm, Railpack, and BuildKit acquisition.
 - Task RBK-1.4: A SIGKILL of the runner bypasses afterAll; unique pid+time app names make retries safe, but that path is reasoned, not exercised.
+- Task RBK-1.5: Default-volume retention was proven against the rootless volume mountpoint and a re-added container; a host reboot is outside this suite (v0.1.0 human-run gate).
+- Task RBK-1.5: No packaging or docs suites exist yet in this repository, so those quality gates were not exercisable here.
 - Task OBS-1.1: No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.
 - Task OBS-1.1: The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy.
 - Task OBS-1.2: Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software.

@@ -90,7 +90,7 @@ export const PODMAN_STOP_TIMEOUT_MS = 60_000;
 /** Bound on `podman rm`. */
 export const PODMAN_REMOVE_TIMEOUT_MS = 60_000;
 
-/** Bound on `podman inspect`. */
+/** Bound on `podman container inspect`. */
 export const PODMAN_INSPECT_TIMEOUT_MS = 15_000;
 
 /**
@@ -588,9 +588,19 @@ export async function removeContainer(
  * Inspects the app container and normalizes Podman's JSON into a typed view.
  * Environment values from `Config.Env` are reduced to names.
  *
+ * The call is scoped to containers with `podman container inspect`, never the
+ * generic `podman inspect`. Generic inspect resolves names across object types
+ * and does volume name-prefix matching, so `podman inspect easy-host-<app>`
+ * resolves the *retained volume* `easy-host-<app>-data` (exit 0, volume JSON) or
+ * fails with `more than one result for volume name ...`. Either way it cannot
+ * answer "does this container exist?" (`ADD-FR-03` re-add on a retained volume).
+ *
  * An absent container is reported as {@link NotFoundError} (exit 5) for both
  * `no such container` and Podman 5.7's `no such object: "<name>"` wording; every
- * other nonzero exit stays a {@link PrerequisiteError}.
+ * other nonzero exit stays a {@link PrerequisiteError}. A successful exit whose
+ * document is not container-shaped (for example a volume document) is also a
+ * {@link PrerequisiteError}: an ambiguous result is never reported as an
+ * existing *or* an absent container.
  */
 export async function inspectContainer(
   options: InspectContainerOptions,
@@ -599,7 +609,7 @@ export async function inspectContainer(
   const container = containerName(app);
   const timeoutMs = normalizeTimeout(options.timeoutMs, PODMAN_INSPECT_TIMEOUT_MS);
   const runner = options.runner ?? createDefaultPodmanRunner();
-  const result = await invokePodman(runner, ["inspect", container], timeoutMs);
+  const result = await invokePodman(runner, ["container", "inspect", container], timeoutMs);
 
   if (result.spawnError === "ENOENT") {
     throw podmanUnavailableError();
@@ -618,7 +628,7 @@ export async function inspectContainer(
     throw new PrerequisiteError(`could not inspect container "${container}": ${reason}`, {
       code: PODMAN_FAILURE_CODES.INSPECT_FAILED,
       details: { app, container, reason, timeoutMs },
-      remediation: `Run "podman inspect ${container}", then run "easy-host doctor".`,
+      remediation: `Run "podman container inspect ${container}", then run "easy-host doctor".`,
     });
   }
 
@@ -626,22 +636,36 @@ export async function inspectContainer(
   try {
     parsed = JSON.parse(result.stdout);
   } catch (error) {
-    throw new PrerequisiteError(`podman inspect returned invalid JSON for "${container}"`, {
-      code: PODMAN_FAILURE_CODES.INSPECT_FAILED,
-      details: { app, container, reason: "invalid JSON", timeoutMs },
-      remediation: `Run "podman inspect ${container}" directly, then run "easy-host doctor".`,
-      cause: error,
-    });
+    throw new PrerequisiteError(
+      `podman container inspect returned invalid JSON for "${container}"`,
+      {
+        code: PODMAN_FAILURE_CODES.INSPECT_FAILED,
+        details: { app, container, reason: "invalid JSON", timeoutMs },
+        remediation: `Run "podman container inspect ${container}" directly, then run "easy-host doctor".`,
+        cause: error,
+      },
+    );
   }
 
   const entry = Array.isArray(parsed) ? parsed[0] : parsed;
   const record = asRecord(entry);
   if (record === undefined) {
-    throw new PrerequisiteError(`podman inspect returned no object for "${container}"`, {
+    throw new PrerequisiteError(`podman container inspect returned no object for "${container}"`, {
       code: PODMAN_FAILURE_CODES.INSPECT_FAILED,
       details: { app, container, reason: "unexpected JSON shape", timeoutMs },
-      remediation: `Run "podman inspect ${container}" directly, then run "easy-host doctor".`,
+      remediation: `Run "podman container inspect ${container}" directly, then run "easy-host doctor".`,
     });
+  }
+
+  if (!isContainerDocument(record)) {
+    throw new PrerequisiteError(
+      `podman container inspect returned a non-container object for "${container}"`,
+      {
+        code: PODMAN_FAILURE_CODES.INSPECT_FAILED,
+        details: { app, container, reason: "unexpected document type", timeoutMs },
+        remediation: `Run "podman container inspect ${container}" directly, then run "easy-host doctor".`,
+      },
+    );
   }
 
   return normalizeInspect(record, app, container);
@@ -898,6 +922,31 @@ async function invokePodman(
       cause: error,
     });
   }
+}
+
+/**
+ * Fail-closed guard: a document is only treated as a container when it carries a
+ * container id and a `State` block. Generic `podman inspect` can resolve a
+ * differently-typed object with the same name prefix (a volume document has
+ * `Name`, `Driver`, `Mountpoint`, and no `State`/`Config`), and that must never
+ * be reported as an existing container.
+ */
+function isContainerDocument(entry: Record<string, unknown>): boolean {
+  if (asRecord(entry.State) === undefined) {
+    return false;
+  }
+
+  const id = stringOf(entry.Id) ?? stringOf(entry.ID);
+  if (id === undefined || id.length === 0) {
+    return false;
+  }
+
+  // Belt and braces: reject a volume-shaped document even if a future runtime
+  // were to add unrelated keys to it.
+  return !(
+    entry.Config === undefined &&
+    (entry.Driver !== undefined || entry.Mountpoint !== undefined)
+  );
 }
 
 function normalizeInspect(
@@ -1373,9 +1422,9 @@ function isMissingContainer(result: PodmanCommandResult): boolean {
 }
 
 /**
- * `podman inspect` on Podman 5.7 reports an absent container as
- * `Error: no such object: "<name>"` (exit 125, stdout `[]`), unlike
- * `stop`/`rm`/`logs`, which say `no such container`. The pattern stays anchored
+ * `podman container inspect` (and generic inspect) on Podman 5.7 reports an
+ * absent container as `Error: no such object: "<name>"` (exit 125, stdout `[]`),
+ * while `stop`/`rm`/`logs` say `no such container`. The pattern stays anchored
  * to that exact wording so an unrelated runtime failure is never mistaken for
  * an absent container.
  */

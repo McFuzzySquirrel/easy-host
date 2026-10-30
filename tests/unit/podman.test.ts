@@ -563,7 +563,7 @@ describe("podman inspect", () => {
     const view = await inspectContainer({ app: "blog", runner });
 
     const call = singleCall(runner);
-    expect(call.args).toEqual(["inspect", "easy-host-blog"]);
+    expect(call.args).toEqual(["container", "inspect", "easy-host-blog"]);
     expect(call.options?.timeoutMs).toBe(PODMAN_INSPECT_TIMEOUT_MS);
     expect(view).toMatchObject({
       app: "blog",
@@ -600,8 +600,9 @@ describe("podman inspect", () => {
   });
 
   it("classifies Podman 5.7 'no such object' output as a missing container", async () => {
-    // Exact wording and exit status produced by `podman inspect` on rootless
-    // Podman 5.7.0 for an absent container; `add` preflight depends on this.
+    // Exact wording and exit status produced by `podman container inspect` on
+    // rootless Podman 5.7.0 for an absent container; `add` preflight depends on
+    // this.
     const runner = new RecordingRunner([
       { exitCode: 125, stdout: "[]\n", stderr: 'Error: no such object: "easy-host-blog"' },
     ]);
@@ -611,7 +612,46 @@ describe("podman inspect", () => {
     expect(error).toBeInstanceOf(NotFoundError);
     expect(error.exitCode).toBe(EXIT_CODES.NOT_FOUND);
     expect(error.code).toBe(PODMAN_FAILURE_CODES.CONTAINER_NOT_FOUND);
-    expect(singleCall(runner).args).toEqual(["inspect", "easy-host-blog"]);
+    expect(singleCall(runner).args).toEqual(["container", "inspect", "easy-host-blog"]);
+  });
+
+  it("never accepts a volume document as an inspected container", async () => {
+    // Regression: generic `podman inspect easy-host-blog` resolves the retained
+    // volume `easy-host-blog-data` by name prefix and exits 0 with a volume
+    // document. `easy-host add` preflight then saw a phantom container and every
+    // re-add on a retained volume failed with a name conflict. The call is now
+    // container-scoped, and a volume-shaped document is rejected outright.
+    const volumeDocument = JSON.stringify([
+      {
+        Name: "easy-host-blog-data",
+        Driver: "local",
+        Mountpoint:
+          "/home/operator/.local/share/containers/storage/volumes/easy-host-blog-data/_data",
+        CreatedAt: "2026-10-30T12:00:00Z",
+        Labels: { [APP_LABEL]: "blog" },
+      },
+    ]);
+    const runner = new RecordingRunner([ok(volumeDocument)]);
+
+    const error = await capture(() => inspectContainer({ app: "blog", runner }));
+
+    expect(error).toBeInstanceOf(PrerequisiteError);
+    expect(error.exitCode).toBe(EXIT_CODES.PREREQUISITE);
+    expect(error.code).toBe(PODMAN_FAILURE_CODES.INSPECT_FAILED);
+    expect(error).not.toBeInstanceOf(NotFoundError);
+    expect(singleCall(runner).args).toEqual(["container", "inspect", "easy-host-blog"]);
+  });
+
+  it("fails closed on a container-shaped document without an id or state", async () => {
+    const withoutState = new RecordingRunner([ok(JSON.stringify([{ Id: "abc", Name: "x" }]))]);
+    const stateError = await capture(() => inspectContainer({ app: "blog", runner: withoutState }));
+    expect(stateError.code).toBe(PODMAN_FAILURE_CODES.INSPECT_FAILED);
+
+    const withoutId = new RecordingRunner([
+      ok(JSON.stringify([{ Name: "easy-host-blog", State: { Status: "running" } }])),
+    ]);
+    const idError = await capture(() => inspectContainer({ app: "blog", runner: withoutId }));
+    expect(idError.code).toBe(PODMAN_FAILURE_CODES.INSPECT_FAILED);
   });
 
   it("keeps an unrelated inspect failure as a prerequisite failure", async () => {
