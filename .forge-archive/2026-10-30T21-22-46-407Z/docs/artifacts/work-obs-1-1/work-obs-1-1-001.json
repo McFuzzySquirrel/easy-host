@@ -1,0 +1,77 @@
+{
+  "type": "work.obs-1.1",
+  "category": "work",
+  "taskId": "OBS-1.1",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Froze the schemaVersion 1 JSON contract in src/cli/schemas.ts and src/cli/json.ts, routed list, status, config, doctor, and version through the shared serializers, wired list/status/config into the CLI via async dispatch, normalised timestamps to ISO 8601 UTC, kept empty arrays and typed values, and redacted every [env] value plus ANSI and URL credentials. Typecheck, lint, the 21-test json suite, the 147-test interaction suite, the 589-test full suite, build, and manual list/status/config/version/doctor JSON checks pass.",
+  "inputs": [
+    "work-add-1-5-001",
+    "work-pre-1-5-001",
+    "work-add-1-4-001",
+    "work-add-1-6-001"
+  ],
+  "filesChanged": [
+    "src/cli/json.ts",
+    "src/cli/schemas.ts",
+    "tests/unit/json.test.ts",
+    "src/cli/commands/config.ts",
+    "src/cli/commands/list.ts",
+    "src/cli/commands/not-implemented.ts",
+    "src/cli/commands/read-model.ts",
+    "src/cli/commands/status.ts",
+    "src/cli/errors.ts",
+    "src/cli/index.ts",
+    "src/cli/program.ts",
+    "src/doctor/index.ts",
+    "tests/unit/cli-entry.test.ts",
+    "tests/unit/program.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Froze the schemaVersion 1 JSON contract in src/cli/schemas.ts and src/cli/json.ts, routed list, status, config, doctor, and version through the shared serializers, wired list/status/config into the CLI via async dispatch, normalised timestamps to ISO 8601 UTC, kept empty arrays and typed values, and redacted every [env] value plus ANSI and URL credentials. Typecheck, lint, the 21-test json suite, the 147-test interaction suite, the 589-test full suite, build, and manual list/status/config/version/doctor JSON checks pass.",
+    "decisions": [
+      "All document types live in src/cli/schemas.ts and all projections in src/cli/json.ts; command modules re-export the old names so existing imports keep working.",
+      "Timestamps are normalised through toIsoUtc: Date and offset strings become UTC ...Z, unparseable values become null.",
+      "Every emitted string passes through redactText, and redactedSpec recursively preserves config structure while replacing all [env] values with [redacted].",
+      "serializeJson/writeJsonDocument are the only JSON writers used by command handlers, keeping human narration and error text on their existing streams.",
+      "runCli and main are now async so the read handlers' container inspection is awaited; runCli uses parseAsync and the entry point uses runWithErrorHandlingAsync.",
+      "list, status, and config are registered with real handlers and injectable overrides; logs and lifecycle commands remain placeholders.",
+      "No field renames or removals were made; schemaVersion stays 1 and additive fields remain allowed under OBS-NF-02."
+    ],
+    "interfaces": [
+      "JSON_SCHEMA_VERSION, VersionDocument, ListDocument, StatusDocument, DoctorDocument, ConfigDocument, JsonDocument, AppStatusLabel in src/cli/schemas.ts",
+      "toIsoUtc, redactedSpec, toVersionDocument, toListDocument, toStatusDocument, toDoctorDocument, toConfigDocument, serializeJson, writeJsonDocument in src/cli/json.ts",
+      "runCli(argv, options): Promise<ExitCode>; main(argv): Promise<number>; ProgramOptions.runList/runStatus/runConfig injectables; runWithErrorHandlingAsync"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/json.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0 (65 files)",
+      "npm test -- tests/unit/json.test.ts: 21 passed",
+      "focused interaction suite (json, read-commands, doctor, doctor-build, program, cli-entry, errors): 147 passed",
+      "npm test: 589 passed across 23 files",
+      "npm run build: exit 0",
+      "node dist/cli/index.js version --json: one schemaVersion 1 document, exit 0",
+      "temp EASY_HOST_HOME list/status --json: schemaVersion 1 with apps [], exit 0",
+      "temp EASY_HOST_HOME config missing --json: schemaVersion 1 error envelope, exit 5",
+      "node dist/cli/index.js doctor --json: one document, 8 checks, no ANSI, 1.12 s, exit 2 from real host prerequisites"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "Doctor exits 2 on this host because Railpack and BuildKit are absent; that is host state, not a JSON contract failure.",
+      "logs, add, update, rollback, and remove remain registered placeholders; their wiring belongs to later lifecycle tasks.",
+      "runCli and main are now asynchronous, a deliberate interface change required to await container inspection; synchronous callers must await them."
+    ],
+    "validationLimitations": [
+      "No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.",
+      "The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy."
+    ],
+    "taskDescription": "Implement json.ts with serializers for list, status, doctor, config, and version. Every payload includes schemaVersion 1, uses ISO 8601 UTC timestamps, keeps empty arrays, and is written as one document to stdout. Wire the read commands to select JSON when --json is present and keep human narration on stderr. Tests assert the exact top-level shape for each command, absence of ANSI escapes, presence of empty arrays, ISO timestamps, and that a secret value never appears."
+  },
+  "nextActions": [],
+  "artifactId": "work-obs-1-1-001",
+  "createdAt": "2026-10-30T03:20:53.550Z"
+}

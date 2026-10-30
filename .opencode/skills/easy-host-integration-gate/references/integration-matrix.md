@@ -53,9 +53,8 @@ The budget matches the app's `health_startup_ms`. A test may lower it for a deli
 
 ## Evidence files
 
-- Build spike: `docs/reviews/buildkit-spike.json` (human-run).
-- v0.1.0 release gate: `docs/reviews/v1-success-scenarios.json` (human-run).
-- Skill-stage review: a separate forge-skill-review artifact, not a skill package.
+- v0.1.0 release gate: `docs/operations/release-gate-v0.1.0.md` (human-run).
+- Skill review: the current skill package and its own validation section.
 
 Evidence records commands, observed results, wall-clock time, and explicit pass/fail per scenario. A scenario without an observation is `failed` or `not-run`, never `passed`.
 

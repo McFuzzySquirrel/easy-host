@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T03:08:03.114Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "UPD-1.1",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/lifecycle/diff.ts",
+      "tests/unit/diff.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and understanding the task scope.\nNow I have the interfaces I need. Let me write the diff module.\nImplemented UPD-1.1: pure update diff classification.\n\n## Classification behavior\n\n- **`no-op`** — no config/secret changes, `state.json` exists, a current image is recorded, the container is running from that image, and recorded health is `healthy`.\n- **`config-only`** — only `env`, secrets (via an optional merged-environment snapshot), `env_file`, `bind`, host port, container port, probe/health settings, or volumes changed. Also used to repair a missing, stopped, or unhealthy container from the recorded image.\n- **`rebuild`** — `repo`, `ref`, or `local_path` changed; `--rebuild` was passed; an unknown field/value shape was found; `state.json` is missing or lacks a current image; the running image drifts from the recorded one; or the environment snapshot is incomplete.\n\nThe module performs no filesystem, process, registry, or Podman access, mutates no inputs, and reports secret changes by variable name only.\n\n## Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | PASS |\n| `npm test -- tests/unit/diff.test.ts` | PASS — 38 tests |\n| `npm run lint` | PASS — 62 files |\n| `npm test` | PASS — 22 files / 567 tests |\n| `npm run build` | PASS |\n\nNo gated integration suite applies: the diff is pure and has no Podman or host dependency.\n\n## Files created\n\n- `src/lifecycle/diff.ts`\n- `tests/unit/diff.test.ts`\n\n`docs/artifacts/` and the execution file were not modified.\n\n```forge-result\n{\"summary\":\"Implemented pure update diff classification in src/lifecycle/diff.ts with no-op/config-only/rebuild outcomes, rebuild overrides for repo/ref/local-path and --rebuild, safe handling of unknown differences, missing state, missing/stopped/unhealthy containers, image drift, and secret changes without value leakage. Added 38 focused tests. Typecheck, lint, full 567-test suite, build, and the declared focused tests pass.\",\"unresolved\":[],\"decisions\":[\"A missing state.json or a state with no current image is treated as an unknown difference and rebuilt, so deleting the cache can never produce a false no-op.\",\"A missing, stopped, or unhealthy container with a recorded image is config-only: update recreates the recorded image without Railpack or BuildKit.\",\"Running-image drift from the recorded current image is an unknown difference and therefore a rebuild.\",\"Secret-file changes are detected through an optional merged-environment snapshot; only variable names are reported, never values. An incomplete snapshot is treated as an unknown difference and rebuilt.\",\"The diff accepts narrow UpdateRecordedState and UpdateContainerObservation shapes so AppState and ContainerInspect satisfy them structurally without a Podman import.\"],\"interfaces\":[\"classifyUpdate(input: UpdateDiffInput): UpdateDiff\",\"UPDATE_DIFF_KINDS, REBUILD_CONFIG_FIELDS, CONFIG_ONLY_CONFIG_FIELDS\",\"UpdateDiffInput, UpdateDiff, UpdateChange, UpdateRecordedState, UpdateContainerObservation, UpdateEnvironmentSnapshot, UpdateDiffKind, UpdateContainerStatus, UpdateStateStatus\"],\"tests\":[\"npm run typecheck: PASS\",\"npm test -- tests/unit/diff.test.ts: PASS (38 tests)\",\"npm run lint: PASS (62 files)\",\"npm test: PASS (22 files, 567 tests)\",\"npm run build: PASS\"],\"validationLimitations\":[\"No Podman, git, filesystem, or registry I/O is involved in this module by design; only the gated update integration suite (UPD-1.4, owned by qa-engineer) can prove the later swap path on a real host.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 260815,
+    "usage": {
+      "inputTokens": 74353,
+      "outputTokens": 11401,
+      "reasoningTokens": 28712,
+      "cacheReadTokens": 2020480,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.041282189999999996,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/diff.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented pure update diff classification in src/lifecycle/diff.ts with no-op/config-only/rebuild outcomes, rebuild overrides for repo/ref/local-path and --rebuild, safe handling of unknown differences, missing state, missing/stopped/unhealthy containers, image drift, and secret changes without value leakage. Added 38 focused tests. Typecheck, lint, full 567-test suite, build, and the declared focused tests pass.",
+    "unresolved": [],
+    "decisions": [
+      "A missing state.json or a state with no current image is treated as an unknown difference and rebuilt, so deleting the cache can never produce a false no-op.",
+      "A missing, stopped, or unhealthy container with a recorded image is config-only: update recreates the recorded image without Railpack or BuildKit.",
+      "Running-image drift from the recorded current image is an unknown difference and therefore a rebuild.",
+      "Secret-file changes are detected through an optional merged-environment snapshot; only variable names are reported, never values. An incomplete snapshot is treated as an unknown difference and rebuilt.",
+      "The diff accepts narrow UpdateRecordedState and UpdateContainerObservation shapes so AppState and ContainerInspect satisfy them structurally without a Podman import."
+    ],
+    "interfaces": [
+      "classifyUpdate(input: UpdateDiffInput): UpdateDiff",
+      "UPDATE_DIFF_KINDS, REBUILD_CONFIG_FIELDS, CONFIG_ONLY_CONFIG_FIELDS",
+      "UpdateDiffInput, UpdateDiff, UpdateChange, UpdateRecordedState, UpdateContainerObservation, UpdateEnvironmentSnapshot, UpdateDiffKind, UpdateContainerStatus, UpdateStateStatus"
+    ],
+    "tests": [
+      "npm run typecheck: PASS",
+      "npm test -- tests/unit/diff.test.ts: PASS (38 tests)",
+      "npm run lint: PASS (62 files)",
+      "npm test: PASS (22 files, 567 tests)",
+      "npm run build: PASS"
+    ],
+    "validationLimitations": [
+      "No Podman, git, filesystem, or registry I/O is involved in this module by design; only the gated update integration suite (UPD-1.4, owned by qa-engineer) can prove the later swap path on a real host."
+    ]
+  }
+}

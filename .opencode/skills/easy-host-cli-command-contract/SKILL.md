@@ -20,13 +20,11 @@ The contract lives in code (`src/cli/program.ts`, `src/cli/errors.ts`, `src/cli/
 
 ## Process
 
-### Step 1: Locate the owning requirement and the current definition
+### Step 1: Locate the current definition
 
-Read the requirement ID in the owning feature document before editing: `docs/features/01-prerequisites-and-doctor.md` for the surface, errors, and doctor; `04-add-and-lifecycle.md` for read commands; `07-observability-and-output.md` for JSON, TTY, and drift; `08-docs-and-packaging.md` for help, references, and completions.
+Inspect the current definitions and their tests: `src/cli/program.ts`, `src/cli/errors.ts`, `src/cli/json.ts`, and `src/cli/format.ts`. The [architecture note](../../../docs/ARCHITECTURE.md) describes how the pieces fit together. If a command or flag does not exist, then stop and raise the gap with `support-lead` instead of inventing one here.
 
-Inspect the current definitions and their tests. If the requirement does not exist, then stop and hand the gap to the PRD owner instead of inventing a command or flag.
-
-**Output:** the requirement ID, the files you will touch, and whether the change is registration, error mapping, or output shape.
+**Output:** the files you will touch and whether the change is registration, error mapping, or output shape.
 
 ### Step 2: Classify the change before writing code
 
@@ -35,7 +33,7 @@ Inspect the current definitions and their tests. If the requirement does not exi
 - New machine field → update `json.ts` and the schema tests; additive fields are allowed, renames need a `schemaVersion` bump.
 - Human rendering only → update `format.ts` and keep the JSON path untouched.
 
-If the change would add an eleventh command, then propose a flag or reuse `update`/`rollback` instead. The surface is a settled PRD decision.
+If the change would add an eleventh command, then propose a flag or reuse `update`/`rollback` instead. The surface is a settled product decision.
 
 ### Step 3: Implement types and errors first, then behavior
 

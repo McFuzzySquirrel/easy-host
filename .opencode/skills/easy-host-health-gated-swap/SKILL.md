@@ -26,7 +26,7 @@ The rule is absolute: the candidate must pass its probe before state records it,
 
 ### Step 1: Classify the change before acquiring the lock
 
-Read `docs/features/05-update-and-health-gate.md`, and `06-rollback-and-remove.md` for rollback. Implement `diff.ts` as a pure function comparing persisted config plus state with the desired config.
+Read the current swap and rollback code. Implement `diff.ts` as a pure function comparing persisted config plus state with the desired config.
 
 - Nothing changed and the container is running and healthy → `no-op`, exit `0`, say nothing changed.
 - Only config-only fields changed → `config-only`.

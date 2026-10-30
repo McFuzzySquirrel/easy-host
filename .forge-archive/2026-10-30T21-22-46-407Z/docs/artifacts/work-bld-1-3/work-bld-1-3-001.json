@@ -1,0 +1,68 @@
+{
+  "type": "work.bld-1.3",
+  "category": "work",
+  "taskId": "BLD-1.3",
+  "producedBy": "build-engineer",
+  "status": "complete",
+  "summary": "Implemented src/platform/build.ts with pinned Railpack invocation, immediate line-by-line stderr streaming, immutable localhost/easy-host-<app>:<UTC> tags, optional host-wide build locking, and distinct unsupported-source/build-failure/infrastructure-failure errors with exit codes and remediations; added 23 unit tests. Typecheck, lint, full unit suite (356), and build pass.",
+  "inputs": [
+    "work-bld-1-1-001",
+    "work-bld-1-2-001",
+    "work-bld-0-1-001"
+  ],
+  "filesChanged": [
+    "src/platform/build.ts",
+    "tests/unit/build.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented src/platform/build.ts with pinned Railpack invocation, immediate line-by-line stderr streaming, immutable localhost/easy-host-<app>:<UTC> tags, optional host-wide build locking, and distinct unsupported-source/build-failure/infrastructure-failure errors with exit codes and remediations; added 23 unit tests. Typecheck, lint, full unit suite (356), and build pass.",
+    "decisions": [
+      "Railpack is invoked as `<binary> build <workspace> --name localhost/easy-host-<app>:<UTC stamp> --progress plain`, with BUILDKIT_HOST injected into the child environment only; this uses the spike-corrected --name flag.",
+      "unsupported-source and build-failure use BuildError exit 3 with distinct stable codes (BUILD_UNSUPPORTED_SOURCE, BUILD_PROVIDER_FAILED); infrastructure-failure uses PrerequisiteError exit 2 with BUILD_INFRASTRUCTURE_FAILED and reason-specific remediation.",
+      "Streaming uses an ordered merged output queue and per-stream line splitters; each complete line is written immediately, unterminated lines are capped at 64 KiB, and only a bounded 20-line / 8k-character tail is retained for diagnostics.",
+      "App names are validated with validateAppName() and timestamps with a strict yyyymmddThhmmssZ formatter before entering the tag; the child is started with an argument array, never a shell.",
+      "A host-wide <stateRoot>/build.lock is acquired when stateRoot is supplied; the lifecycle caller must pass it to enforce the v1 one-build-at-a-time contract.",
+      "The default runner is a shell-free spawn seam so the shared platform runner can replace it; URL credentials and ANSI escapes are redacted by default.",
+      "A stalled image export is classified as docker-loader-unavailable with podman-docker remediation, reflecting the Phase 0 spike's docker-loader finding."
+    ],
+    "interfaces": [
+      "buildWorkspace(options): Promise<BuildResult>",
+      "BuildWorkspaceOptions { app, workspace, railpackBinaryPath, buildkitHost, stderr?, env?, now?, runner?, timeoutMs?, stateRoot?, redact? }",
+      "BuildResult { app, image, timestamp, workspace, durationMs, exitCode }",
+      "BuildRunner { run(command, args, { cwd, env }): BuildProcess }",
+      "BuildProcess { output: AsyncIterable<BuildOutputChunk>, exited: Promise<BuildExit>, kill(signal?) }",
+      "UnsupportedSourceError, ProviderBuildError, BuildInfrastructureError with stable kind and exitCode",
+      "formatBuildTimestamp, buildImageTag, railpackBuildArguments, buildLockPath, createDefaultBuildRunner",
+      "Pinned values remain exclusively in src/platform/versions.ts"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/build.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: passed",
+      "npm run lint: passed (39 files)",
+      "npm test -- tests/unit/build.test.ts: 23 passed",
+      "npm test -- tests/unit/railpack.test.ts tests/unit/buildkit.test.ts tests/unit/build.test.ts: 63 passed",
+      "npm test: 14 files, 356 tests passed",
+      "npm run build: passed",
+      "Real Railpack 0.43.0 smoke: empty workspace -> UnsupportedSourceError exit 3, 61 ms; Node workspace + missing socket -> BuildInfrastructureError exit 2, 104 ms"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "No real image build was executed in BLD-1.3; BLD-1.6 owns the gated real-host proof and BLD-1.4 fixtures do not exist yet. Phase 0 observed 258.53 s cold and 1.42 s warm builds.",
+      "Railpack 0.43.0 hangs at export without a docker-compatible loader; the build timeout detects an export stall and points at podman-docker, but no loader preflight exists yet (BLD-1.5 doctor owns prerequisites).",
+      "Host-wide serialization is opt-in via stateRoot; lifecycle orchestration must pass Paths.root to enforce one build at a time.",
+      "Failure-pattern classification is tied to Railpack 0.43.0/BuildKit wording; a pin upgrade must re-verify the patterns against the fixtures.",
+      "Only x86_64 execution was verified; aarch64 remains verified by pinned URL and SHA-256 only."
+    ],
+    "validationLimitations": [
+      "tests/integration/build.test.ts does not exist yet and was not run.",
+      "No buildkitd was started and no image was built on the real host in this task."
+    ],
+    "taskDescription": "Implement build.ts. Invoke the pinned Railpack binary with BUILDKIT_HOST pointed at the managed socket, the workspace as the build context, and an image tag of localhost/easy-host-<app>:<UTC timestamp>. Stream stdout and stderr line by line to stderr. Return the image reference on success. Classify failures into unsupported-source, build-failure, and infrastructure-failure, each with its exit code and remediation. Tests use a fake child process to cover success, no-provider detection, provider failure, socket unreachable, registry pull failure, and output streaming order."
+  },
+  "nextActions": [],
+  "artifactId": "work-bld-1-3-001",
+  "createdAt": "2026-10-30T00:23:02.353Z"
+}

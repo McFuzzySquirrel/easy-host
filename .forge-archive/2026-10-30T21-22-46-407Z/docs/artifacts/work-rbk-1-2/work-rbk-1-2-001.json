@@ -1,0 +1,67 @@
+{
+  "type": "work.rbk-1.2",
+  "category": "work",
+  "taskId": "RBK-1.2",
+  "producedBy": "lifecycle-engineer",
+  "status": "complete",
+  "summary": "Implemented src/lifecycle/retain.ts (label-scoped two-image retention with in-use, shared, foreign-label, removal-failure, missing-image, and already-clean handling) and wired it into post-success update and rollback with warning-only failures and unchanged phase order. Added 23 retain tests plus update/rollback wiring tests; typecheck, lint, build, the focused suites, and the full 763-test suite pass. A real Podman 5.7.0 smoke of the default image store passed.",
+  "inputs": [
+    "work-rbk-1-1-001",
+    "work-add-1-2-001",
+    "work-upd-1-3-001",
+    "work-upd-1-4-001"
+  ],
+  "filesChanged": [
+    "src/lifecycle/retain.ts",
+    "tests/unit/retain.test.ts",
+    "src/lifecycle/rollback.ts",
+    "src/lifecycle/update.ts",
+    "tests/unit/rollback.test.ts",
+    "tests/unit/update.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented src/lifecycle/retain.ts (label-scoped two-image retention with in-use, shared, foreign-label, removal-failure, missing-image, and already-clean handling) and wired it into post-success update and rollback with warning-only failures and unchanged phase order. Added 23 retain tests plus update/rollback wiring tests; typecheck, lint, build, the focused suites, and the full 763-test suite pass. A real Podman 5.7.0 smoke of the default image store passed.",
+    "decisions": [
+      "Keep set = recorded current/previous + images used by running containers + references in any other app's recorded pair; everything else labelled for the app is removed.",
+      "Every candidate is re-checked against its own io.easy-host.app label before removal; unlabelled or foreign-labelled images are reported and never removed, so tag patterns alone can never authorize a delete.",
+      "If any sibling app's state.json cannot be read, sharing cannot be ruled out, so no candidate is removed and each is reported as unverified-shared.",
+      "A failed per-image removal is a warning and retention continues; a failed listing raises PrerequisiteError because no safe decision can be made.",
+      "Missing recorded references are reported in the result; the warning is suppressed when the app has no labelled images at all, since that means there is nothing retention could have removed.",
+      "Retention runs after a successful config-only/rebuild/first-start update and after a healthy rollback, with the operation's registry, state cache, and environment; it never runs for a no-op, failed build, or reverted swap, and a retention failure never changes the command's exit code.",
+      "Retention phases are narrated as informational lines so update/rollback phase arrays and command output contracts stay unchanged."
+    ],
+    "interfaces": [
+      "retainImages(request, overrides?): Promise<RetainResult>",
+      "RetainRequest, RetainDependencies, RetainDependencyOverrides, RetainResult, RetainedImage, RefusedImage, RetainImageStore, RetainedImageEntry, RetainImages",
+      "createDefaultRetainImageStore(options), createDefaultRetainOutput(stream)",
+      "RETAIN_FAILURE_CODES, RETAIN_PHASES, RETAIN_IMAGE_TIMEOUT_MS, RetainKeepReason, RetainRefusedReason",
+      "UpdateDependencies.retain, RollbackDependencies.retain, RollbackRegistry.list()"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/retain.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/retain.test.ts: 23 passed",
+      "npm test -- tests/unit/update.test.ts tests/unit/rollback.test.ts: 67 passed",
+      "npm test: 763 passed",
+      "npm run build: exit 0"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "Railpack-built images do not yet carry the io.easy-host.app label, so the label-filtered listing finds no candidates on a real host until the build layer labels images; retention deliberately does not fall back to tag matching (task constraint). This needs a build-engineer interface change.",
+      "src/platform/podman.ts has no image operations, so list/remove are implemented in retain.ts through the shared PodmanRunner; platform-engineer should absorb listImages/removeImage into the platform adapter without changing RetainImageStore.",
+      "The retention pass means every successful update/rollback now runs `podman images --filter label=...` and `podman ps`; both are bounded at 60s and their failure is a warning."
+    ],
+    "validationLimitations": [
+      "No gated EASY_HOST_INTEGRATION suite was run; RBK-1.2's declared checks are unit-level, and the gated update/rollback suites (UPD-1.4, RBK-1.4) are qa-engineer-owned.",
+      "Real image removal was not exercised end to end because the host has no easy-host-labelled images; the real adapter's list and idempotent-remove paths were smoke-tested against Podman 5.7.0."
+    ],
+    "taskDescription": "Implement retain.ts. After a successful update or rollback, list images labelled for the app, keep the current and previous references, and remove every other app image. Refuse to remove an image used by a running container or referenced by another app. Report removed and retained images. Tests cover two images, three images, an image in use, a shared image, a missing image, and an already-clean app."
+  },
+  "nextActions": [],
+  "artifactId": "work-rbk-1-2-001",
+  "createdAt": "2026-10-30T05:21:26.614Z"
+}

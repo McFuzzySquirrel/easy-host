@@ -1,8 +1,8 @@
 # CLI reference
 
-`easy-host` is a Linux CLI for running a git repository as a long-running service under rootless Podman. This page is the complete command, flag, argument, and exit-code reference. It is checked against the built commander program by `tests/docs/reference.test.ts`, so a command or flag that is added to the CLI without a matching entry here fails the test suite (`DOC-FR-04`, `DOC-NF-01`).
+`easy-host` is a Linux CLI for running a git repository as a long-running service under rootless Podman. This page is the complete command, flag, argument, and exit-code reference. It is checked against the built commander program by `tests/docs/reference.test.ts`, so a command or flag that is added to the CLI without a matching entry here fails the test suite.
 
-The supported host range, the lingering requirement, and the port floor are in [Host prerequisites](../operations/prerequisites.md). The `config.toml` keys are in the [configuration reference](config.md). The command surface is also summarized in [PRD §12.1](../PRD.md#121-command-surface).
+The supported host range, the lingering requirement, and the port floor are in [Host prerequisites](../operations/prerequisites.md). The `config.toml` keys are in the [configuration reference](config.md). The module layout behind these commands is in the [architecture note](../ARCHITECTURE.md#module-map).
 
 ## Synopsis
 
@@ -469,5 +469,5 @@ The state root is `$EASY_HOST_HOME` when set, otherwise `$XDG_DATA_HOME/easy-hos
 - [Configuration reference](config.md) for every `config.toml` key, default, and validation rule.
 - [Host prerequisites](../operations/prerequisites.md) for the Podman support window, lingering, git, Node.js, and ports.
 - [Scheduled updates](../operations/systemd-timer.md) for a user timer that calls `update`.
-- [Observability and output](../features/07-observability-and-output.md) for the JSON document fields and TTY rules.
-- [Docs and packaging](../features/08-docs-and-packaging.md) for the reference requirement and its drift test.
+- [Architecture](../ARCHITECTURE.md#output) for the JSON document fields and TTY rules.
+- [Architecture](../ARCHITECTURE.md#module-map) for the module layout and the drift tests.

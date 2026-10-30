@@ -1,0 +1,54 @@
+{
+  "type": "work.doc-1.6",
+  "category": "work",
+  "taskId": "DOC-1.6",
+  "producedBy": "docs-engineer",
+  "status": "complete",
+  "summary": "Added docs/MIGRATION.md documenting the react-hoster to easy-host rename, the manual repository rename, the old README's claims, and the four concrete changes; extended the docs link test and added an 8-test migration drift suite. Links (26), migration (8), reference (15), typecheck, lint, and the full 867-test suite pass.",
+  "inputs": [
+    "work-doc-1-3-001",
+    "work-doc-1-1-001",
+    "work-doc-1-2-001"
+  ],
+  "filesChanged": [
+    "docs/MIGRATION.md",
+    "README.md",
+    "tests/docs/links.test.ts",
+    "tests/docs/migration.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Added docs/MIGRATION.md documenting the react-hoster to easy-host rename, the manual repository rename, the old README's claims, and the four concrete changes; extended the docs link test and added an 8-test migration drift suite. Links (26), migration (8), reference (15), typecheck, lint, and the full 867-test suite pass.",
+    "decisions": [
+      "The old README documented no install command, binary, config location, or Podman minimum, so the migration table marks those old values as not documented instead of inventing legacy values.",
+      "The repository-rename test forbids claims about the repository while still allowing the statement that the project is now easy-host; a synthetic-claim test proves the detection is non-vacuous.",
+      "The note links to the README, PRD, PRD version history, config location, prerequisites, supporting stacks, volume safety, CLI reference, and timer guide so every changed fact has a live reference."
+    ],
+    "interfaces": [
+      "DOCUMENTED_MARKDOWN in tests/docs/links.test.ts now includes docs/MIGRATION.md, so later docs additions are checked for link and anchor resolution automatically.",
+      "tests/docs/migration.test.ts exports no constants; its localLinkTargets and repositoryRenameClaims helpers are file-local."
+    ],
+    "tests": [
+      "npm test -- tests/docs/links.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm test -- tests/docs/links.test.ts: 26 passed",
+      "npm test -- tests/docs/migration.test.ts: 8 passed",
+      "npm test -- tests/docs/reference.test.ts: 15 passed",
+      "npm run typecheck: exit 0",
+      "npm test: 867 passed across 37 files",
+      "npm run lint: exit 0 with 3 pre-existing infos"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "docs/MIGRATION.md is not included in package.json files; changing packaging is outside this task and prohibited by its constraints.",
+      "The old README's claims were verified against the bootstrap commit 2ed0d57; the note does not invent pre-rename install, config, or Podman values that never existed."
+    ],
+    "validationLimitations": [
+      "No clean-host manual walkthrough was run; this task changed documentation and documentation tests only."
+    ],
+    "taskDescription": "Write docs/MIGRATION.md explaining that the project is now easy-host, that the repository is still named react-hoster until renamed manually, what the old README claimed, and what an early user must change: install command, binary name, config location, and the Podman minimum. Add a test asserting the migration note exists, links to the PRD and README, and does not claim the repository has already been renamed. Extend the docs link test."
+  },
+  "nextActions": [],
+  "artifactId": "work-doc-1-6-001",
+  "createdAt": "2026-10-30T20:59:06.204Z"
+}

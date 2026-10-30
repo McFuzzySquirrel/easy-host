@@ -1,0 +1,63 @@
+{
+  "type": "work.reg-1.5",
+  "category": "work",
+  "taskId": "REG-1.5",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Implemented REG-FR-06 environment assembly in src/config/env.ts with secrets-file parsing, inline merge where file wins, line-only invalid-name errors, missing-declared-file usage errors, and a redacted diagnostics view; 30 focused tests and all typecheck/lint/full-suite/build checks pass.",
+  "inputs": [
+    "work-reg-1-1-001",
+    "work-reg-1-3-001",
+    "work-pre-1-1-001",
+    "work-pre-1-2-001",
+    "work-pre-1-3-001",
+    "work-pre-1-4-001",
+    "work-pre-1-5-001"
+  ],
+  "filesChanged": [
+    "src/config/env.ts",
+    "tests/unit/config-env.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented REG-FR-06 environment assembly in src/config/env.ts with secrets-file parsing, inline merge where file wins, line-only invalid-name errors, missing-declared-file usage errors, and a redacted diagnostics view; 30 focused tests and all typecheck/lint/full-suite/build checks pass.",
+    "decisions": [
+      "When env_file is absent, the default <app>/secrets.env is read if present but remains optional; a declared env_file that is missing is a usage error (exit 1).",
+      "Parsing supports full-line comments, inline comments on unquoted values, single-quoted literals, double-quoted escapes, CRLF, BOM, and last-value-wins duplicate keys.",
+      "Unreadable files report only the errno code, not the lower-level message, so a custom reader cannot leak file content.",
+      "A lexical containment re-check in loadEnvironment rejects env_file paths escaping the app directory even if the schema was bypassed."
+    ],
+    "interfaces": [
+      "DEFAULT_SECRETS_FILE=\"secrets.env\"",
+      "INVALID_ENV_FILE_CODE, SECRETS_FILE_MISSING_CODE",
+      "EnvironmentFileError { file, line, exitCode 1, code INVALID_ENV_FILE }",
+      "EnvironmentSpec = Pick<AppSpec, \"env\" | \"env_file\">",
+      "parseSecretsFile(source, {file?}): Record<string,string>",
+      "mergeEnvironment(inline?, secrets?): Record<string,string>",
+      "redactEnvironment(environment): Record<string,string>",
+      "SecretsFileReader, LoadEnvironmentOptions { read?, file? }",
+      "ContainerEnvironment { values, names, redacted, file }",
+      "loadEnvironment(appDir, spec, options?): ContainerEnvironment"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/config-env.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm test -- tests/unit/config-env.test.ts: 30 passed",
+      "npm run lint: exit 0",
+      "npm test: 267 passed across 9 files",
+      "npm run build: exit 0"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "New stable codes INVALID_ENV_FILE and SECRETS_FILE_MISSING (both exit 1); unreadable secrets reuse SECRETS_UNREADABLE (exit 2), so docs should list the new codes.",
+      "ContainerEnvironment.values contains secret material by design; callers must pass it only to the container runtime and use .redacted for any diagnostics."
+    ],
+    "validationLimitations": [],
+    "taskDescription": "Implement env.ts to read the optional secrets file, parse KEY=VALUE lines with comments and quoted values, validate variable names, and merge inline [env] with the file so the file wins on duplicates. Reject invalid names with the line number and never include the value. Expose a redacted view for diagnostics. Tests cover comments, quotes, blank lines, duplicate keys, invalid names, a missing file when one is declared, and redaction in error paths."
+  },
+  "nextActions": [],
+  "artifactId": "work-reg-1-5-001",
+  "createdAt": "2026-10-29T23:31:20.915Z"
+}

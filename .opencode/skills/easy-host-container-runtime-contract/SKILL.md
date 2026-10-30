@@ -22,9 +22,9 @@ The adapter contract is: argument arrays only, a finite timeout on every call, t
 
 ## Process
 
-### Step 1: Identify the operation and its owning requirement
+### Step 1: Identify the operation and the call site
 
-Read the relevant part of `docs/features/04-add-and-lifecycle.md` (run, volumes, logs), `03-app-registry-and-config.md` (labels and naming), `05-update-and-health-gate.md` (swap), `06-rollback-and-remove.md` (scoped deletion), or `02-buildkit-and-railpack.md` (daemon).
+Read the relevant module: `src/platform/podman.ts` (run, volumes, logs), `src/registry` (labels and naming), `src/lifecycle` (swap and scoped deletion), or the build layer (daemon).
 
 If the operation needs a new Podman flag, then check the pinned Podman floor (`>= 5.7.0`) and record the flag in the operations guide rather than assuming a newer release.
 

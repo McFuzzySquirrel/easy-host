@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T03:48:02.214Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "UPD-1.3",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/lifecycle/update.ts",
+      "src/cli/commands/update.ts",
+      "tests/unit/update.test.ts",
+      "src/lifecycle/swap.ts",
+      "tests/unit/swap.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and understanding the current state of the codebase.\nImplementation complete. Here is the result report.\n\n## What was implemented\n\n**`src/lifecycle/update.ts`** — full update orchestration:\n- Resolves the app/registry record, then takes the per-app lock and holds it across the config read, diff, and every mutation, releasing in `finally`.\n- Read-only preflight before any mutation: config validation, cross-app port check, volume ownership, secrets-file parsing.\n- Executes exactly one path from `classifyUpdate`:\n  - **no-op** — reports nothing changed, no build, no container change, no config write.\n  - **config-only** — recreates the recorded image through the health-gated swap, creates newly declared volumes, never invokes the builder, and leaves `state.json`'s current/previous image pair untouched.\n  - **rebuild** — fetches/checks out the workspace, builds the candidate, and only then stops/swaps. A build failure leaves the serving container and `config.toml` untouched.\n- For a git app whose diff is a no-op, fetches the configured ref and compares the checkout HEAD; a moved commit becomes a rebuild so `update` after a push works.\n- Applies `config.toml` only after a keep; never on a build failure or revert.\n- Maps a reverted swap to `HealthError` (exit 4) with the candidate, reason, previous-version outcome, restored state, and next command.\n- Bounded first-version start path when neither state nor a container records an image.\n\n**`src/cli/commands/update.ts`** — command handler with `runUpdateCommand` and `formatUpdateResult`: reports changed fields (names only), skipped work, current image, rollback target, health, URL, and commit; maps errors through the shared taxonomy (3 build, 4 health, 5 unknown app, 6 lock).\n\n**Recovery correctness (interaction change)** — `src/lifecycle/swap.ts` gained optional `recoverySpec`/`recoveryEnvironment`, so a failed config-only update restarts the previous image with its **previously applied** port, bind, probe, volumes, and environment instead of the failed new settings. `update` passes the current spec/env; defaults preserve existing swap behavior.\n\n## Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | PASS |\n| `npm run lint` | PASS (72 files) |\n| `npm test -- tests/unit/update.test.ts` | PASS — 36 tests |\n| `npm test -- tests/unit/swap.test.ts` | PASS — 15 tests |\n| `npm test` | PASS — 26 files / 660 tests |\n| `npm run build` | PASS |\n\nCoverage includes each diff class, config-only never calling the builder, build failure before any stop, lock contention (direct and command exit 6), no-op command exit 0, unhealthy/missing repair, revert with the previous version serving, revert with the previous version unhealthy, old port/env restoration, failed-build retry, state-missing rebuild, first-version start and bounded probe, config-only image-pair preservation, and secret-free reporting.\n\n## Files\n\n**Created**\n- `src/lifecycle/update.ts`\n- `src/cli/commands/update.ts`\n- `tests/unit/update.test.ts`\n\n**Changed**\n- `src/lifecycle/swap.ts` — optional recovery spec/environment for a correct revert of config changes.\n- `tests/unit/swap.test.ts` — proves the recovery config/env are used instead of the candidate's.\n\n`docs/artifacts/` and `docs/artifacts/UPD-1.3.md` were not modified. `docs/EXECUTION-AUDIT.jsonl` and `docs/WORKFLOW-STATE.json` were already modified by the engine before this task and were left alone.\n\n```forge-result\n{\"summary\":\"Implemented update orchestration and the update command: lock-scoped diff, no-op, config-only recreate through the health-gated swap (never invoking the builder), and fetch/build/swap rebuild with build failures leaving the serving version untouched. Added 36 focused tests and extended swap's revert path to restore the previously applied config and environment. Typecheck, lint, focused suites, full 660-test suite, and build pass.\",\"unresolved\":[],\"decisions\":[\"Desired config is an optional `desired`/`changes` input layered over config.toml; the in-memory desired spec is used for the operation and config.toml is written only after a keep.\",\"A git-backed no-op fetches the configured ref and compares the checkout HEAD with the prepared commit; a moved commit becomes a rebuild so update-after-push is not silently ignored.\",\"Config-only updates pass no state writer to the swap (which would set previous=current and destroy the rollback target); update writes health/container facts itself and preserves the image pair.\",\"swapApp gained optional recoverySpec/recoveryEnvironment so a revert restarts the previous image with the previously applied port, bind, probe, volumes, and environment rather than the failed candidate settings.\",\"A failed build or reverted candidate discards the disposable git checkout so a retry re-attempts the source instead of comparing the checkout with itself and reporting a false no-op.\",\"A config.toml write failure after a successful keep is reported as a warning; the app is already serving the desired settings and the file can be re-applied by the next update.\",\"When neither state.json nor a live container records an image, update builds and performs a bounded first start, mirroring add's failure cleanup.\"],\"interfaces\":[\"updateApp(request, overrides?): Promise<UpdateResult>\",\"UpdateRequest, UpdateDependencies, UpdateDependencyOverrides, UpdateResult, UpdateKind, UpdatePhase, UPDATE_PHASES, UPDATE_FAILURE_CODES\",\"UpdatePaths, UpdateRegistry, UpdateRuntime, UpdateStateStore, UpdateSource, UpdateSourceHeadRequest, UpdateOutput, createDefaultUpdateOutput\",\"createDefaultUpdateRuntime, createDefaultUpdateSource\",\"runUpdateCommand(options): Promise<ExitCode>, formatUpdateResult(result): string, UpdateCommandOptions\",\"SwapRequest.recoverySpec, SwapRequest.recoveryEnvironment\"],\"tests\":[\"npm run typecheck: PASS\",\"npm run lint: PASS\",\"npm test -- tests/unit/update.test.ts: PASS (36 tests)\",\"npm test -- tests/unit/swap.test.ts: PASS (15 tests)\",\"npm test: PASS (26 files, 660 tests)\",\"npm run build: PASS\"],\"warnings\":[\"src/cli/program.ts still registers update with the not-implemented placeholder; command registration is owned by cli-engineer and was not an expected output, matching the current state of add/logs registration.\",\"The no-op source check requires a reachable configured ref for git apps; an unreachable remote makes update fail with the git/build exit code rather than reporting a no-op.\"],\"validationLimitations\":[\"The gated real-host update integration suite (tests/integration/update.test.ts, UPD-1.4) is owned by qa-engineer and was not run here; no real Podman, git, Railpack, or BuildKit was exercised by the unit suite.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 937500,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 547002 (line 2482 column 13034)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/update.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented update orchestration and the update command: lock-scoped diff, no-op, config-only recreate through the health-gated swap (never invoking the builder), and fetch/build/swap rebuild with build failures leaving the serving version untouched. Added 36 focused tests and extended swap's revert path to restore the previously applied config and environment. Typecheck, lint, focused suites, full 660-test suite, and build pass.",
+    "unresolved": [],
+    "decisions": [
+      "Desired config is an optional `desired`/`changes` input layered over config.toml; the in-memory desired spec is used for the operation and config.toml is written only after a keep.",
+      "A git-backed no-op fetches the configured ref and compares the checkout HEAD with the prepared commit; a moved commit becomes a rebuild so update-after-push is not silently ignored.",
+      "Config-only updates pass no state writer to the swap (which would set previous=current and destroy the rollback target); update writes health/container facts itself and preserves the image pair.",
+      "swapApp gained optional recoverySpec/recoveryEnvironment so a revert restarts the previous image with the previously applied port, bind, probe, volumes, and environment rather than the failed candidate settings.",
+      "A failed build or reverted candidate discards the disposable git checkout so a retry re-attempts the source instead of comparing the checkout with itself and reporting a false no-op.",
+      "A config.toml write failure after a successful keep is reported as a warning; the app is already serving the desired settings and the file can be re-applied by the next update.",
+      "When neither state.json nor a live container records an image, update builds and performs a bounded first start, mirroring add's failure cleanup."
+    ],
+    "interfaces": [
+      "updateApp(request, overrides?): Promise<UpdateResult>",
+      "UpdateRequest, UpdateDependencies, UpdateDependencyOverrides, UpdateResult, UpdateKind, UpdatePhase, UPDATE_PHASES, UPDATE_FAILURE_CODES",
+      "UpdatePaths, UpdateRegistry, UpdateRuntime, UpdateStateStore, UpdateSource, UpdateSourceHeadRequest, UpdateOutput, createDefaultUpdateOutput",
+      "createDefaultUpdateRuntime, createDefaultUpdateSource",
+      "runUpdateCommand(options): Promise<ExitCode>, formatUpdateResult(result): string, UpdateCommandOptions",
+      "SwapRequest.recoverySpec, SwapRequest.recoveryEnvironment"
+    ],
+    "tests": [
+      "npm run typecheck: PASS",
+      "npm run lint: PASS",
+      "npm test -- tests/unit/update.test.ts: PASS (36 tests)",
+      "npm test -- tests/unit/swap.test.ts: PASS (15 tests)",
+      "npm test: PASS (26 files, 660 tests)",
+      "npm run build: PASS"
+    ],
+    "warnings": [
+      "src/cli/program.ts still registers update with the not-implemented placeholder; command registration is owned by cli-engineer and was not an expected output, matching the current state of add/logs registration.",
+      "The no-op source check requires a reachable configured ref for git apps; an unreachable remote makes update fail with the git/build exit code rather than reporting a no-op."
+    ],
+    "validationLimitations": [
+      "The gated real-host update integration suite (tests/integration/update.test.ts, UPD-1.4) is owned by qa-engineer and was not run here; no real Podman, git, Railpack, or BuildKit was exercised by the unit suite."
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "type": "work.doc-1.2",
+  "category": "work",
+  "taskId": "DOC-1.2",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Implemented scripts/generate-completions.ts with deterministic bash, zsh, and fish renderers driven by the commander definitions, generated the three committed completion files, and added a 9-test unit suite proving byte-identical regeneration, full command/flag coverage, fish-aware drift detection, and the unchanged ten-command surface; typecheck, lint, focused tests, and all 818 unit tests pass.",
+  "inputs": [
+    "work-pre-1-4-001",
+    "work-doc-1-1-001",
+    "work-rbk-1-4-001",
+    "work-rbk-1-5-001",
+    "work-rbk-1-6-001",
+    "work-obs-1-1-001",
+    "work-obs-1-2-001",
+    "work-obs-1-3-001",
+    "work-obs-1-4-001"
+  ],
+  "filesChanged": [
+    "scripts/generate-completions.ts",
+    "completions/easy-host.bash",
+    "completions/easy-host.zsh",
+    "completions/easy-host.fish",
+    "tests/unit/completions.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented scripts/generate-completions.ts with deterministic bash, zsh, and fish renderers driven by the commander definitions, generated the three committed completion files, and added a 9-test unit suite proving byte-identical regeneration, full command/flag coverage, fish-aware drift detection, and the unchanged ten-command surface; typecheck, lint, focused tests, and all 818 unit tests pass.",
+    "decisions": [
+      "The generator exports describeProgram/renderCompletion/generateCompletions/writeCompletions/findCompletionDrift so the test regenerates into a temp directory without shelling out; the script entry writes completions/ by default.",
+      "Help flags are synthesized in the renderers rather than added to the model, so drift checks compare only the documented CLI options.",
+      "Fish flags are matched as -l name/-s f in drift detection because fish does not spell flags with leading dashes.",
+      "Install locations live in each generated file header, with docs/reference left to docs-engineer.",
+      "Generated files preserve commander registration order for stable, reviewable output."
+    ],
+    "interfaces": [
+      "describeProgram(program): CompletionModel",
+      "generateCompletions(program?): CompletionFile[]",
+      "writeCompletions(directory, program?): string[]",
+      "renderCompletion(shell, model): string",
+      "findCompletionDrift(model, files): CompletionDrift[]",
+      "COMPLETION_SHELLS, COMPLETION_FILES, DEFAULT_COMPLETIONS_DIR"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/completions.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/completions.test.ts: 9/9 passed",
+      "npx vitest run tests/unit/completions.test.ts tests/unit/program.test.ts tests/unit/cli-entry.test.ts: 37/37 passed",
+      "npm test: 818/818 passed",
+      "npm run build and node dist/cli/index.js --help: exit 0, ten commands",
+      "bash -n completions/easy-host.bash: exit 0",
+      "npm pack --dry-run: three completion files included"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "Completion files are generated artifacts; any manual edit fails tests/unit/completions.test.ts until regenerated.",
+      "The generation CLI requires a TypeScript loader (e.g. npx tsx) because the repository imports .js specifiers that resolve to .ts sources; the test path needs no extra tooling."
+    ],
+    "validationLimitations": [
+      "zsh and fish are not installed on this host, so those files were structurally validated but not executed by their shells.",
+      "The gated packaging install suite was not rerun (npm registry dependency); npm pack --dry-run verified the completion files are in the tarball."
+    ],
+    "taskDescription": "Implement scripts/generate-completions.ts that imports the commander program, walks its commands and options, and emits bash, zsh, and fish completion files into completions/. The script must be deterministic so a test can regenerate into a temporary directory and compare against the committed files. The test fails when a command or flag exists in the CLI but not in the completions, and asserts that no completion subcommand was added."
+  },
+  "nextActions": [],
+  "artifactId": "work-doc-1-2-001",
+  "createdAt": "2026-10-30T19:46:28.514Z"
+}

@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T20:57:15.650Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "DOC-1.5",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "docs/reference/cli.md",
+      "docs/reference/config.md",
+      "tests/docs/reference.test.ts",
+      "README.md",
+      "tests/docs/links.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and understanding the project structure.\nNow I'll write the CLI reference.\n## Result report\n\n### Files created\n\n- `docs/reference/cli.md` — complete command, flag, argument, example, environment-variable, and exit-code reference.\n- `docs/reference/config.md` — every `config.toml` key with type, default, validation rule, volumes table, environment precedence, and file modes.\n- `tests/docs/reference.test.ts` — reads commands, flags, and arguments from the commander program, compares exit codes with `EXIT_CODES`, compares config keys/defaults with `APP_SPEC_KEYS`/`APP_SPEC_DEFAULTS`, checks examples, and proves synthetic flag/key drift is detected.\n\n### Files changed\n\n- `README.md` — added links to the CLI and configuration references in the documentation index.\n- `tests/docs/links.test.ts` — added both reference pages to `DOCUMENTED_MARKDOWN` and required them in the README documentation-index assertion.\n\n### Requirements covered\n\n- **DOC-FR-04**: Every command, flag, argument, exit code, config key, type, default, and validation rule is documented and verified against code.\n- **DOC-NF-01**: A drift test fails when a new CLI flag or schema key is undocumented. It also rejects example invocations that use unregistered commands or flags.\n\n### Verification\n\n| Command | Result |\n| --- | --- |\n| `npm test -- tests/docs/reference.test.ts` | 15 passed |\n| `npm test -- tests/docs/links.test.ts` | 26 passed |\n| `npm run typecheck` | passed |\n| `npm test` | 859 passed across 36 files |\n| `npm run lint` | passed; 3 pre-existing `useTemplate` info diagnostics remain in `src/platform/image-label.ts` and `tests/unit/image-label.test.ts` |\n\n### Documented contract values\n\n- Podman: `>= 5.7.0, < 6.0.0`; 6.x explicitly excluded while unstable; lingering mandatory for reboot recovery; git `2.40+`; Node.js `24+`; ports `1024`–`65535`.\n- File modes: state root and app/workspace directories `0700`, `config.toml` `0644`, `secrets.env` `0600`, `state.json` `0644`.\n- Exit codes: `0` success, `1` usage, `2` prerequisite, `3` build, `4` health, `5` not found, `6` conflict, `7` internal.\n- Config defaults: `ref = \"main\"`, `container_port = 3000`, `bind = \"0.0.0.0\"`, `probe = \"http\"`, `health_path = \"/\"`, `health_interval_ms = 2000`, `health_timeout_ms = 5000`, `health_startup_ms = 90000`, `env_file = \"secrets.env\"`, `volumes = {}`, `env = {}`.\n- CLI defaults: `logs --tail 200`; `add --container-port 3000`, `--bind 0.0.0.0`, `--probe http`, `--health-path /`; `--port` has no default.\n\n### Notes and limitations\n\n- The CLI registers `--json` on `add`, `update`, `rollback`, and `remove` even though PRD §12.1 does not list it there. The reference documents actual behavior: those commands keep their human success summary and emit the JSON error envelope only on failure.\n- `config --help` describes `--path` as printing the “directory path”, while the code prints the `config.toml` file path. The reference documents the code behavior.\n- A manual clean-shell walkthrough on a prepared Podman host was not performed; documentation claims were verified against the CLI program, schema, and source, not a fresh host.\n- The execution snapshot and `docs/EXECUTION-AUDIT.jsonl` were not modified by this work.\n\n```forge-result\n{\"summary\":\"Wrote the verified CLI and config references, added reference drift tests, linked both pages from the README, and extended the documentation link test.\",\"unresolved\":[],\"decisions\":[\"The reference describes the real commander surface, including --json on mutation commands, rather than the narrower PRD 12.1 synopsis.\",\"Config keys are checked against APP_SPEC_KEYS and their documented defaults against APP_SPEC_DEFAULTS.\"],\"tests\":[\"npm test -- tests/docs/reference.test.ts\",\"npm test -- tests/docs/links.test.ts\",\"npm run typecheck\",\"npm test\",\"npm run lint\"],\"warnings\":[\"PRD 12.1 omits --json for add, update, rollback, and remove while the CLI registers it; the reference documents the actual error-only JSON behavior.\",\"The config --help text calls --path a directory path, but the command prints config.toml's path; the reference follows the code.\"],\"validationLimitations\":[\"No manual clean-shell walkthrough on a prepared Podman host was run; claims were verified against source and the CLI program.\",\"Lint exits successfully but reports three pre-existing useTemplate infos in image-label source and test files.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 321524,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Expected double-quoted property name in JSON at position 547191 (line 2481 column 11)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm test -- tests/docs/reference.test.ts: exit 0 (engine-verified)",
+        "npm test -- tests/docs/links.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Wrote the verified CLI and config references, added reference drift tests, linked both pages from the README, and extended the documentation link test.",
+    "unresolved": [],
+    "decisions": [
+      "The reference describes the real commander surface, including --json on mutation commands, rather than the narrower PRD 12.1 synopsis.",
+      "Config keys are checked against APP_SPEC_KEYS and their documented defaults against APP_SPEC_DEFAULTS."
+    ],
+    "tests": [
+      "npm test -- tests/docs/reference.test.ts",
+      "npm test -- tests/docs/links.test.ts",
+      "npm run typecheck",
+      "npm test",
+      "npm run lint"
+    ],
+    "warnings": [
+      "PRD 12.1 omits --json for add, update, rollback, and remove while the CLI registers it; the reference documents the actual error-only JSON behavior.",
+      "The config --help text calls --path a directory path, but the command prints config.toml's path; the reference follows the code."
+    ],
+    "validationLimitations": [
+      "No manual clean-shell walkthrough on a prepared Podman host was run; claims were verified against source and the CLI program.",
+      "Lint exits successfully but reports three pre-existing useTemplate infos in image-label source and test files."
+    ],
+    "interfaces": []
+  }
+}

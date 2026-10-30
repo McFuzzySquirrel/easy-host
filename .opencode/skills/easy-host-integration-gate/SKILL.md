@@ -25,7 +25,7 @@ Gating is explicit, resources are isolated, waits are bounded, cleanup is guaran
 
 ### Step 1: Name the behavior and its failure mode
 
-Read the owning feature's testing section and acceptance criteria: `docs/features/02-buildkit-and-railpack.md`, `04-add-and-lifecycle.md`, `05-update-and-health-gate.md`, `06-rollback-and-remove.md`, or the packaging section of `08-docs-and-packaging.md`.
+Read the code under test and the current suite for that area: the build path in `src/platform`, the lifecycle in `src/lifecycle`, or packaging in `package.json` and `scripts/`, together with the existing tests.
 
 State the behavior as a claim you can falsify: "a broken commit leaves version one serving" is testable; "update works" is not.
 
@@ -96,7 +96,7 @@ By default, run only the suite you changed on a supported host, then the full ga
 - **A test that only asserts exit 0 can pass on a no-op.** Assert the resource state and the changed behavior.
 - **The real state root can be destroyed by a cleanup bug.** Always set `EASY_HOST_HOME` to a temp root before the first command.
 - **Image pulls and Railpack downloads need network.** Document the assumption; do not silently retry forever.
-- **The reboot and LAN checks are human gates.** Automating the decision contradicts the PRD; collect evidence instead.
+- **The reboot and LAN checks are human gates.** Automating the decision would replace observation with a guess; collect evidence instead.
 
 ## Validation
 

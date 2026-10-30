@@ -24,11 +24,11 @@ Pins live in exactly one module. Build failures are classified so the operator k
 
 ## Process
 
-### Step 1: Confirm the Phase 0 evidence before changing build behavior
+### Step 1: Confirm the current build contract before changing behavior
 
-Read `docs/features/02-buildkit-and-railpack.md`, `docs/reviews/buildkit-spike.json` when it exists, and the pinned values in `src/platform/versions.ts`.
+Read the pinned values in `src/platform/versions.ts`, the build adapter code, and the build tests. The [architecture note](../../../docs/ARCHITECTURE.md#build-layer) records the current pins and the loader prerequisite.
 
-If the spike is missing or failed, then do not implement build behavior on top of an unproven assumption; record the blocker and re-plan the build layer.
+If the build layer cannot be exercised on the available host, then do not change build behavior on an unproven assumption; record the blocker and re-plan with `support-lead`.
 
 ### Step 2: Change pins in one module and acquisition in one path
 

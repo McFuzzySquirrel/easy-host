@@ -1,0 +1,52 @@
+{
+  "type": "work.pre-1.3",
+  "category": "work",
+  "taskId": "PRE-1.3",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Implemented the typed error taxonomy, documented exit-code mapping, PRD 12.3 human renderer, schemaVersion 1 JSON error envelope, recursive secret and URL-credential redaction, and top-level CLI entry handling; typecheck, lint, focused tests, full unit suite, build, and runtime check pass.",
+  "inputs": [
+    "work-pre-1-1-001"
+  ],
+  "filesChanged": [
+    "src/cli/errors.ts",
+    "tests/unit/errors.test.ts",
+    "src/cli/index.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented the typed error taxonomy, documented exit-code mapping, PRD 12.3 human renderer, schemaVersion 1 JSON error envelope, recursive secret and URL-credential redaction, and top-level CLI entry handling; typecheck, lint, focused tests, full unit suite, build, and runtime check pass.",
+    "decisions": [
+      "Unknown exceptions become InternalError with exit 7 and the bug-report hint; stacks appear only when EASY_HOST_DEBUG=1.",
+      "Pre-existing typed errors from paths.ts are adopted by shape rather than rewritten, preserving their exit codes.",
+      "The JSON error envelope adds schemaVersion 1 with stable fields code, exitCode, summary, details, and remediation."
+    ],
+    "interfaces": [
+      "EXIT_CODES and ExitCode",
+      "EasyHostError plus seven subclasses",
+      "formatError, toErrorDocument, formatErrorJson, reportError",
+      "toExitCode, toEasyHostError, runWithErrorHandling",
+      "redactDetails, redactText, REDACTED"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/errors.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: pass",
+      "npm run lint: pass",
+      "npm test -- tests/unit/errors.test.ts: pass (26)",
+      "npm test: pass (53)",
+      "npm run build: pass",
+      "node dist/cli/index.js: exit 0"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "src/cli/index.ts now includes the shared error handler; the ten-command program remains PRE-1.4 scope, so --help still prints the version."
+    ],
+    "validationLimitations": [],
+    "taskDescription": "Create typed errors for usage, prerequisite, build, health, not-found, conflict, and internal failures, each carrying a stable exit code, a one-line summary, an optional remediation command, and optional structured details. Add a renderer that prints the summary, details, and remediation as separate lines, and an exit-code mapper used by the CLI entry. Tests assert the code for each error class, remediation rendering, redaction of any key whose name matches secret, token, password, or key, and that unknown exceptions map to 7 without a stack trace in normal output."
+  },
+  "nextActions": [],
+  "artifactId": "work-pre-1-3-001",
+  "createdAt": "2026-10-29T23:04:23.472Z"
+}

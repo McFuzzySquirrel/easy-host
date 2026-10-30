@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T19:46:28.509Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "DOC-1.2",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "scripts/generate-completions.ts",
+      "completions/easy-host.bash",
+      "completions/easy-host.zsh",
+      "completions/easy-host.fish",
+      "tests/unit/completions.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and understanding the task scope.\nNow I have the full picture. Let me write the generator.\nImplemented DOC-1.2: shell completions are now generated from the same commander definitions that produce `--help`, with a drift test that regenerates byte-for-byte into a temporary directory.\n\n## Files created\n\n- `scripts/generate-completions.ts`\n- `completions/easy-host.bash`\n- `completions/easy-host.zsh`\n- `completions/easy-host.fish`\n- `tests/unit/completions.test.ts`\n\n## Requirement coverage\n\n| Requirement | Satisfied by |\n|---|---|\n| DOC-FR-05 | Generator walks `createProgram()` commands/options and emits bash, zsh, fish. Each file's header documents its install location. No completion subcommand exists. |\n| DOC-NF-01 | Completions are verified against the CLI definitions by test, not review: every command and flag is asserted present in every shell, and any definition drift fails regeneration equality. |\n| PRD-ACC-07 | Help and completions share one source (`src/cli/program.ts`); no duplicate flag tables. |\n| PRD §12.1 | Exactly the ten documented commands; test asserts the array equals `COMMAND_NAMES` and contains no `completion`/`completions`. |\n\nNo CLI command, flag, exit code, JSON field, config key, or file-mode contract changed. The generated files are new package content already covered by `package.json files: [\"completions\", ...]`.\n\n## Validation results\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0 (3 pre-existing infos, no warnings/errors) |\n| `npm test -- tests/unit/completions.test.ts` | 9/9 passed |\n| `npx vitest run tests/unit/completions.test.ts tests/unit/program.test.ts tests/unit/cli-entry.test.ts` | 37/37 passed |\n| `npm test` | 34 files, 818/818 passed |\n| `npm run build` + `node dist/cli/index.js --help` | build exit 0; exactly ten commands listed |\n| `bash -n completions/easy-host.bash` + manual `COMPREPLY` probes | syntax OK; commands, `--port`/`--probe` flags, and `http`/`tcp` choices resolve |\n| `npm pack --dry-run --json` | tarball lists `completions/easy-host.bash`, `.zsh`, `.fish` |\n\n## Notes\n\n- Updating completions: `EASY_HOST_WRITE_COMPLETIONS=1 npx vitest run tests/unit/completions.test.ts`, or run the script under a TS loader (`npx tsx scripts/generate-completions.ts [dir]`).\n- zsh and fish executables are not installed on this host, so those files were validated structurally by the generator/test rather than executed; bash was syntax-checked and exercised.\n- The gated packaging suite (`EASY_HOST_PACKAGING=1`) was not rerun because it requires the npm registry; `npm pack --dry-run` confirmed the completion files ship.\n\n```forge-result\n{\"summary\":\"Implemented scripts/generate-completions.ts with deterministic bash, zsh, and fish renderers driven by the commander definitions, generated the three committed completion files, and added a 9-test unit suite proving byte-identical regeneration, full command/flag coverage, fish-aware drift detection, and the unchanged ten-command surface; typecheck, lint, focused tests, and all 818 unit tests pass.\",\"unresolved\":[],\"decisions\":[\"The generator exports describeProgram/renderCompletion/generateCompletions/writeCompletions/findCompletionDrift so the test regenerates into a temp directory without shelling out; the script entry writes completions/ by default.\",\"Help flags are synthesized in the renderers rather than added to the model, so drift checks compare only the documented CLI options.\",\"Fish flags are matched as -l name/-s f in drift detection because fish does not spell flags with leading dashes.\",\"Install locations live in each generated file header, with docs/reference left to docs-engineer.\",\"Generated files preserve commander registration order for stable, reviewable output.\"],\"interfaces\":[\"describeProgram(program): CompletionModel\",\"generateCompletions(program?): CompletionFile[]\",\"writeCompletions(directory, program?): string[]\",\"renderCompletion(shell, model): string\",\"findCompletionDrift(model, files): CompletionDrift[]\",\"COMPLETION_SHELLS, COMPLETION_FILES, DEFAULT_COMPLETIONS_DIR\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/completions.test.ts: 9/9 passed\",\"npx vitest run tests/unit/completions.test.ts tests/unit/program.test.ts tests/unit/cli-entry.test.ts: 37/37 passed\",\"npm test: 818/818 passed\",\"npm run build and node dist/cli/index.js --help: exit 0, ten commands\",\"bash -n completions/easy-host.bash: exit 0\",\"npm pack --dry-run: three completion files included\"],\"warnings\":[\"Completion files are generated artifacts; any manual edit fails tests/unit/completions.test.ts until regenerated.\",\"The generation CLI requires a TypeScript loader (e.g. npx tsx) because the repository imports .js specifiers that resolve to .ts sources; the test path needs no extra tooling.\"],\"validationLimitations\":[\"zsh and fish are not installed on this host, so those files were structurally validated but not executed by their shells.\",\"The gated packaging install suite was not rerun (npm registry dependency); npm pack --dry-run verified the completion files are in the tarball.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 376567,
+    "usage": {
+      "inputTokens": 48304,
+      "outputTokens": 17895,
+      "reasoningTokens": 35741,
+      "cacheReadTokens": 4205952,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.05204505599999999,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/completions.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented scripts/generate-completions.ts with deterministic bash, zsh, and fish renderers driven by the commander definitions, generated the three committed completion files, and added a 9-test unit suite proving byte-identical regeneration, full command/flag coverage, fish-aware drift detection, and the unchanged ten-command surface; typecheck, lint, focused tests, and all 818 unit tests pass.",
+    "unresolved": [],
+    "decisions": [
+      "The generator exports describeProgram/renderCompletion/generateCompletions/writeCompletions/findCompletionDrift so the test regenerates into a temp directory without shelling out; the script entry writes completions/ by default.",
+      "Help flags are synthesized in the renderers rather than added to the model, so drift checks compare only the documented CLI options.",
+      "Fish flags are matched as -l name/-s f in drift detection because fish does not spell flags with leading dashes.",
+      "Install locations live in each generated file header, with docs/reference left to docs-engineer.",
+      "Generated files preserve commander registration order for stable, reviewable output."
+    ],
+    "interfaces": [
+      "describeProgram(program): CompletionModel",
+      "generateCompletions(program?): CompletionFile[]",
+      "writeCompletions(directory, program?): string[]",
+      "renderCompletion(shell, model): string",
+      "findCompletionDrift(model, files): CompletionDrift[]",
+      "COMPLETION_SHELLS, COMPLETION_FILES, DEFAULT_COMPLETIONS_DIR"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/completions.test.ts: 9/9 passed",
+      "npx vitest run tests/unit/completions.test.ts tests/unit/program.test.ts tests/unit/cli-entry.test.ts: 37/37 passed",
+      "npm test: 818/818 passed",
+      "npm run build and node dist/cli/index.js --help: exit 0, ten commands",
+      "bash -n completions/easy-host.bash: exit 0",
+      "npm pack --dry-run: three completion files included"
+    ],
+    "warnings": [
+      "Completion files are generated artifacts; any manual edit fails tests/unit/completions.test.ts until regenerated.",
+      "The generation CLI requires a TypeScript loader (e.g. npx tsx) because the repository imports .js specifiers that resolve to .ts sources; the test path needs no extra tooling."
+    ],
+    "validationLimitations": [
+      "zsh and fish are not installed on this host, so those files were structurally validated but not executed by their shells.",
+      "The gated packaging install suite was not rerun (npm registry dependency); npm pack --dry-run verified the completion files are in the tarball."
+    ]
+  }
+}

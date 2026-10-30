@@ -1,6 +1,6 @@
 # Scheduled updates with a systemd user timer
 
-easy-host ships no daemon, no scheduler, no webhook receiver, and no git poller (`PRD-C-04`). If you want an app updated on a schedule, you write a systemd **user** timer that calls `easy-host update <app>`; the CLI does the fetch, build, health gate, swap, and retention exactly as it does from your shell.
+easy-host ships no daemon, no scheduler, no webhook receiver, and no git poller. If you want an app updated on a schedule, you write a systemd **user** timer that calls `easy-host update <app>`; the CLI does the fetch, build, health gate, swap, and retention exactly as it does from your shell.
 
 This guide uses the app name `blog` and creates one service unit and one timer unit. Repeat the pair with a different unit name and app argument for each app you schedule.
 
@@ -138,7 +138,7 @@ All of those cases are safe. The loser exits `6` instead of starting a second ca
 
 ## What each exit code means for the timer
 
-`update` uses the stable exit-code contract documented in `docs/features/01-prerequisites-and-doctor.md`. systemd records any nonzero result as a failed unit, so the number in the journal tells you whether the schedule, the host, the source, or the app needs attention.
+`update` uses the stable exit-code contract documented in the [CLI reference](../reference/cli.md#exit-codes). systemd records any nonzero result as a failed unit, so the number in the journal tells you whether the schedule, the host, the source, or the app needs attention.
 
 | Exit | Meaning for `easy-host update blog` | What to do |
 | --- | --- | --- |

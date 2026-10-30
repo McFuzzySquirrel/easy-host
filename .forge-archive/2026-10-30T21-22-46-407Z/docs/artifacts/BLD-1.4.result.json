@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T00:33:05.933Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "BLD-1.4",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "fixtures/vite-spa/package.json",
+      "fixtures/vite-spa/index.html",
+      "fixtures/vite-spa/vite.config.ts",
+      "fixtures/vite-spa/src/main.tsx",
+      "fixtures/express-api/package.json",
+      "fixtures/express-api/server.js",
+      "fixtures/fastapi-app/requirements.txt",
+      "fixtures/fastapi-app/main.py",
+      "tests/unit/fixtures.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file for this task.\nThe spike artifact is available, so I can verify provider detection with the pinned Railpack binary after creating the fixtures. Creating the three fixtures now.\nAll three fixtures detect correctly with the pinned Railpack 0.43.0 (`vite static site`, Node/Express start command, Python/FastAPI). Now the unit test.\nImplemented BLD-1.4. All three fixtures were created, provider detection was verified with the pinned Railpack 0.43.0 binary, and the required unit suite passes.\n\n## Provider detection evidence\n\nRan `railpack info --show-plan <fixture>` with `/tmp/opencode/easy-host-bld-0.1/tools/railpack`:\n\n| Fixture | Detection | Plan outcome |\n|---|---|---|\n| `vite-spa` | Node provider, `nodeRuntime: vite` | `npm install` → `npm run build` → Caddy serves `dist` |\n| `express-api` | Node provider, `nodeRuntime: node` | `npm install`, start `npm run start` |\n| `fastapi-app` | Python provider, `pythonRuntime: fastapi` | `pip install -r requirements.txt`, start `uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}` |\n\n## Pins used\n\n- Vite fixture: `react`/`react-dom` 19.3.1, `vite` 8.3.5, `@vitejs/plugin-react` 6.1.2, Node engines `24`\n- Express fixture: `express` 5.3.0, Node engines `24`\n- FastAPI fixture: `fastapi` 0.162.0, `uvicorn` 0.54.0\n\nNo fixture contains a Dockerfile. `express-api/server.js` reads `process.env.PORT`; `fastapi-app/main.py` reads `os.environ[\"PORT\"]`. Both serve `{\"status\":\"ok\",\"service\":\"...\"}` at `/`.\n\n## Verification run\n\n- `npm test -- tests/unit/fixtures.test.ts` — **15 passed**\n- `npm run typecheck` — passed\n- `npm run lint` — passed\n- `npm test` — **16 files, 393 tests passed**\n- Supporting local smoke checks in `/tmp/opencode`: Vite production build succeeded (14 modules, 116 ms); Express served the expected JSON on a supplied `PORT`; FastAPI served the expected JSON via `PORT=… python main.py`.\n\nReal Railpack/BuildKit image builds of these fixtures remain the gated BLD-1.6 integration test, not part of this task.\n\n## Files created\n\n- `fixtures/vite-spa/package.json`\n- `fixtures/vite-spa/index.html`\n- `fixtures/vite-spa/vite.config.ts`\n- `fixtures/vite-spa/src/main.tsx`\n- `fixtures/express-api/package.json`\n- `fixtures/express-api/server.js`\n- `fixtures/fastapi-app/requirements.txt`\n- `fixtures/fastapi-app/main.py`\n- `tests/unit/fixtures.test.ts`\n\n```forge-result\n{\"summary\":\"Created the Vite/React, Express, and FastAPI fixtures plus a 15-test unit suite; all three detect with pinned Railpack 0.43.0, server fixtures read PORT, and typecheck, lint, and the full test suite pass.\",\"unresolved\":[],\"tests\":[\"npm test -- tests/unit/fixtures.test.ts (15 passed)\",\"npm run typecheck (passed)\",\"npm run lint (passed)\",\"npm test (393 passed)\"],\"decisions\":[\"Pinned exact direct dependencies and Node major 24; no lockfiles were added, matching the fixture scope.\",\"FastAPI server reads PORT via os.environ and also supports Railpack's generated uvicorn start command.\"],\"validationLimitations\":[\"Real Railpack/BuildKit image builds are deferred to the gated BLD-1.6 integration test; provider detection and local runtime behavior were verified here.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 179876,
+    "usage": {
+      "inputTokens": 36739,
+      "outputTokens": 8868,
+      "reasoningTokens": 15441,
+      "cacheReadTokens": 1511040,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.024629369999999998,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm test -- tests/unit/fixtures.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Created the Vite/React, Express, and FastAPI fixtures plus a 15-test unit suite; all three detect with pinned Railpack 0.43.0, server fixtures read PORT, and typecheck, lint, and the full test suite pass.",
+    "unresolved": [],
+    "tests": [
+      "npm test -- tests/unit/fixtures.test.ts (15 passed)",
+      "npm run typecheck (passed)",
+      "npm run lint (passed)",
+      "npm test (393 passed)"
+    ],
+    "decisions": [
+      "Pinned exact direct dependencies and Node major 24; no lockfiles were added, matching the fixture scope.",
+      "FastAPI server reads PORT via os.environ and also supports Railpack's generated uvicorn start command."
+    ],
+    "validationLimitations": [
+      "Real Railpack/BuildKit image builds are deferred to the gated BLD-1.6 integration test; provider detection and local runtime behavior were verified here."
+    ],
+    "interfaces": []
+  }
+}

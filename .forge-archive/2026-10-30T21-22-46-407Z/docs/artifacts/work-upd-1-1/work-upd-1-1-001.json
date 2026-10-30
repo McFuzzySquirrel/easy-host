@@ -1,0 +1,53 @@
+{
+  "type": "work.upd-1.1",
+  "category": "work",
+  "taskId": "UPD-1.1",
+  "producedBy": "lifecycle-engineer",
+  "status": "complete",
+  "summary": "Implemented pure update diff classification in src/lifecycle/diff.ts with no-op/config-only/rebuild outcomes, rebuild overrides for repo/ref/local-path and --rebuild, safe handling of unknown differences, missing state, missing/stopped/unhealthy containers, image drift, and secret changes without value leakage. Added 38 focused tests. Typecheck, lint, full 567-test suite, build, and the declared focused tests pass.",
+  "inputs": [
+    "work-reg-1-1-001",
+    "work-add-1-4-001",
+    "work-add-1-5-001",
+    "work-add-1-6-001"
+  ],
+  "filesChanged": [
+    "src/lifecycle/diff.ts",
+    "tests/unit/diff.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented pure update diff classification in src/lifecycle/diff.ts with no-op/config-only/rebuild outcomes, rebuild overrides for repo/ref/local-path and --rebuild, safe handling of unknown differences, missing state, missing/stopped/unhealthy containers, image drift, and secret changes without value leakage. Added 38 focused tests. Typecheck, lint, full 567-test suite, build, and the declared focused tests pass.",
+    "decisions": [
+      "A missing state.json or a state with no current image is treated as an unknown difference and rebuilt, so deleting the cache can never produce a false no-op.",
+      "A missing, stopped, or unhealthy container with a recorded image is config-only: update recreates the recorded image without Railpack or BuildKit.",
+      "Running-image drift from the recorded current image is an unknown difference and therefore a rebuild.",
+      "Secret-file changes are detected through an optional merged-environment snapshot; only variable names are reported, never values. An incomplete snapshot is treated as an unknown difference and rebuilt.",
+      "The diff accepts narrow UpdateRecordedState and UpdateContainerObservation shapes so AppState and ContainerInspect satisfy them structurally without a Podman import."
+    ],
+    "interfaces": [
+      "classifyUpdate(input: UpdateDiffInput): UpdateDiff",
+      "UPDATE_DIFF_KINDS, REBUILD_CONFIG_FIELDS, CONFIG_ONLY_CONFIG_FIELDS",
+      "UpdateDiffInput, UpdateDiff, UpdateChange, UpdateRecordedState, UpdateContainerObservation, UpdateEnvironmentSnapshot, UpdateDiffKind, UpdateContainerStatus, UpdateStateStatus"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/diff.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: PASS",
+      "npm test -- tests/unit/diff.test.ts: PASS (38 tests)",
+      "npm run lint: PASS (62 files)",
+      "npm test: PASS (22 files, 567 tests)",
+      "npm run build: PASS"
+    ],
+    "unresolved": [],
+    "warnings": [],
+    "validationLimitations": [
+      "No Podman, git, filesystem, or registry I/O is involved in this module by design; only the gated update integration suite (UPD-1.4, owned by qa-engineer) can prove the later swap path on a real host."
+    ],
+    "taskDescription": "Implement diff.ts comparing the persisted config and state with the desired config. Return no-op when nothing changed and the container is running and healthy; config-only for env, secrets, bind, host port, container port, health settings, and volume changes; rebuild for repo, ref, local-path changes and for --rebuild. Treat unknown differences as rebuild. Tests cover each field, a combined config-only change, a combined rebuild change, the force flag, a missing state file, and an app whose container is missing."
+  },
+  "nextActions": [],
+  "artifactId": "work-upd-1-1-001",
+  "createdAt": "2026-10-30T03:08:03.117Z"
+}

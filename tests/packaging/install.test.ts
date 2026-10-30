@@ -1,12 +1,11 @@
 /**
- * Packaging install smoke (`DOC-FR-06`, `DOC-NF-08`, `PRD-C-12`).
+ * Packaging install smoke test.
  *
  * This suite exercises the release-time install path exactly as an operator
  * would: `npm pack` the repository, install the tarball into a clean temporary
  * prefix, and run the installed `easy-host` binary. It is gated behind
  * `EASY_HOST_PACKAGING=1` because it needs the npm registry for runtime
- * dependencies (open question 2 in `docs/features/08-docs-and-packaging.md`);
- * runtime operation itself stays offline.
+ * dependencies; runtime operation itself stays offline.
  *
  * The pack step deliberately removes `dist` first. `npm pack` then has to run
  * the `prepare` script to rebuild it, which proves that a packed artifact is

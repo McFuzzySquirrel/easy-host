@@ -1,0 +1,44 @@
+{
+  "type": "work.pre-1.1",
+  "category": "work",
+  "taskId": "PRE-1.1",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Scaffolded the strict ESM easy-host package with tsc build, Biome, Vitest, a shebang entry that prints the package version and exits 0, and unit coverage. Typecheck, lint, focused and full unit tests, build, and Node 24 runtime checks all pass.",
+  "inputs": [],
+  "filesChanged": [
+    "package.json",
+    "tsconfig.json",
+    "tsconfig.build.json",
+    "biome.json",
+    "vitest.config.ts",
+    "src/cli/index.ts",
+    "tests/unit/cli-entry.test.ts",
+    ".gitignore",
+    "package-lock.json"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Scaffolded the strict ESM easy-host package with tsc build, Biome, Vitest, a shebang entry that prints the package version and exits 0, and unit coverage. Typecheck, lint, focused and full unit tests, build, and Node 24 runtime checks all pass.",
+    "decisions": [
+      "Pinned the PRD 7.1 dependency versions in package.json so later tasks inherit a single source of truth.",
+      "Kept the entry limited to version output; ten-command registration remains PRE-1.4 scope.",
+      "Gated integration and packaging suites behind EASY_HOST_INTEGRATION/EASY_HOST_PACKAGING so the default test run excludes them."
+    ],
+    "interfaces": [],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm run lint: exit 0 (engine-verified)",
+      "npm test -- tests/unit/cli-entry.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "tests/unit/cli-entry.test.ts: 3 passed"
+    ],
+    "unresolved": [],
+    "warnings": [],
+    "validationLimitations": [],
+    "taskDescription": "Create the runnable package skeleton. Set up an ESM package named easy-host with bin.easy-host pointing at dist/cli/index.js, engines.node >= 24, and scripts build, typecheck, lint, test, test:integration, test:packaging. Add strict TypeScript 7 configs that emit ESM to dist, a Biome config, and a Vitest config that excludes tests/integration from the default run. Create a minimal src/cli/index.ts with a shebang that prints the version and exits 0, plus a unit test that imports the entry module and asserts the version output. Do not implement any subcommand behavior."
+  },
+  "nextActions": [],
+  "artifactId": "work-pre-1-1-001",
+  "createdAt": "2026-10-29T22:57:32.859Z"
+}

@@ -1,0 +1,55 @@
+{
+  "type": "work.doc-1.3",
+  "category": "work",
+  "taskId": "DOC-1.3",
+  "producedBy": "docs-engineer",
+  "status": "complete",
+  "summary": "Replaced README.md with the easy-host README and added tests/docs/links.test.ts; docs tests (13), typecheck, lint, and the full suite (831) pass.",
+  "inputs": [
+    "work-doc-1-1-001",
+    "work-rbk-1-6-001",
+    "work-doc-1-2-001"
+  ],
+  "filesChanged": [
+    "README.md",
+    "tests/docs/links.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Replaced README.md with the easy-host README and added tests/docs/links.test.ts; docs tests (13), typecheck, lint, and the full suite (831) pass.",
+    "decisions": [
+      "The README links to the existing authoritative PRD sections and feature documents for operations and reference material because docs/operations and docs/reference are DOC-1.4-1.6 deliverables; the drift test is ready to cover those files via DOCUMENTED_MARKDOWN.",
+      "The four success scenarios are add reachability, reboot recovery, broken-update retention/revert, and rollback; removal volume retention is covered by the volume-safety section because PRD 6.2 enumerates five criteria.",
+      "Documented podman-docker only as the verified Ubuntu release-gate package, not as a general distribution requirement.",
+      "Documented direct npm install -g git+<url>#tag as unsupported because npm runs prepare before devDependencies for git dependencies, matching DOC-1.1's probe."
+    ],
+    "interfaces": [
+      "DOCUMENTED_MARKDOWN, REQUIRED_HEADINGS, and SCENARIO_HEADINGS are exported test constants for later docs tasks to extend.",
+      "assertLinkResolves(sourcePath, link), parseLinks(markdown, lineOffset), commandInvocations(markdown), and stripMigrationNote(markdown) are the reusable drift helpers."
+    ],
+    "tests": [
+      "npm test -- tests/docs/links.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm test -- tests/docs/links.test.ts: 13 passed",
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0 (3 pre-existing infos)",
+      "npm test: 831 passed across 35 files",
+      "Non-vacuity: branding, forbidden-command, broken-link, and missing-heading mutations each failed the docs suite before restoration"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "DOC-1.4 through DOC-1.6 must add docs/operations, docs/reference, and docs/MIGRATION links to the README and DOCUMENTED_MARKDOWN; those canonical files do not exist yet, so the README currently links to the authoritative PRD sections and feature documents.",
+      "package.json files ships docs/operations and docs/reference but not docs/features or docs/PRD.md; the current feature/PRD links are repository-facing until the canonical guides are added.",
+      "No v0.1.0 git tag exists in this checkout; the tag install path comes from the DOC-1.1 packaging contract and manual probe.",
+      "The podman-docker note is scoped to the verified Ubuntu v0.1.0 gate host."
+    ],
+    "validationLimitations": [
+      "A clean-shell manual walkthrough of the install and quickstart was not run; it requires network installs and a Podman host.",
+      "The gated packaging suite was not rerun because it requires registry access."
+    ],
+    "taskDescription": "Replace README.md with the easy-host README: one-paragraph description, the three supported stacks, host prerequisites summary with a link to the operations guide, the three install paths, a five-command quickstart, the four success scenarios, a safety note about volumes, and a documentation index. Create tests/docs/links.test.ts to verify relative links resolve, required headings exist, and every command named in the README exists in the CLI. The test must also fail if the README still contains react-hoster branding outside the migration note."
+  },
+  "nextActions": [],
+  "artifactId": "work-doc-1-3-001",
+  "createdAt": "2026-10-30T19:54:55.275Z"
+}

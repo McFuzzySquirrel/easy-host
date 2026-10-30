@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-29T23:23:00.917Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "REG-1.2",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/config/name.ts",
+      "tests/unit/config-name.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nNow I understand the codebase conventions. Let me check the remaining relevant source (`program.ts` add flags) and git state before implementing.\nImplemented REG-FR-02 in `src/config/name.ts` with full unit coverage.\n\n## What changed\n\n**`src/config/name.ts`** (new)\n- `sanitizeAppName` — lowercase, collapse every non-`a-z0-9` run to one hyphen, trim, truncate to 32 characters, trim a hyphen left at the truncation boundary.\n- `repositoryBasename` / `deriveAppName` — supports HTTPS/GitLab/git/SSH/file URLs, scp-style remotes, POSIX/Windows local paths, percent-encoded basenames, trailing slashes, query/fragment, and case-insensitive `.git` suffixes.\n- Rejects empty derivations and purely numeric derived names (ambiguous with ports/counts); `123-app` remains valid.\n- `validateAppName` / `isValidAppName` — exact documented allowlist `^[a-z0-9][a-z0-9-]{0,31}$`.\n- `resolveAppName(source, override?)` and `resolveAppName({ source, name })` — explicit `--name` is validated, not silently sanitized.\n- `appNameExists` / `assertAppNameAvailable` — validates before joining paths, detects directories, files, and broken symlinks; collisions throw `ConflictError` with exit code 6 and `APP_NAME_CONFLICT`, never overwriting.\n- Naming errors redact URL credentials, strip control characters, and always carry remediation.\n\n**`tests/unit/config-name.test.ts`** (new) — 38 tests covering GitHub/GitLab URLs, `.git`, scp-style, local/Windows paths, unicode, reserved-looking names, over-long names, numeric ambiguity, invalid overrides, traversal attempts, collisions, and sanitization invariants.\n\n## Requirement coverage\n\n- **REG-FR-02** — derivation, sanitization, override validation, collision refusal.\n- **PRD-SP-05** — names validated against the allowlist before filesystem use.\n- Supporting: **PRD-NF-03** (validation before mutation), **PRD-NF-10 / PRD-SP-02** (no credential leakage in naming errors).\n\n## Validation results\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | Pass |\n| `npm test -- tests/unit/config-name.test.ts` | Pass — 38 tests |\n| `npm run lint` | Pass |\n| `npm test` | Pass — 202 tests across 7 files |\n| `npm run build` | Pass |\n\n(`npm ci` was run first because the sandbox had no `node_modules`; no tracked dependency files changed.)\n\n## Contract notes\n\n- No changes to exit codes, JSON fields, config keys, or file modes.\n- New stable diagnostic codes: `AMBIGUOUS_APP_NAME` (exit 1) and `APP_NAME_CONFLICT` (exit 6).\n- New public interfaces: `AppNameError`, `AppNameRequest`, `AppsDirectoryLocation`, `sanitizeAppName`, `repositoryBasename`, `deriveAppName`, `validateAppName`, `isValidAppName`, `isAmbiguousAppName`, `resolveAppName`, `appNameExists`, `assertAppNameAvailable`.\n\n## Assumptions\n\n- Numeric ambiguity applies only to derived names; an explicit `--name 123` is accepted because it matches the documented pattern.\n- Trailing hyphens such as `foo-` remain valid for overrides because the documented regex permits them; derivation never produces one.\n- No reserved-name list exists in the PRD; `CON`, `NUL`, `config`, `apps`, `doctor` are allowed as ordinary Linux directory names.\n- Collision detection is a read-only pre-check; REG-1.4’s allocation lock must close the check-to-create race.\n\n```forge-result\n{\"summary\":\"Implemented REG-FR-02 app-name derivation, sanitization, override validation, and collision detection in src/config/name.ts with 38 focused tests; typecheck, lint, focused tests, full unit suite (202), and build all pass.\",\"unresolved\":[],\"decisions\":[\"Purely numeric names are rejected only during derivation as ambiguous; explicit --name values are accepted when they match the documented pattern.\",\"Reserved-looking names such as CON, NUL, config, apps, and doctor are allowed because the PRD defines no reserved list and the target is Linux/Podman.\",\"Collision checks validate the name before path joining so they cannot be used for traversal.\"],\"interfaces\":[\"AppNameError (exit 1, INVALID_APP_NAME / AMBIGUOUS_APP_NAME)\",\"ConflictError with code APP_NAME_CONFLICT (exit 6)\",\"sanitizeAppName, repositoryBasename, deriveAppName, validateAppName, isValidAppName, isAmbiguousAppName, resolveAppName, appNameExists, assertAppNameAvailable\",\"resolveAppName supports both (source, override) and { source, name }\"],\"tests\":[\"npm run typecheck: pass\",\"npm test -- tests/unit/config-name.test.ts: pass (38)\",\"npm run lint: pass\",\"npm test: pass (202)\",\"npm run build: pass\"],\"warnings\":[\"Collision detection is a read-only pre-check; the allocation lock from REG-1.4 is still required to close the check-to-create race.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 189036,
+    "usage": {
+      "inputTokens": 51958,
+      "outputTokens": 11029,
+      "reasoningTokens": 18175,
+      "cacheReadTokens": 1499392,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.02981427599999999,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/config-name.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented REG-FR-02 app-name derivation, sanitization, override validation, and collision detection in src/config/name.ts with 38 focused tests; typecheck, lint, focused tests, full unit suite (202), and build all pass.",
+    "unresolved": [],
+    "decisions": [
+      "Purely numeric names are rejected only during derivation as ambiguous; explicit --name values are accepted when they match the documented pattern.",
+      "Reserved-looking names such as CON, NUL, config, apps, and doctor are allowed because the PRD defines no reserved list and the target is Linux/Podman.",
+      "Collision checks validate the name before path joining so they cannot be used for traversal."
+    ],
+    "interfaces": [
+      "AppNameError (exit 1, INVALID_APP_NAME / AMBIGUOUS_APP_NAME)",
+      "ConflictError with code APP_NAME_CONFLICT (exit 6)",
+      "sanitizeAppName, repositoryBasename, deriveAppName, validateAppName, isValidAppName, isAmbiguousAppName, resolveAppName, appNameExists, assertAppNameAvailable",
+      "resolveAppName supports both (source, override) and { source, name }"
+    ],
+    "tests": [
+      "npm run typecheck: pass",
+      "npm test -- tests/unit/config-name.test.ts: pass (38)",
+      "npm run lint: pass",
+      "npm test: pass (202)",
+      "npm run build: pass"
+    ],
+    "warnings": [
+      "Collision detection is a read-only pre-check; the allocation lock from REG-1.4 is still required to close the check-to-create race."
+    ]
+  }
+}

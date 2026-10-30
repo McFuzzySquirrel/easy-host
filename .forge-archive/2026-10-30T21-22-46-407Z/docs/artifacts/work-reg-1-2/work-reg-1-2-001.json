@@ -1,0 +1,53 @@
+{
+  "type": "work.reg-1.2",
+  "category": "work",
+  "taskId": "REG-1.2",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Implemented REG-FR-02 app-name derivation, sanitization, override validation, and collision detection in src/config/name.ts with 38 focused tests; typecheck, lint, focused tests, full unit suite (202), and build all pass.",
+  "inputs": [
+    "work-pre-1-2-001",
+    "work-pre-1-1-001",
+    "work-pre-1-3-001",
+    "work-pre-1-4-001",
+    "work-pre-1-5-001"
+  ],
+  "filesChanged": [
+    "src/config/name.ts",
+    "tests/unit/config-name.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented REG-FR-02 app-name derivation, sanitization, override validation, and collision detection in src/config/name.ts with 38 focused tests; typecheck, lint, focused tests, full unit suite (202), and build all pass.",
+    "decisions": [
+      "Purely numeric names are rejected only during derivation as ambiguous; explicit --name values are accepted when they match the documented pattern.",
+      "Reserved-looking names such as CON, NUL, config, apps, and doctor are allowed because the PRD defines no reserved list and the target is Linux/Podman.",
+      "Collision checks validate the name before path joining so they cannot be used for traversal."
+    ],
+    "interfaces": [
+      "AppNameError (exit 1, INVALID_APP_NAME / AMBIGUOUS_APP_NAME)",
+      "ConflictError with code APP_NAME_CONFLICT (exit 6)",
+      "sanitizeAppName, repositoryBasename, deriveAppName, validateAppName, isValidAppName, isAmbiguousAppName, resolveAppName, appNameExists, assertAppNameAvailable",
+      "resolveAppName supports both (source, override) and { source, name }"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/config-name.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: pass",
+      "npm test -- tests/unit/config-name.test.ts: pass (38)",
+      "npm run lint: pass",
+      "npm test: pass (202)",
+      "npm run build: pass"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "Collision detection is a read-only pre-check; the allocation lock from REG-1.4 is still required to close the check-to-create race."
+    ],
+    "validationLimitations": [],
+    "taskDescription": "Implement name derivation and validation. Lowercase the repository basename, replace runs of characters outside a-z0-9 with a single hyphen, trim hyphens, truncate to 32 characters, and reject an empty result or a result starting with a digit-only segment when it would be ambiguous. Accept an override and validate it against the same pattern. Detect an existing app directory and return a conflict error. Tests cover GitHub and GitLab URLs with .git suffixes, scp-style SSH URLs, local paths, unicode, reserved-looking names, over-long names, and collisions."
+  },
+  "nextActions": [],
+  "artifactId": "work-reg-1-2-001",
+  "createdAt": "2026-10-29T23:23:00.919Z"
+}

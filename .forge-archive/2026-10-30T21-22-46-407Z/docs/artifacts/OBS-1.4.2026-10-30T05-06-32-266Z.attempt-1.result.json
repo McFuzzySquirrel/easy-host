@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T05:06:32.266Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "OBS-1.4",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/doctor/disk-checks.ts",
+      "src/doctor/index.ts",
+      "tests/unit/doctor-disk.test.ts",
+      "src/cli/json.ts",
+      "src/cli/schemas.ts",
+      "src/doctor/checks.ts",
+      "tests/unit/json.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and understanding the task scope.\nNow let me explore the existing doctor implementation and related docs.\nNow I'll implement the disk-check group.\nImplemented and verified the OBS-1.4 doctor disk group.\n\n## Result report\n\n**Changed files**\n- Created `src/doctor/disk-checks.ts` — per-app image sums from `podman images --format json`, BuildKit cache from `podman system df --format json` with a managed `<root>/buildkit/state` fallback, workspace/tools directory sizing, approximate labels, and `null` (= unknown) for unreadable measurements.\n- Created `tests/unit/doctor-disk.test.ts` — 21 tests with injected runner and size reader: healthy, warning, failing, unavailable, JSON parity, read-only calls, budget.\n- Modified `src/doctor/index.ts` — wires the disk group last, adds `DoctorReport.disk`, `DoctorOptions.appsDir` / `readDirectorySize`, and re-exports disk types.\n- Modified `src/doctor/checks.ts` — narrowed `checkDisk` to the two facts it reads so the group reuses one free-space measurement.\n- Modified `src/cli/schemas.ts` / `src/cli/json.ts` — additive `disk` object in `doctor --json`, `schemaVersion: 1` retained.\n- Modified `tests/unit/json.test.ts` — updated doctor document shape expectations.\n\n**Requirement IDs satisfied**\n- OBS-FR-04 (per-app image size, BuildKit cache, workspace usage, 5 GiB warn / 2 GiB fail, approximate labels, same figures in JSON)\n- PRE-NF-01 (read-only, local-only, budget-bounded)\n\n**Validation run**\n- `npm run typecheck` → exit 0\n- `npm run lint` → exit 0\n- `npm test -- tests/unit/doctor-disk.test.ts` → 21 passed\n- `npm test -- tests/unit/doctor-disk.test.ts tests/unit/doctor.test.ts tests/unit/doctor-build.test.ts tests/unit/json.test.ts` → 90 passed\n- `npm test` → 709 passed, 28 files\n- `npm run build` → exit 0\n- Manual: `node dist/cli/index.js doctor --json` emits one `schemaVersion: 1` document with the `disk` object; human report stays within 80 columns; wall time 1.83 s (< 2 s) on this host.\n\n**Contract change (announce before docs land)**\n`doctor --json` gains an additive `disk` object (allowed by OBS-NF-02; no rename/removal, no bump):\n`freeBytes`, `totalBytes`, `appImages: [{app, bytes}]`, `imagesTotalBytes`, `buildkitCacheBytes`, `workspaces: [{app, bytes}]`, `workspaceTotalBytes`, `toolsBytes`, `approximate: true`. `null` means “could not be measured”, never zero. The doctor check list and order are unchanged (8 checks, `disk` last).\n\n```forge-result\n{\"summary\":\"Implemented the doctor disk group: per-app image sizes from podman images, BuildKit cache from podman system df with a managed state-directory fallback, workspace/tools sizing, 5 GiB warn and 2 GiB fail thresholds, approximate labels, and identical figures in doctor --json via an additive disk object. Typecheck, lint, 21 focused tests, 90 interaction tests, all 709 unit tests, build, and manual doctor JSON/human checks pass.\",\"unresolved\":[],\"decisions\":[\"Doctor keeps its eight-check order and runs the disk group last; the usage figures are additive to the existing disk check detail and to a new additive doctor --json disk object.\",\"A podman system df build-cache row is preferred; Podman 5.7 has none, so the managed <root>/buildkit/state directory is measured instead.\",\"Unreadable measurements become null and never change the disk check status; free-space thresholds alone decide pass/warn/fail.\",\"Filesystem walks share one 750 ms group budget and a 200k-entry cap, never follow symlinks, and report later values as unknown rather than overrun the 2-second budget.\",\"Per-app image size is 0 when the image listing succeeded and the app has no image; it is null only when the listing itself failed.\"],\"interfaces\":[\"runDiskChecks(environment): { check: DoctorCheck; usage: DiskUsageReport }\",\"DiskUsageReport, AppDiskUsage, WorkspaceDiskUsage, DirectorySizeReader, DiskCheckEnvironment\",\"parsePodmanImagesJson(output): Map<string, number> | null; parseBuildkitCacheBytes(output): number | null; parseApproximateSize(value); formatApproximateBytes(bytes); describeDiskUsage(usage); readDirectorySize(target)\",\"DoctorReport.disk; DoctorOptions.appsDir and DoctorOptions.readDirectorySize\",\"DoctorDocument.disk (additive in schemaVersion 1): freeBytes, totalBytes, appImages, imagesTotalBytes, buildkitCacheBytes, workspaces, workspaceTotalBytes, toolsBytes, approximate\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/doctor-disk.test.ts: 21 passed\",\"npm test -- tests/unit/doctor-disk.test.ts tests/unit/doctor.test.ts tests/unit/doctor-build.test.ts tests/unit/json.test.ts: 90 passed\",\"npm test: 709 passed across 28 files\",\"npm run build: exit 0\",\"manual doctor --json and human report: one schemaVersion 1 document with disk figures, 80-column human output, wall 1.83s\"],\"warnings\":[\"The additive doctor --json disk object must be reflected by the CLI/config reference docs; schemaVersion stays 1 because nothing was renamed or removed.\",\"Measurement unavailability never fails doctor; a host with healthy free space still passes the disk check even when image/cache/workspace sizes are unknown.\",\"On this host no easy-host app images existed, so the live manual run reported 0-byte easy-host image usage; per-app image sums are proven by recorded Podman JSON fixtures.\"],\"validationLimitations\":[\"No real easy-host image or gated Podman integration suite was exercised; Podman output was injected, while workspace/tools/cache filesystem paths were real temporary directories.\",\"The manual doctor run exits 2 because Railpack and BuildKit are absent on this host; that is host state, not a disk-reporting failure.\",\"The 2-second budget is asserted with an injected clock and observed at 1.83s wall time on this host; no healthy-host run with Railpack and BuildKit installed was available.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 509971,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 546786 (line 4520 column 16)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/doctor-disk.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented the doctor disk group: per-app image sizes from podman images, BuildKit cache from podman system df with a managed state-directory fallback, workspace/tools sizing, 5 GiB warn and 2 GiB fail thresholds, approximate labels, and identical figures in doctor --json via an additive disk object. Typecheck, lint, 21 focused tests, 90 interaction tests, all 709 unit tests, build, and manual doctor JSON/human checks pass.",
+    "unresolved": [],
+    "decisions": [
+      "Doctor keeps its eight-check order and runs the disk group last; the usage figures are additive to the existing disk check detail and to a new additive doctor --json disk object.",
+      "A podman system df build-cache row is preferred; Podman 5.7 has none, so the managed <root>/buildkit/state directory is measured instead.",
+      "Unreadable measurements become null and never change the disk check status; free-space thresholds alone decide pass/warn/fail.",
+      "Filesystem walks share one 750 ms group budget and a 200k-entry cap, never follow symlinks, and report later values as unknown rather than overrun the 2-second budget.",
+      "Per-app image size is 0 when the image listing succeeded and the app has no image; it is null only when the listing itself failed."
+    ],
+    "interfaces": [
+      "runDiskChecks(environment): { check: DoctorCheck; usage: DiskUsageReport }",
+      "DiskUsageReport, AppDiskUsage, WorkspaceDiskUsage, DirectorySizeReader, DiskCheckEnvironment",
+      "parsePodmanImagesJson(output): Map<string, number> | null; parseBuildkitCacheBytes(output): number | null; parseApproximateSize(value); formatApproximateBytes(bytes); describeDiskUsage(usage); readDirectorySize(target)",
+      "DoctorReport.disk; DoctorOptions.appsDir and DoctorOptions.readDirectorySize",
+      "DoctorDocument.disk (additive in schemaVersion 1): freeBytes, totalBytes, appImages, imagesTotalBytes, buildkitCacheBytes, workspaces, workspaceTotalBytes, toolsBytes, approximate"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/doctor-disk.test.ts: 21 passed",
+      "npm test -- tests/unit/doctor-disk.test.ts tests/unit/doctor.test.ts tests/unit/doctor-build.test.ts tests/unit/json.test.ts: 90 passed",
+      "npm test: 709 passed across 28 files",
+      "npm run build: exit 0",
+      "manual doctor --json and human report: one schemaVersion 1 document with disk figures, 80-column human output, wall 1.83s"
+    ],
+    "warnings": [
+      "The additive doctor --json disk object must be reflected by the CLI/config reference docs; schemaVersion stays 1 because nothing was renamed or removed.",
+      "Measurement unavailability never fails doctor; a host with healthy free space still passes the disk check even when image/cache/workspace sizes are unknown.",
+      "On this host no easy-host app images existed, so the live manual run reported 0-byte easy-host image usage; per-app image sums are proven by recorded Podman JSON fixtures."
+    ],
+    "validationLimitations": [
+      "No real easy-host image or gated Podman integration suite was exercised; Podman output was injected, while workspace/tools/cache filesystem paths were real temporary directories.",
+      "The manual doctor run exits 2 because Railpack and BuildKit are absent on this host; that is host state, not a disk-reporting failure.",
+      "The 2-second budget is asserted with an injected clock and observed at 1.83s wall time on this host; no healthy-host run with Railpack and BuildKit installed was available."
+    ]
+  }
+}

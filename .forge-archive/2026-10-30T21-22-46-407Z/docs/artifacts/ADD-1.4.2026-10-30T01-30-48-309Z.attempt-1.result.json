@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T01:30:48.309Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "ADD-1.4",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/lifecycle/add.ts",
+      "src/cli/prompts.ts",
+      "src/cli/commands/add.ts",
+      "tests/unit/add.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and the referenced documentation.\nNow I'll implement the prompt layer.\nImplemented ADD-1.4 end to end.\n\n**What changed**\n- Added `src/cli/prompts.ts`: flag-parity prompt table, injectable prompter, clack-backed default prompter, TTY detection, and non-TTY fail-fast that names the first missing required value (`--port`, or the repository/`--local` source). No port is ever auto-selected.\n- Added `src/lifecycle/add.ts`: the complete add orchestration — read-only preflight (config, name, port, container name, prerequisites, volume ownership), allocation lock and directory creation, per-app lock across every mutation, workspace preparation, builder call, labelled volume creation, container start, bounded probe, and state persistence.\n- Added `src/cli/commands/add.ts`: command handler that maps flags into the lifecycle request, writes progress to stderr, returns the documented exit code, and renders the success summary.\n- Added `tests/unit/add.test.ts`: 22 tests covering happy path, prompt defaults and flag-only operation, missing flags, every preflight rejection, unknown ref, build failure, occupied container, volume ownership, probe failure cleanup, probe-throw cleanup, local dev-only warning, command output, and flag parity.\n\n**Failure behavior**\n- Probe failure stops and removes only the container, captures and redacts logs, keeps the image and app entry, records `unhealthy` with the probe detail and `containerId: null`, and raises `HealthError` (exit 4) with logs and config/update remediation.\n- Build/clone failure leaves the app entry for retry, creates no container or volume, and preserves exit 3.\n- Preflight failures perform no mutation.\n- The app lock is released in `finally` on every path.\n\n**Validation run**\n- `npm run typecheck` — pass\n- `npm run lint` — pass (53 files)\n- `npm test -- tests/unit/add.test.ts` — 22 passed\n- `npm test` — 499 passed across 20 files\n- `npm run build` — pass\n\n```forge-result\n{\"summary\":\"Implemented add orchestration, interactive/flag-parity prompts, the add command handler, and 22 focused lifecycle tests with preflight, locking, failure cleanup, unhealthy-state recording, and local-mode warnings. Typecheck, lint, focused tests, the full 499-test suite, and build pass.\",\"unresolved\":[],\"decisions\":[\"Preflight is read-only: config validation, name/port checks, container-name inspect, doctor prerequisites, and volume ownership all run before ensureLayout, allocation lock, and the first app directory entry.\",\"Doctor prerequisites ignore the railpack and buildkit check IDs because add provisions Railpack on first build and starts the managed buildkitd itself; Podman, rootless mode, linger, git, Node, and disk failures still block with exit 2.\",\"The name-allocation lock covers directory creation and config write; the per-app lock covers workspace preparation, build, volume creation, container start, probe, and state persistence, and is released in finally.\",\"A failed first probe stops then force-removes the container, keeps the app directory, config, image, and volumes, records health unhealthy with containerId null, and exits 4.\",\"Declared env_file paths are created empty with mode 0600 so a fresh app can start before the operator fills secrets; values are never accepted on the command line.\"],\"interfaces\":[\"addApp(request, dependencyOverrides): Promise<AddResult>\",\"createDefaultAddOutput, createDefaultAddBuilder, createDefaultAddRuntime, createDefaultAddProber, createDoctorPrerequisites\",\"AddDependencies/AddDependencyOverrides, AddBuilder, AddRuntime, AddProber, AddPrerequisites, AddWorkspace, AddOutput, AddResult\",\"resolveAddInputs(values, options): Promise<ResolvedAddValues>; createClackPrompter; isInteractiveSession; ADD_PROMPT_FLAGS\",\"runAddCommand(options): Promise<ExitCode>; formatAddResult(result)\"],\"tests\":[\"npm run typecheck: pass\",\"npm run lint: pass\",\"npm test -- tests/unit/add.test.ts: 22 passed\",\"npm test: 499 passed\",\"npm run build: pass\"],\"warnings\":[\"Gated host integration tests/integration/add.test.ts was not run; ADD-1.6 owns that suite and no real Podman/build was exercised here.\",\"src/cli/program.ts registration remains with cli-engineer; runAddCommand is implemented and tested directly so wiring it is a one-line handler replacement.\"],\"validationLimitations\":[\"No real clone, Railpack build, container start, or HTTP probe was performed in this unit-only task.\"]}\n```\n\n**Files created**\n- `src/lifecycle/add.ts`\n- `src/cli/prompts.ts`\n- `src/cli/commands/add.ts`\n- `tests/unit/add.test.ts`\n\nNo execution-file or docs/artifacts changes were made.\n",
+    "stderr": "",
+    "durationMs": 578556,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 583966 (line 2154 column 12410)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/add.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented add orchestration, interactive/flag-parity prompts, the add command handler, and 22 focused lifecycle tests with preflight, locking, failure cleanup, unhealthy-state recording, and local-mode warnings. Typecheck, lint, focused tests, the full 499-test suite, and build pass.",
+    "unresolved": [],
+    "decisions": [
+      "Preflight is read-only: config validation, name/port checks, container-name inspect, doctor prerequisites, and volume ownership all run before ensureLayout, allocation lock, and the first app directory entry.",
+      "Doctor prerequisites ignore the railpack and buildkit check IDs because add provisions Railpack on first build and starts the managed buildkitd itself; Podman, rootless mode, linger, git, Node, and disk failures still block with exit 2.",
+      "The name-allocation lock covers directory creation and config write; the per-app lock covers workspace preparation, build, volume creation, container start, probe, and state persistence, and is released in finally.",
+      "A failed first probe stops then force-removes the container, keeps the app directory, config, image, and volumes, records health unhealthy with containerId null, and exits 4.",
+      "Declared env_file paths are created empty with mode 0600 so a fresh app can start before the operator fills secrets; values are never accepted on the command line."
+    ],
+    "interfaces": [
+      "addApp(request, dependencyOverrides): Promise<AddResult>",
+      "createDefaultAddOutput, createDefaultAddBuilder, createDefaultAddRuntime, createDefaultAddProber, createDoctorPrerequisites",
+      "AddDependencies/AddDependencyOverrides, AddBuilder, AddRuntime, AddProber, AddPrerequisites, AddWorkspace, AddOutput, AddResult",
+      "resolveAddInputs(values, options): Promise<ResolvedAddValues>; createClackPrompter; isInteractiveSession; ADD_PROMPT_FLAGS",
+      "runAddCommand(options): Promise<ExitCode>; formatAddResult(result)"
+    ],
+    "tests": [
+      "npm run typecheck: pass",
+      "npm run lint: pass",
+      "npm test -- tests/unit/add.test.ts: 22 passed",
+      "npm test: 499 passed",
+      "npm run build: pass"
+    ],
+    "warnings": [
+      "Gated host integration tests/integration/add.test.ts was not run; ADD-1.6 owns that suite and no real Podman/build was exercised here.",
+      "src/cli/program.ts registration remains with cli-engineer; runAddCommand is implemented and tested directly so wiring it is a one-line handler replacement."
+    ],
+    "validationLimitations": [
+      "No real clone, Railpack build, container start, or HTTP probe was performed in this unit-only task."
+    ]
+  }
+}

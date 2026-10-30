@@ -21,9 +21,9 @@ Doctor is read-only infrastructure diagnosis: no network, no daemon start, no do
 
 ## Process
 
-### Step 1: Read the check's owning requirement and current implementation
+### Step 1: Read the current implementation
 
-Read the relevant requirement in `docs/features/01-prerequisites-and-doctor.md`, `02-buildkit-and-railpack.md` (build checks), or `07-observability-and-output.md` (disk). Inspect `src/doctor/index.ts`, `checks.ts`, `build-checks.ts`, `disk-checks.ts`, and the command handler `src/cli/commands/doctor.ts`.
+Read the check you are changing and its neighbours. Inspect `src/doctor/index.ts`, `checks.ts`, `build-checks.ts`, `disk-checks.ts`, and the command handler `src/cli/commands/doctor.ts`, plus their tests.
 
 If the check needs the network, a daemon start, or an install, then it does not belong in doctor; return a `skip` with a remediation pointing at the command that would do it.
 

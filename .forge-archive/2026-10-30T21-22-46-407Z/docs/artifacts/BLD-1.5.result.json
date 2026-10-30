@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T00:30:05.310Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "BLD-1.5",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/doctor/build-checks.ts",
+      "src/doctor/index.ts",
+      "tests/unit/doctor-build.test.ts",
+      "tests/unit/doctor.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and its referenced documentation.\nNow I understand the shape. Let me check the existing doctor/build interfaces and the CLI docs for any specified check IDs.\n## Outcome\n\nImplemented BLD-1.5: a doctor build-check group for Railpack and BuildKit, wired into the stable doctor composition.\n\n### Files created\n- `src/doctor/build-checks.ts`\n- `tests/unit/doctor-build.test.ts`\n\n### Files changed\n- `src/doctor/index.ts` — composes the build checks between Node.js and disk, adds injectable build-check options\n- `tests/unit/doctor.test.ts` — extended the existing interaction tests for the new check count/order and healthy build defaults\n\n### Requirement and acceptance summary\n- **BLD-FR-05:** Doctor now checks Railpack (present, regular executable, exact pinned `0.43.0` version) and BuildKit (managed socket reachable with one bounded connection attempt).\n- Missing, non-executable, unparseable, or mismatched Railpack fails doctor; `doctor` exits `2`.\n- Unreachable/absent/occupied BuildKit socket fails doctor with a remediation that starts the daemon via the next build.\n- Both checks appear in human and `schemaVersion: 1` JSON output.\n- Stable order: `podman`, `podman-rootless`, `linger`, `git`, `node`, `railpack`, `buildkit`, `disk`.\n- Doctor does not download Railpack, start BuildKit, or use the network. The socket probe is timeout-bounded with no retries.\n- No commands, flags, config keys, or JSON schema versions were added or changed.\n\n### Contract note\n`doctor --json` now contains two additional checks with stable IDs `railpack` and `buildkit`, positioned before `disk`. Remediation is `null` on pass and always present on failure.\n\n### Validation results\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0 |\n| `npm test -- tests/unit/doctor-build.test.ts` | 22 passed |\n| `npm test` | 15 files, 378 tests passed |\n| `npm run build` | exit 0 |\n| `node dist/cli/index.js doctor --json` | exit 2, one JSON document, `schemaVersion: 1`, `railpack:fail`, `buildkit:fail` (this host has no Railpack install or running BuildKit socket — expected) |\n\n```forge-result\n{\"summary\":\"Implemented the BLD-1.5 doctor build-check group for Railpack presence/executable/pinned-version and bounded BuildKit socket reachability, wired it into the stable doctor composition with human and schemaVersion 1 JSON output, and verified typecheck, lint, focused tests, the full unit suite, and a build.\",\"unresolved\":[],\"decisions\":[\"Doctor remains synchronous to preserve the existing CLI and command contract; the default BuildKit probe uses a short-lived shell-free node child process that performs exactly one connect with a 500 ms timeout because Node's socket API is async.\",\"Missing Railpack is a failure rather than a skip, matching the acceptance criterion; doctor never downloads it and points remediation at the first build or EASY_HOST_RAILPACK_BIN.\",\"EASY_HOST_RAILPACK_BIN is honored and version-probed; the managed fallback is <root>/tools/railpack.\",\"New checks are ordered after Node.js and before disk: podman, podman-rootless, linger, git, node, railpack, buildkit, disk.\",\"BuildKit remediation tells the operator to start the managed daemon through the next add/update build; doctor never starts it.\"],\"interfaces\":[\"runBuildChecks(environment): DoctorCheck[]\",\"checkRailpack(environment): DoctorCheck\",\"checkBuildkit(environment): DoctorCheck\",\"probeBuildkitSocketSync(socketPath, timeoutMs?): boolean\",\"BuildCheckEnvironment, BuildkitReachabilityProbe\",\"DoctorOptions additions: toolsDir, buildkitDir, cwd, homeDir, railpackPath, probeBuildkit\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/doctor-build.test.ts: 22 passed\",\"npm test: 378 passed across 15 files\",\"npm run build: exit 0\",\"manual node dist/cli/index.js doctor --json: exit 2 with schemaVersion 1 and railpack/buildkit failure entries\"],\"warnings\":[\"On a fresh host with no Railpack install and no running BuildKit daemon, doctor now exits 2 by design; docs/CLI reference must add the railpack and buildkit check IDs and the new order.\",\"Unit tests inject the socket probe; the default probe was verified against a real local unix socket, but a live BuildKit daemon proof belongs to BLD-1.6.\",\"The default probe launches a short-lived local node child process; it is timeout-bounded, shell-free, and performs no network access.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 421719,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 474872 (line 3376 column 155)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/doctor-build.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented the BLD-1.5 doctor build-check group for Railpack presence/executable/pinned-version and bounded BuildKit socket reachability, wired it into the stable doctor composition with human and schemaVersion 1 JSON output, and verified typecheck, lint, focused tests, the full unit suite, and a build.",
+    "unresolved": [],
+    "decisions": [
+      "Doctor remains synchronous to preserve the existing CLI and command contract; the default BuildKit probe uses a short-lived shell-free node child process that performs exactly one connect with a 500 ms timeout because Node's socket API is async.",
+      "Missing Railpack is a failure rather than a skip, matching the acceptance criterion; doctor never downloads it and points remediation at the first build or EASY_HOST_RAILPACK_BIN.",
+      "EASY_HOST_RAILPACK_BIN is honored and version-probed; the managed fallback is <root>/tools/railpack.",
+      "New checks are ordered after Node.js and before disk: podman, podman-rootless, linger, git, node, railpack, buildkit, disk.",
+      "BuildKit remediation tells the operator to start the managed daemon through the next add/update build; doctor never starts it."
+    ],
+    "interfaces": [
+      "runBuildChecks(environment): DoctorCheck[]",
+      "checkRailpack(environment): DoctorCheck",
+      "checkBuildkit(environment): DoctorCheck",
+      "probeBuildkitSocketSync(socketPath, timeoutMs?): boolean",
+      "BuildCheckEnvironment, BuildkitReachabilityProbe",
+      "DoctorOptions additions: toolsDir, buildkitDir, cwd, homeDir, railpackPath, probeBuildkit"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/doctor-build.test.ts: 22 passed",
+      "npm test: 378 passed across 15 files",
+      "npm run build: exit 0",
+      "manual node dist/cli/index.js doctor --json: exit 2 with schemaVersion 1 and railpack/buildkit failure entries"
+    ],
+    "warnings": [
+      "On a fresh host with no Railpack install and no running BuildKit daemon, doctor now exits 2 by design; docs/CLI reference must add the railpack and buildkit check IDs and the new order.",
+      "Unit tests inject the socket probe; the default probe was verified against a real local unix socket, but a live BuildKit daemon proof belongs to BLD-1.6.",
+      "The default probe launches a short-lived local node child process; it is timeout-bounded, shell-free, and performs no network access."
+    ]
+  }
+}

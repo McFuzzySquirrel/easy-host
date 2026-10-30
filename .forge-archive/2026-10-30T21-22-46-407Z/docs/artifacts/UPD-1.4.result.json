@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T04:58:00.876Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "UPD-1.4",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "tests/integration/update.test.ts",
+      "vitest.config.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nLet me load the integration-gate skill and explore the relevant code.\nNow I'll write the gated update integration suite.\nNow the gated real-host run. This involves real builds and a 90-second failed probe, so it will take several minutes.\nThe focused suite passes with real evidence. Now I'll run the exact declared validation command, which (after the harness fix) runs every gated suite sequentially.\n## Result report\n\n### Suite and scope\n- **Suite:** `tests/integration/update.test.ts` (new gated real-host suite)\n- **Requirements covered:** `UPD-FR-02`, `UPD-FR-05`, `PRD-NF-07`, `PRD-C-10`\n- **Adjacent claims observed in the same flows:** `UPD-FR-03` (image pair unchanged on revert), `UPD-NF-01` (no zero-container window), `UPD-NF-02` (phase reporting).\n\n### Scenarios (all real host, rootless Podman 5.7.0, Railpack 0.43.0)\n1. **Add version one** from a test-owned `file://` git copy of the Node/Express fixture; probe healthy, serve `version=one`.\n2. **Broken commit** (syntactically invalid `server.js`, so the image still builds but `node server.js` crashes):\n   - exit `4`, `UPDATE_CANDIDATE_FAILED`, stage `probe`, reason reported (`connection closed` / `connection reset by peer` observed across runs);\n   - old container running from the old image, `state.json` still records the old image as current, previous `null`;\n   - app still answers `update-fixture version=one`; candidate image kept; `update: reverting/reverted` on stderr.\n3. **Fixed commit** serves `version=two label=none`, exit `0`; state `current=<new image>`, `previous=<old image>`.\n4. **Config-only update** (env + newly declared `data` volume) with an injected refusing builder: exit `0`, headline `(config-only)`, **builder requests = 0**, image set before/after identical, container recreated on the same image with the new env, volume mounted and labelled, body `version=two label=config-only`, image pair preserved.\n\n### Validation commands (observed)\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0 (75 files) |\n| `npm test` | exit 0 — 27 files, 688 tests |\n| `EASY_HOST_INTEGRATION=1 npx vitest run tests/integration/update.test.ts` (focused) | exit 0 — 4/4 tests, 351.9 s |\n| `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/update.test.ts` (declared) | exit 0 — 3 files, 10/10 tests, 1115.3 s |\n| Gate check without `EASY_HOST_INTEGRATION` (temporary config) | fails loudly naming `EASY_HOST_INTEGRATION` (exit 1) |\n| `npm run test:packaging` | not run — `tests/packaging/` does not exist yet (cli-engineer suite absent) |\n\n### Harness defect found and fixed\n`npm run test:integration` runs **all** integration files concurrently. `add` and `update` both use the single managed `easy-host-buildkitd` container, and the second suite's `ensureBuildkit` replaces the first suite's daemon (`#removeContainer` on a non-matching socket), so the first build dies with `failed to get buildkit information`. `vitest.config.ts` now sets `fileParallelism: !integrationEnabled`: gated suites run one at a time; unit runs keep default parallelism.\n\n### Cleanup (named, confirmed after both pass and fail)\nRemoved: app container, app-labelled volume, all `localhost/easy-host-it-update-*` images (including the kept broken-candidate image), managed `easy-host-buildkitd` container + socket, temporary state root (with `podman unshare rm -rf` fallback). Independent host audit after the declared run: no `easy-host-*` container, no `easy-host-*` volume, no test image, no `/tmp/easy-host-*it-*` root. Evidence: `/tmp/easy-host-update-evidence-258385.json` (`cleanup: \"ok\"`).\n\n### Files created / changed\n- **Created:** `tests/integration/update.test.ts`\n- **Changed:** `vitest.config.ts` (integration file serialization)\n\n```forge-result\n{\"summary\":\"Added the gated real-host update suite: a broken commit exits 4 with the probe reason, restarts the previous image, keeps version one serving and recorded as current; a fixed commit serves version two and records the old image as previous; a config-only env+volume update exits 0 with zero builder calls and an unchanged image set. Serialized gated integration files in vitest.config.ts because add and update share the single managed buildkitd and replaced each other's daemon when run concurrently. Typecheck, lint, 688 unit tests, the focused 4/4 suite, and the declared 10/10 integration run pass; cleanup verified.\",\"unresolved\":[],\"decisions\":[\"The update fixture is a test-owned git copy of the supported Node/Express fixture with versioned response bodies, so the test controls every commit over file:// without depending on a public remote.\",\"The broken commit is a server.js syntax error: Railpack builds the image without executing the entrypoint, so the failure is a real probe failure (exit 4) rather than a build failure (exit 3), exactly as the acceptance criterion requires.\",\"The fixed update is a normal non-JSON CLI run so the operator-facing summary is asserted; the broken update uses --json so the exit code and structured failure details are asserted.\",\"The config-only step changes [env] plus a newly declared volume and injects a builder that records and refuses calls, proving UPD-FR-05's no-build rule and new-volume creation; the full image set is also compared before and after as a builder-independent no-build proof.\",\"vitest.config.ts sets fileParallelism false only when EASY_HOST_INTEGRATION=1, because the gated suites own the fixed easy-host-buildkitd name and a concurrent suite replaces it mid-build.\"],\"interfaces\":[\"tests/integration/update.test.ts consumes addApp, runUpdateCommand, UpdateDependencyOverrides, AddBuilder, createPaths, createBuildkit, Registry, containerName, volumeName, APP_LABEL/ROLE_LABEL/IMAGE_LABEL; no product interface changed.\",\"vitest.config.ts: test.fileParallelism is disabled for gated integration runs.\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test: 688 passed (27 files), exit 0\",\"EASY_HOST_INTEGRATION=1 npx vitest run tests/integration/update.test.ts: 4/4 passed, 351.9s, exit 0\",\"EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/update.test.ts: 3 files, 10/10 passed, 1115.3s, exit 0\",\"gate check without EASY_HOST_INTEGRATION: exit 1 naming the variable\",\"npm run test:packaging: no test files found (tests/packaging does not exist yet)\"],\"warnings\":[\"The declared command's npm script already passes tests/integration, so the file argument runs every gated suite; with the new serialization all three pass together.\",\"Observed broken-update probe reasons were 'connection closed' and 'connection reset by peer', so the suite asserts the full probe network-failure vocabulary rather than one wording.\",\"The broken-update scenario spends the full 90s health_startup_ms in the failed candidate probe; the suite's 20-minute scenario budget carries headroom (observed 97s).\",\"The config-only change is driven through runUpdateCommand's programmatic changes option because the CLI surface exposes only --rebuild; the real swap, probe, runtime, and config write still run.\"],\"validationLimitations\":[\"Real builds ran on x86_64 only; the cold fixture build was ~237s per run and the suite remains network-dependent for npm and Railpack/BuildKit acquisition.\",\"A SIGKILL of the runner itself would bypass afterAll; unique names make that safe to retry, but the path is reasoned, not exercised.\",\"npm run test:packaging cannot pass until the packaging suite is authored; it is outside UPD-1.4's scope.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 2493847,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 655931 (line 3348 column 5936)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/update.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Added the gated real-host update suite: a broken commit exits 4 with the probe reason, restarts the previous image, keeps version one serving and recorded as current; a fixed commit serves version two and records the old image as previous; a config-only env+volume update exits 0 with zero builder calls and an unchanged image set. Serialized gated integration files in vitest.config.ts because add and update share the single managed buildkitd and replaced each other's daemon when run concurrently. Typecheck, lint, 688 unit tests, the focused 4/4 suite, and the declared 10/10 integration run pass; cleanup verified.",
+    "unresolved": [],
+    "decisions": [
+      "The update fixture is a test-owned git copy of the supported Node/Express fixture with versioned response bodies, so the test controls every commit over file:// without depending on a public remote.",
+      "The broken commit is a server.js syntax error: Railpack builds the image without executing the entrypoint, so the failure is a real probe failure (exit 4) rather than a build failure (exit 3), exactly as the acceptance criterion requires.",
+      "The fixed update is a normal non-JSON CLI run so the operator-facing summary is asserted; the broken update uses --json so the exit code and structured failure details are asserted.",
+      "The config-only step changes [env] plus a newly declared volume and injects a builder that records and refuses calls, proving UPD-FR-05's no-build rule and new-volume creation; the full image set is also compared before and after as a builder-independent no-build proof.",
+      "vitest.config.ts sets fileParallelism false only when EASY_HOST_INTEGRATION=1, because the gated suites own the fixed easy-host-buildkitd name and a concurrent suite replaces it mid-build."
+    ],
+    "interfaces": [
+      "tests/integration/update.test.ts consumes addApp, runUpdateCommand, UpdateDependencyOverrides, AddBuilder, createPaths, createBuildkit, Registry, containerName, volumeName, APP_LABEL/ROLE_LABEL/IMAGE_LABEL; no product interface changed.",
+      "vitest.config.ts: test.fileParallelism is disabled for gated integration runs."
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test: 688 passed (27 files), exit 0",
+      "EASY_HOST_INTEGRATION=1 npx vitest run tests/integration/update.test.ts: 4/4 passed, 351.9s, exit 0",
+      "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/update.test.ts: 3 files, 10/10 passed, 1115.3s, exit 0",
+      "gate check without EASY_HOST_INTEGRATION: exit 1 naming the variable",
+      "npm run test:packaging: no test files found (tests/packaging does not exist yet)"
+    ],
+    "warnings": [
+      "The declared command's npm script already passes tests/integration, so the file argument runs every gated suite; with the new serialization all three pass together.",
+      "Observed broken-update probe reasons were 'connection closed' and 'connection reset by peer', so the suite asserts the full probe network-failure vocabulary rather than one wording.",
+      "The broken-update scenario spends the full 90s health_startup_ms in the failed candidate probe; the suite's 20-minute scenario budget carries headroom (observed 97s).",
+      "The config-only change is driven through runUpdateCommand's programmatic changes option because the CLI surface exposes only --rebuild; the real swap, probe, runtime, and config write still run."
+    ],
+    "validationLimitations": [
+      "Real builds ran on x86_64 only; the cold fixture build was ~237s per run and the suite remains network-dependent for npm and Railpack/BuildKit acquisition.",
+      "A SIGKILL of the runner itself would bypass afterAll; unique names make that safe to retry, but the path is reasoned, not exercised.",
+      "npm run test:packaging cannot pass until the packaging suite is authored; it is outside UPD-1.4's scope."
+    ]
+  }
+}

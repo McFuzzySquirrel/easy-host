@@ -2,7 +2,10 @@
 
 The project is now **easy-host**; the previous name was **react-hoster**. The repository is still named `react-hoster` in this checkout. Renaming the repository is a manual step outside this work, so the clone URL and directory name do not change until it is performed by hand. This note does not claim that the repository rename has happened.
 
-The [README](../README.md) is the current operator entry point, the [product definition](PRD.md) is the authoritative scope, and the [version history](PRD.md#2-version-history) records the Podman re-baseline in v1.1.
+The [README](../README.md) is the current operator entry point and the
+[architecture note](ARCHITECTURE.md) describes the design as it stands, including
+the rootless Podman re-baseline. The [v0.1.0 release-gate record](operations/release-gate-v0.1.0.md)
+holds the verified host evidence.
 
 ## What the old README claimed
 

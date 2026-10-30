@@ -1,0 +1,48 @@
+{
+  "type": "work.bld-1.4",
+  "category": "work",
+  "taskId": "BLD-1.4",
+  "producedBy": "build-engineer",
+  "status": "complete",
+  "summary": "Created the Vite/React, Express, and FastAPI fixtures plus a 15-test unit suite; all three detect with pinned Railpack 0.43.0, server fixtures read PORT, and typecheck, lint, and the full test suite pass.",
+  "inputs": [
+    "work-bld-0-1-001"
+  ],
+  "filesChanged": [
+    "fixtures/vite-spa/package.json",
+    "fixtures/vite-spa/index.html",
+    "fixtures/vite-spa/vite.config.ts",
+    "fixtures/vite-spa/src/main.tsx",
+    "fixtures/express-api/package.json",
+    "fixtures/express-api/server.js",
+    "fixtures/fastapi-app/requirements.txt",
+    "fixtures/fastapi-app/main.py",
+    "tests/unit/fixtures.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Created the Vite/React, Express, and FastAPI fixtures plus a 15-test unit suite; all three detect with pinned Railpack 0.43.0, server fixtures read PORT, and typecheck, lint, and the full test suite pass.",
+    "decisions": [
+      "Pinned exact direct dependencies and Node major 24; no lockfiles were added, matching the fixture scope.",
+      "FastAPI server reads PORT via os.environ and also supports Railpack's generated uvicorn start command."
+    ],
+    "interfaces": [],
+    "tests": [
+      "npm test -- tests/unit/fixtures.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm test -- tests/unit/fixtures.test.ts (15 passed)",
+      "npm run typecheck (passed)",
+      "npm run lint (passed)",
+      "npm test (393 passed)"
+    ],
+    "unresolved": [],
+    "warnings": [],
+    "validationLimitations": [
+      "Real Railpack/BuildKit image builds are deferred to the gated BLD-1.6 integration test; provider detection and local runtime behavior were verified here."
+    ],
+    "taskDescription": "Add three minimal, buildable fixture applications that the integration suite will own: a Vite/React static SPA that builds to static assets, an Express API that reads PORT and serves a JSON health response at /, and a FastAPI app that reads PORT and serves the same shape. Each fixture must be small, dependency-light, and pinned enough to build repeatedly. Add a unit test that asserts each fixture has its required entry files and that the Express and FastAPI fixtures read the PORT environment variable."
+  },
+  "nextActions": [],
+  "artifactId": "work-bld-1-4-001",
+  "createdAt": "2026-10-30T00:33:05.935Z"
+}

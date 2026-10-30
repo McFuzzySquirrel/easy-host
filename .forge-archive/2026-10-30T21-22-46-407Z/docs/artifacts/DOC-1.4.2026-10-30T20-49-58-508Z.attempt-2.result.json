@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T20:49:58.508Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "DOC-1.4",
+  "attempt": 2,
+  "outcome": "failed",
+  "reason": "forge-result.unresolved must be a string array; use [] when no blocking requirements remain.",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "docs/operations/prerequisites.md",
+      "docs/operations/systemd-timer.md"
+    ],
+    "stdout": "I'll start by reading the execution file.\nThe deliverables from the prior attempt are present and the focused test passes. I'll now audit them against the code, tighten a few accuracy points, and strengthen the drift test so it is tied to the code constants rather than duplicated literals.\nAll required deliverables are in place, verified against the code constants, and the validation suite is green.\n\n## Result report\n\n**Scope covered:** DOC-FR-02 (host prerequisites), DOC-FR-03 (systemd user timer), PRD-C-04 (no daemon/scheduler), plus the operations-guide drift gate in `tests/docs/links.test.ts`.\n\n**What each guide documents (quoted values):**\n- Podman support window `>= 5.7.0, < 6.0.0`; `6.x` excluded while unstable, with downgrade guidance and no opt-in flag.\n- Upgrade paths from the `4.9.3` packages on Ubuntu 24.04 and Debian 12 (doctor's named sources: Ubuntu 25.04+/PPA, Debian 13/trixie), including `sudo apt install --only-upgrade podman` and a \"not verified by this project\" statement.\n- Lingering as **mandatory**, with `sudo loginctl enable-linger \"$USER\"`, `Linger=yes`, `podman-restart.service`, and the reboot consequence.\n- git `2.40`, Node.js `24`, ports `1024`–`65535` (privileged ports unsupported), state-root mode `0700`, lock mode `0600`.\n- Complete user `.service`/`.timer` units (`Type=oneshot`, `ExecStart=%h/.local/bin/easy-host update blog`, `OnCalendar=daily`, `Persistent=true`), enable commands, journal log location, non-blocking app lock (`LOCK_HELD`, exit `6`), and the full exit-code table `0`–`7`.\n\n**Drift coverage:** the link test now derives the reboot unit, lock filename, and lock mode from `PODMAN_RESTART_SERVICE`, `APP_LOCK_FILE_NAME`, and `LOCK_FILE_MODE` instead of duplicated literals, and still checks every relative link/heading, all prerequisite verifications and doctor IDs, the Podman window, and the timer contract. `README.md` already links both guides from its documentation index (unchanged this run).\n\n**Tests run:** `npm test -- tests/docs/links.test.ts` (26 passed), `npm run typecheck` (exit 0), `npm run lint` (exit 0; 3 pre-existing infos in `tests/unit/image-label.test.ts`), `npm test` (844 passed). The first full run hit an unrelated timing flake in `tests/unit/swap.test.ts` (24 ms vs a 25 ms deadline); the test then passed 3× in isolation and the full suite passed on rerun.\n\n**Unverified / limited:** the manual clean-shell walkthrough and the 4.9→5.7 upgrade replay were not performed (require network/Podman hosts); the guides say so explicitly.\n\n```forge-result\n{\"summary\":\"Completed the prerequisite and systemd timer guides: Podman >= 5.7.0, < 6.0.0 with explicit 6.x exclusion and Ubuntu 24.04/Debian 12 4.9 upgrade paths, mandatory lingering with reboot consequence, git 2.40, Node 24, ports 1024-65535, and a complete systemd user timer with enable commands, journal logs, app-lock overlap behavior, and all eight exit codes; extended tests/docs/links.test.ts to pin the reboot unit, lock path, and lock mode to code constants. Docs test 26/26, typecheck, lint, and full suite 844/844 pass.\",\"decisions\":[\"Kept the guides plain Markdown and linked from the existing README documentation index.\",\"Tied timer drift checks to PODMAN_RESTART_SERVICE, APP_LOCK_FILE_NAME, and LOCK_FILE_MODE so a code rename fails the test.\",\"Documented the per-app port rule as having no host-wide doctor check by design, with add/update preflight enforcement named explicitly.\"],\"interfaces\":[\"DOCUMENTED_MARKDOWN, REQUIRED_HEADINGS, PREREQUISITE_HEADINGS, TIMER_HEADINGS, PREREQUISITE_VERIFICATIONS, DOCTOR_CHECK_IDS in tests/docs/links.test.ts\"],\"tests\":[\"npm test -- tests/docs/links.test.ts: 26 passed\",\"npm run typecheck: exit 0\",\"npm run lint: exit 0 (3 infos, pre-existing)\",\"npm test: 844 passed\"],\"warnings\":[\"One initial full-suite run hit an unrelated timing flake in tests/unit/swap.test.ts (elapsed 24 ms vs 25 ms deadline); it passed 3/3 in isolation and the full suite passed on rerun.\",\"The 4.9.3 to 5.7 upgrade path is documented from doctor remediation text and was not replayed on the release-gate host.\"],\"validationLimitations\":[\"A manual clean-shell walkthrough of the install/quickstart and the distribution upgrade paths was not run; both need network installs and a Podman host.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 129656,
+    "usage": {
+      "inputTokens": 69651,
+      "outputTokens": 6960,
+      "reasoningTokens": 8625,
+      "cacheReadTokens": 1852288,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.025355513999999996,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "failed",
+      "reason": "forge-result.unresolved must be a string array; use [] when no blocking requirements remain."
+    },
+    {
+      "gate": "requirements",
+      "status": "skipped",
+      "reason": "Not reached"
+    },
+    {
+      "gate": "validation",
+      "status": "skipped",
+      "reason": "Not reached"
+    }
+  ]
+}

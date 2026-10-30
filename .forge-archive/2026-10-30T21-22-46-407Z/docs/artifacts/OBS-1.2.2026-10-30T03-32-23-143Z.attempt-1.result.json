@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T03:32:23.143Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "OBS-1.2",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/cli/format.ts",
+      "tests/unit/format.test.ts",
+      "src/cli/commands/config.ts",
+      "src/cli/commands/list.ts",
+      "src/cli/commands/read-model.ts",
+      "src/cli/commands/status.ts",
+      "tests/unit/read-commands.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and the referenced documents.\nNow I'll implement `src/cli/format.ts`.\nNow I'll add the focused tests.\nImplemented TTY-aware, accessible human output with a shared formatter and routed `list`, `status`, and `config` through it.\n\n## Changed files\n\n**Created**\n- `src/cli/format.ts` — colour detection (`isTTY`, `NO_COLOR`, `TERM=dumb`), text status labels with optional colour, 80-column field/table rendering, column shrinking/dropping, and detail lines for values that do not fit.\n- `tests/unit/format.test.ts` — 19 tests covering forced TTY, forced non-TTY, `NO_COLOR`, 80-column limits, full-value preservation, and read-command rendering.\n\n**Modified**\n- `src/cli/commands/read-model.ts` — re-exports the shared formatting primitives; `NAME`/`PORT` no longer shrink; `REF`/`IMAGE` are droppable; `ReadOutputStream` exposes optional `isTTY`.\n- `src/cli/commands/list.ts` — builds a formatter from stdout/environment, paints only the `STATUS` cell, keeps the text label.\n- `src/cli/commands/status.ts` — renders fields through the formatter and paints `status`/`health` labels.\n- `src/cli/commands/config.ts` — renders the summary through the formatter; `valid` stays a text label.\n- `tests/unit/read-commands.test.ts` — added command-level proof that `runListCommand` colours only a TTY without `NO_COLOR`, and stays plain for `NO_COLOR` or a pipe.\n\n## Requirements satisfied\n\n- `OBS-FR-02` — TTY/`NO_COLOR` detection, no ANSI when colour is unavailable, tables within 80 columns, long values moved to detail lines.\n- `PRD-ACC-01` — status is always a text label; colour is additive decoration only.\n- `PRD-ACC-02` — non-TTY, `NO_COLOR`, and `TERM=dumb` emit no ANSI escapes.\n- `PRD-ACC-03` — every rendered line fits 80 columns.\n- `PRD` 12.2 table shape preserved, with `--json` output untouched.\n\n## Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | pass |\n| `npm run lint` | pass (69 files) |\n| `npm test -- tests/unit/format.test.ts` | 19/19 pass |\n| `npm test -- tests/unit/read-commands.test.ts` | 29/29 pass |\n| `npm test` | 25 files, 623/623 pass |\n| `npm run build` | pass |\n| Manual `--help`, `version`, `version --json` | pass |\n| Manual `doctor --json` | valid schemaVersion 1 JSON, no ANSI; exit 2 because this host lacks Railpack/BuildKit |\n| Manual `list` under a PTY / with `NO_COLOR` / piped / `--json` | ANSI only on the TTY; labels intact; plain otherwise; JSON clean |\n\n## Contract notes\n\n- No command, flag, exit-code, JSON field, config key, or file-mode change.\n- Internal API: `formatField`’s third positional `indent` became an options object, and `TableColumn` gained optional `droppable`/`paint`; the old names remain exported from `read-model.ts`, and all in-repo callers are updated.\n\n```forge-result\n{\"summary\":\"Implemented src/cli/format.ts with TTY/NO_COLOR colour decisions, text status labels, 80-column tables, column shrinking/dropping, and full-value detail lines; routed list, status, and config through it. Added 19 format tests plus command-level TTY/NO_COLOR coverage. Typecheck, lint, focused tests, the 623-test suite, build, and manual PTY/plain/JSON checks pass.\",\"unresolved\":[],\"decisions\":[\"Colour is enabled only when NO_COLOR is absent, TERM is not dumb, and the output stream reports isTTY; status meaning always comes from the text label.\",\"Tables shrink optional REF/IMAGE columns first, then drop them and print full values on detail lines; NAME and PORT never shrink below their content, and any value that must be clipped also appears in full on a labelled detail line.\",\"Read commands build the formatter from their injected stdout and environment, so tests force TTY, pipe, and NO_COLOR without process globals.\",\"Doctor output was left uncoloured; it already uses text labels and meets PRD-ACC-02 without adding colour.\"],\"interfaces\":[\"createFormatter({stream, env, color}): Formatter; Formatter.tone/status/field/table\",\"detectColor, noColorRequested, displayWidth, stripAnsi, wrapText, formatField, formatTable, OUTPUT_WIDTH, TableColumn, TableRow\",\"formatListReport(rows, formatter?), formatStatusReport(rows, formatter?), formatConfigReport(record, spec, formatter?)\",\"ReadOutputStream gained optional isTTY\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/format.test.ts: 19 passed\",\"npm test -- tests/unit/read-commands.test.ts: 29 passed\",\"npm test: 623 passed\",\"npm run build: exit 0\",\"manual PTY list: ANSI around status label; NO_COLOR/pipe: no ANSI; list --json: no ANSI\"],\"warnings\":[\"doctor --json exits 2 on this host because Railpack and BuildKit are absent; the JSON document itself is valid schemaVersion 1 and free of ANSI.\",\"`formatField`'s third positional argument changed from a number to an options object; no documented CLI surface changed.\"],\"validationLimitations\":[\"Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 408877,
+    "usage": {
+      "inputTokens": 62401,
+      "outputTokens": 23897,
+      "reasoningTokens": 33971,
+      "cacheReadTokens": 6374784,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.063205302,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/format.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented src/cli/format.ts with TTY/NO_COLOR colour decisions, text status labels, 80-column tables, column shrinking/dropping, and full-value detail lines; routed list, status, and config through it. Added 19 format tests plus command-level TTY/NO_COLOR coverage. Typecheck, lint, focused tests, the 623-test suite, build, and manual PTY/plain/JSON checks pass.",
+    "unresolved": [],
+    "decisions": [
+      "Colour is enabled only when NO_COLOR is absent, TERM is not dumb, and the output stream reports isTTY; status meaning always comes from the text label.",
+      "Tables shrink optional REF/IMAGE columns first, then drop them and print full values on detail lines; NAME and PORT never shrink below their content, and any value that must be clipped also appears in full on a labelled detail line.",
+      "Read commands build the formatter from their injected stdout and environment, so tests force TTY, pipe, and NO_COLOR without process globals.",
+      "Doctor output was left uncoloured; it already uses text labels and meets PRD-ACC-02 without adding colour."
+    ],
+    "interfaces": [
+      "createFormatter({stream, env, color}): Formatter; Formatter.tone/status/field/table",
+      "detectColor, noColorRequested, displayWidth, stripAnsi, wrapText, formatField, formatTable, OUTPUT_WIDTH, TableColumn, TableRow",
+      "formatListReport(rows, formatter?), formatStatusReport(rows, formatter?), formatConfigReport(record, spec, formatter?)",
+      "ReadOutputStream gained optional isTTY"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/format.test.ts: 19 passed",
+      "npm test -- tests/unit/read-commands.test.ts: 29 passed",
+      "npm test: 623 passed",
+      "npm run build: exit 0",
+      "manual PTY list: ANSI around status label; NO_COLOR/pipe: no ANSI; list --json: no ANSI"
+    ],
+    "warnings": [
+      "doctor --json exits 2 on this host because Railpack and BuildKit are absent; the JSON document itself is valid schemaVersion 1 and free of ANSI.",
+      "`formatField`'s third positional argument changed from a number to an options object; no documented CLI surface changed."
+    ],
+    "validationLimitations": [
+      "Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software."
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "type": "work.add-1.4",
+  "category": "work",
+  "taskId": "ADD-1.4",
+  "producedBy": "lifecycle-engineer",
+  "status": "complete",
+  "summary": "Implemented add orchestration, interactive/flag-parity prompts, the add command handler, and 22 focused lifecycle tests with preflight, locking, failure cleanup, unhealthy-state recording, and local-mode warnings. Typecheck, lint, focused tests, the full 499-test suite, and build pass.",
+  "inputs": [
+    "work-add-1-1-001",
+    "work-add-1-2-001",
+    "work-add-1-3-001",
+    "work-bld-1-3-001",
+    "work-reg-1-5-001"
+  ],
+  "filesChanged": [
+    "src/lifecycle/add.ts",
+    "src/cli/prompts.ts",
+    "src/cli/commands/add.ts",
+    "tests/unit/add.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented add orchestration, interactive/flag-parity prompts, the add command handler, and 22 focused lifecycle tests with preflight, locking, failure cleanup, unhealthy-state recording, and local-mode warnings. Typecheck, lint, focused tests, the full 499-test suite, and build pass.",
+    "decisions": [
+      "Preflight is read-only: config validation, name/port checks, container-name inspect, doctor prerequisites, and volume ownership all run before ensureLayout, allocation lock, and the first app directory entry.",
+      "Doctor prerequisites ignore the railpack and buildkit check IDs because add provisions Railpack on first build and starts the managed buildkitd itself; Podman, rootless mode, linger, git, Node, and disk failures still block with exit 2.",
+      "The name-allocation lock covers directory creation and config write; the per-app lock covers workspace preparation, build, volume creation, container start, probe, and state persistence, and is released in finally.",
+      "A failed first probe stops then force-removes the container, keeps the app directory, config, image, and volumes, records health unhealthy with containerId null, and exits 4.",
+      "Declared env_file paths are created empty with mode 0600 so a fresh app can start before the operator fills secrets; values are never accepted on the command line."
+    ],
+    "interfaces": [
+      "addApp(request, dependencyOverrides): Promise<AddResult>",
+      "createDefaultAddOutput, createDefaultAddBuilder, createDefaultAddRuntime, createDefaultAddProber, createDoctorPrerequisites",
+      "AddDependencies/AddDependencyOverrides, AddBuilder, AddRuntime, AddProber, AddPrerequisites, AddWorkspace, AddOutput, AddResult",
+      "resolveAddInputs(values, options): Promise<ResolvedAddValues>; createClackPrompter; isInteractiveSession; ADD_PROMPT_FLAGS",
+      "runAddCommand(options): Promise<ExitCode>; formatAddResult(result)"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/add.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: pass",
+      "npm run lint: pass",
+      "npm test -- tests/unit/add.test.ts: 22 passed",
+      "npm test: 499 passed",
+      "npm run build: pass"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "Gated host integration tests/integration/add.test.ts was not run; ADD-1.6 owns that suite and no real Podman/build was exercised here.",
+      "src/cli/program.ts registration remains with cli-engineer; runAddCommand is implemented and tested directly so wiring it is a one-line handler replacement."
+    ],
+    "validationLimitations": [
+      "No real clone, Railpack build, container start, or HTTP probe was performed in this unit-only task."
+    ],
+    "taskDescription": "Implement add.ts and prompts.ts. Run preflight (name, port, config, prerequisites), then clone or validate the local path, build the image through the builder interface, create volumes, run the container, probe health, and persist state. On probe failure, remove the container, keep the image and app entry, record unhealthy state, and exit 4 with logs and config remediation. Prompts ask only for missing values and never in a non-TTY. Tests inject fake builder, runtime, probe, and prompter to cover the happy path, missing flag non-TTY, each preflight rejection, build failure, probe failure cleanup, and local-mode warning."
+  },
+  "nextActions": [],
+  "artifactId": "work-add-1-4-001",
+  "createdAt": "2026-10-30T01:30:48.311Z"
+}

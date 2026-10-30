@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T01:38:47.046Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "ADD-1.5",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/cli/commands/list.ts",
+      "src/cli/commands/status.ts",
+      "src/cli/commands/logs.ts",
+      "src/cli/commands/config.ts",
+      "tests/unit/read-commands.test.ts",
+      "src/cli/commands/read-model.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and understanding the project context.\nNow I have the architecture context. Let me implement the shared read-command support module and the four command handlers.\nNow let me write the focused test suite covering the required scenarios.\nImplemented the four read commands and their shared read-only model, with 28 focused tests.\n\n## What changed\n\n**New source files**\n- `src/cli/commands/read-model.ts` — shared registry scan, container inspection, read-only state loading, status labels, 80-column table/field rendering, redacted spec projection.\n- `src/cli/commands/list.ts` — mixed-registry table with `healthy`, `unhealthy`, `stopped`, `missing`, and `broken` rows; broken apps show their parse error and remediation.\n- `src/cli/commands/status.ts` — per-app detail with config path, source, probe settings, current/previous images, container state, ports, volumes, last health result, and exit 4 for non-serving apps.\n- `src/cli/commands/logs.ts` — Podman log passthrough with exact `-f`/`--tail` forwarding and Podman's result exit code.\n- `src/cli/commands/config.ts` — `--path`, `--edit` (`$EDITOR`), `--json`, and default validation; editor command parsing never uses a shell.\n\n**New tests**\n- `tests/unit/read-commands.test.ts` — 28 tests covering the mixed registry, broken/missing/stopped apps, unknown-app exit 5, exact log flag forwarding, config validation output, editor behavior, JSON redaction, 80-column output, no ANSI, and read-only state guarantees.\n\n## Behavior notes\n\n- `list`, `status`, and `config` read `state.json` with `readCache()` and in-memory `rebuild()` only; they never call `load`, `update`, or `reset`. A missing cache stays missing after the command.\n- `status` returns 5 for an unknown app, 4 for stopped/missing/unhealthy, and 0 for healthy or never-probed-but-running.\n- `config --path` prints the absolute `config.toml` path and verifies it exists.\n- `config --edit` opens `$EDITOR`, waits for exit, then re-validates without rewriting or applying the config.\n- Human output is always plain text, never emits ANSI, and stays within 80 columns.\n- JSON documents use `schemaVersion: 1` and redact every `[env]` value.\n\n## Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | pass |\n| `npm run lint` | pass |\n| `npm test -- tests/unit/read-commands.test.ts` | 28 passed |\n| `npm test` | 527 passed across 21 files |\n| `npm run build` | pass |\n\nThe gated Podman integration suite was not run; it is ADD-1.6 scope. No real editor, TTY, or Podman process was exercised.\n\n```forge-result\n{\n  \"summary\": \"Implemented list, status, logs, and config with a shared read-only model, exact log flag forwarding, EDITOR support, state-preserving reads, 80-column plain-text output, and 28 focused tests.\",\n  \"decisions\": [\n    \"Read commands use StateStore.readCache() with an in-memory rebuild fallback, never load/update/reset, so no state.json is created or modified.\",\n    \"Status label priority is broken, missing, stopped, unhealthy, healthy, unknown; stopped and missing containers are never reported healthy from stale cache data.\",\n    \"status exits 5 for an unknown app and 4 for stopped, missing, or last-recorded unhealthy apps.\",\n    \"config --path prints the absolute config.toml path and verifies it exists; --edit opens the parsed $EDITOR command, waits, then re-validates without applying anything.\",\n    \"The EDITOR value is tokenized into an argument array and spawned without a shell.\",\n    \"logs forwards follow and tail explicitly through the platform Podman adapter and returns ContainerLogsResult.exitCode.\",\n    \"JSON output is additive schemaVersion 1 with redacted [env] values; feature 07 can replace or extend the serializers.\"\n  ],\n  \"interfaces\": [\n    \"runListCommand(options): Promise<ExitCode>; formatListReport(rows); toListDocument(rows)\",\n    \"runStatusCommand(options): Promise<ExitCode>; formatStatusReport(rows); toStatusDocument(rows)\",\n    \"runLogsCommand(options): Promise<number>; normalizeTail(value)\",\n    \"runConfigCommand(options): Promise<ExitCode>; formatConfigReport(record, spec); toConfigDocument(record, spec); parseEditorCommand(value); createDefaultEditorRunner()\",\n    \"resolveReadDependencies(overrides); readAppState(store); inspectAppContainer(runtime, app); collectAppRows(entries, dependencies); statusLabel(container, state); statusExitCode(status); redactedSpec(spec); formatField/formatTable/wrapText\"\n  ],\n  \"tests\": [\n    \"npm run typecheck: exit 0\",\n    \"npm run lint: exit 0\",\n    \"npm test -- tests/unit/read-commands.test.ts: 28 passed\",\n    \"npm test: 527 passed across 21 files\",\n    \"npm run build: exit 0\"\n  ],\n  \"warnings\": [\n    \"The four handlers are not registered in src/cli/program.ts; command registration remains cli-engineer ownership. They are exported for one-line handler wiring.\",\n    \"The gated Podman integration suite was not run; ADD-1.6 owns that suite.\",\n    \"logs delegates to the platform Podman adapter, which maps typed failures to documented exit codes (2/5); successful results return the adapter's exitCode.\"\n  ],\n  \"validationLimitations\": [\n    \"No real Podman container, editor, or TTY was exercised; runtime, editor, and output streams were injected fakes while the registry and state cache were real temporary files.\"\n  ],\n  \"unresolved\": []\n}\n```\n",
+    "stderr": "",
+    "durationMs": 477376,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 656841 (line 2469 column 1062)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/read-commands.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented list, status, logs, and config with a shared read-only model, exact log flag forwarding, EDITOR support, state-preserving reads, 80-column plain-text output, and 28 focused tests.",
+    "decisions": [
+      "Read commands use StateStore.readCache() with an in-memory rebuild fallback, never load/update/reset, so no state.json is created or modified.",
+      "Status label priority is broken, missing, stopped, unhealthy, healthy, unknown; stopped and missing containers are never reported healthy from stale cache data.",
+      "status exits 5 for an unknown app and 4 for stopped, missing, or last-recorded unhealthy apps.",
+      "config --path prints the absolute config.toml path and verifies it exists; --edit opens the parsed $EDITOR command, waits, then re-validates without applying anything.",
+      "The EDITOR value is tokenized into an argument array and spawned without a shell.",
+      "logs forwards follow and tail explicitly through the platform Podman adapter and returns ContainerLogsResult.exitCode.",
+      "JSON output is additive schemaVersion 1 with redacted [env] values; feature 07 can replace or extend the serializers."
+    ],
+    "interfaces": [
+      "runListCommand(options): Promise<ExitCode>; formatListReport(rows); toListDocument(rows)",
+      "runStatusCommand(options): Promise<ExitCode>; formatStatusReport(rows); toStatusDocument(rows)",
+      "runLogsCommand(options): Promise<number>; normalizeTail(value)",
+      "runConfigCommand(options): Promise<ExitCode>; formatConfigReport(record, spec); toConfigDocument(record, spec); parseEditorCommand(value); createDefaultEditorRunner()",
+      "resolveReadDependencies(overrides); readAppState(store); inspectAppContainer(runtime, app); collectAppRows(entries, dependencies); statusLabel(container, state); statusExitCode(status); redactedSpec(spec); formatField/formatTable/wrapText"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/read-commands.test.ts: 28 passed",
+      "npm test: 527 passed across 21 files",
+      "npm run build: exit 0"
+    ],
+    "warnings": [
+      "The four handlers are not registered in src/cli/program.ts; command registration remains cli-engineer ownership. They are exported for one-line handler wiring.",
+      "The gated Podman integration suite was not run; ADD-1.6 owns that suite.",
+      "logs delegates to the platform Podman adapter, which maps typed failures to documented exit codes (2/5); successful results return the adapter's exitCode."
+    ],
+    "validationLimitations": [
+      "No real Podman container, editor, or TTY was exercised; runtime, editor, and output streams were injected fakes while the registry and state cache were real temporary files."
+    ],
+    "unresolved": []
+  }
+}

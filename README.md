@@ -32,7 +32,7 @@ Three points are easy to miss:
 - **Lingering is mandatory.** Without lingering, the user's systemd manager does not start at boot, so `--restart=always` containers do not come back after a reboot. Enable it with `sudo loginctl enable-linger "$USER"`. easy-host enables `podman-restart.service` on `add`, but that user unit can only replay containers once lingering has started the user manager.
 - **Privileged ports are unsupported.** Rootless Podman cannot bind a port below 1024 without a host-wide sysctl change, which easy-host does not make. Use port 1024 or above.
 
-Run `easy-host doctor` after installing. It checks Podman, rootless mode, a Docker-compatible image loader, lingering, reboot recovery, git, Node.js, Railpack, BuildKit, and disk, and every failing check prints a remediation command. Railpack exports images through a Docker-compatible loader; on the Ubuntu host used for the v0.1.0 release gate, the `podman-docker` package provided that loader. The step-by-step guide, including the Podman 4.9 upgrade path and a verification command for each requirement, is [Host prerequisites](docs/operations/prerequisites.md). The normative requirements and every check are in [Prerequisites and Doctor](docs/features/01-prerequisites-and-doctor.md); the verified host evidence is in the [v0.1.0 release-gate record](docs/reviews/v1-success-scenarios-evidence.md).
+Run `easy-host doctor` after installing. It checks Podman, rootless mode, a Docker-compatible image loader, lingering, reboot recovery, git, Node.js, Railpack, BuildKit, and disk, and every failing check prints a remediation command. Railpack exports images through a Docker-compatible loader; on the Ubuntu host used for the v0.1.0 release gate, the `podman-docker` package provided that loader. The step-by-step guide, including the Podman 4.9 upgrade path and a verification command for each prerequisite, is [Host prerequisites](docs/operations/prerequisites.md). The verified host evidence is in the [v0.1.0 release-gate record](docs/operations/release-gate-v0.1.0.md).
 
 ## Install
 
@@ -97,7 +97,7 @@ easy-host ships no scheduler. To repeat `update` on a schedule, write a systemd 
 
 ## Success scenarios
 
-The v0.1.0 release gate exercises the four outcomes below on a fresh Linux host with rootless Podman `>= 5.7.0, < 6.0.0`, lingering enabled, and an empty state root. The [release-gate record](docs/reviews/v1-success-scenarios-evidence.md) contains the commands, exit codes, and observed output.
+The v0.1.0 release gate exercises the four outcomes below on a fresh Linux host with rootless Podman `>= 5.7.0, < 6.0.0`, lingering enabled, and an empty state root. The [release-gate record](docs/operations/release-gate-v0.1.0.md) contains the commands, exit codes, and observed output.
 
 ### 1. The app is reachable from another machine
 
@@ -146,25 +146,13 @@ podman volume rm easy-host-blog-blog-data
 
 | Document | Contents |
 | --- | --- |
-| [Product definition](docs/PRD.md) | Scope, success criteria, constraints |
-| [CLI command surface](docs/PRD.md#121-command-surface) | Every command and flag |
 | [CLI reference](docs/reference/cli.md) | Every command, flag, argument, exit code, and example |
 | [Configuration reference](docs/reference/config.md) | Every `config.toml` key, type, default, validation rule, volume, and env precedence |
-| [Error shape](docs/PRD.md#123-error-shape) | Operator-facing failure block |
-| [Exit codes](docs/features/01-prerequisites-and-doctor.md) | Exit-code taxonomy |
-| [Operator-supplied services and ports](docs/PRD.md#63-what-the-operator-must-provide) | What the host and operator must provide |
-| [Host prerequisites and doctor checks](docs/features/01-prerequisites-and-doctor.md) | Host checks, exit codes, state root |
 | [Host prerequisites and upgrade](docs/operations/prerequisites.md) | Podman support window, the 4.9 upgrade, lingering, git, Node, ports |
 | [Scheduled updates with a systemd timer](docs/operations/systemd-timer.md) | User units that call `update`, enable commands, logs, and lock behavior |
-| [BuildKit and Railpack](docs/features/02-buildkit-and-railpack.md) | Pinned build tooling and the build lifecycle |
-| [Configuration keys and validation](docs/features/03-app-registry-and-config.md) | `config.toml` keys, defaults, and validation |
-| [Add and lifecycle](docs/features/04-add-and-lifecycle.md) | `add`, `list`, `status`, `logs`, and `config` behavior |
-| [Update and health gate](docs/features/05-update-and-health-gate.md) | Diff classification, rebuild, and swap |
-| [Rollback and remove](docs/features/06-rollback-and-remove.md) | Two-image retention, removal, and volume rules |
-| [Observability and output](docs/features/07-observability-and-output.md) | JSON documents, exit codes, TTY and color behavior |
-| [Docs and packaging](docs/features/08-docs-and-packaging.md) | Install paths, completions, and the documentation plan |
-| [v0.1.0 release-gate record](docs/reviews/v1-success-scenarios-evidence.md) | Verified host, commands, and observed results |
+| [v0.1.0 release-gate record](docs/operations/release-gate-v0.1.0.md) | Verified host, commands, and observed results |
+| [Architecture](docs/ARCHITECTURE.md) | Module map, on-disk state, build layer, lifecycle, exit codes |
+| [Support](docs/SUPPORT.md) | Who owns what, intake, and the release checklist |
 | [Migration note](docs/MIGRATION.md) | The rename from the old project name, the manual repository rename, and changes for early users |
-| [Project idea and decisions](docs/IDEA.md) | Background and settled design choices |
 
 Shell completions are shipped as generated files: [bash](completions/easy-host.bash), [zsh](completions/easy-host.zsh), and [fish](completions/easy-host.fish). Each file's header names its install location. There is no completion subcommand.

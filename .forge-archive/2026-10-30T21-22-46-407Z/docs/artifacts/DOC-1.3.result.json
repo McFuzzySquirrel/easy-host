@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T19:54:55.270Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "DOC-1.3",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "README.md",
+      "tests/docs/links.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and understanding the task scope.\nNow I have the verified facts. Let me write the README.\n## Result report\n\n### Files created or changed\n\n| File | Change |\n|---|---|\n| `README.md` | Replaced the React-only README with the easy-host README. |\n| `tests/docs/links.test.ts` | New docs drift suite: 13 tests. |\n\nNo runtime source, `package.json`, or completion files were changed. The modified `docs/EXECUTION-AUDIT.jsonl` and `docs/WORKFLOW-STATE.json` are engine writes and were left alone; `docs/artifacts/` was not modified.\n\n### Requirements covered\n\n- **DOC-FR-01** — README states what easy-host is, the three supported stacks, host prerequisites, three install-from-repository paths, a five-command quickstart, four success scenarios, volume safety, and a documentation index with operations/reference links.\n- **DOC-NF-02 / PRD-ACC-06** — plain Markdown, real ATX headings, no images, no `<script>`, no ANSI escapes in the README.\n- **PRD §6.2** — four scenarios presented: LAN reachability, reboot recovery, broken-update retention/revert, rollback.\n- **PRD §3.2 / PRD-C-04** — states no daemon, scheduler, webhook, web UI, TLS terminator, or reverse proxy.\n- **PRD-C-02/C-03/C-08/C-10/C-12** — documents the Podman `>= 5.7.0, < 6.0.0` window, one LAN port per app, volume retention, only the three tested stacks, and no registry publish.\n\n### Exact facts documented\n\n- Podman: `>= 5.7.0, < 6.0.0`; 6.x explicitly excluded while unstable.\n- Lingering: mandatory for `--restart=always` to survive reboot; `sudo loginctl enable-linger \"$USER\"`.\n- git `2.40 or newer`; Node.js `24 or newer`; host ports `1024 or above` (privileged ports unsupported).\n- Install paths use `npm install -g .`, tag `v0.1.0`, and `npm install -g ./easy-host-0.1.0.tgz`.\n- Exit codes: `3` build failure, `4` health failure, `0` success.\n- Defaults: bind `0.0.0.0`, example port `8080`; state root mode `0700`; state root precedence `EASY_HOST_HOME` → `$XDG_DATA_HOME/easy-host` → `~/.local/share/easy-host`.\n- Volume deletion command form: `podman volume rm easy-host-blog-blog-data`; `--force` does not imply `--volumes`.\n\n### Tests proving links and references\n\n| Command | Result |\n|---|---|\n| `npm test -- tests/docs/links.test.ts` | **13/13 passed** |\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0 (3 pre-existing infos) |\n| `npm test` | **831/831 passed**, 35 files |\n\nNon-vacuity checks: temporarily adding `react-hoster`, an `easy-host restart` example, a broken link, and renaming a required heading each made the docs suite fail; the README was restored and the suite passed again. The suite checks both file existence and Markdown anchors.\n\n### Warnings / limitations\n\n- DOC-1.4–1.6 own `docs/operations/*`, `docs/reference/*`, and `docs/MIGRATION.md`. Those canonical paths do not exist yet, so the README links to the authoritative PRD sections and feature documents that do exist. DOC-1.4/1.5 should add the operator-guide links and extend `DOCUMENTED_MARKDOWN`.\n- `package.json` `files` ships `docs/operations` and `docs/reference` but not `docs/features` or `docs/PRD.md`. Once the canonical guides land, the operator-facing links will also resolve inside the tarball; the current feature/PRD links are repository-facing.\n- No `v0.1.0` git tag exists in this checkout (`git tag` is empty); the tag install path reflects the DOC-1.1 packaging contract and its manual probe.\n- The `podman-docker` note is scoped to the verified Ubuntu v0.1.0 gate host; other distributions may provide the loader in a differently named package.\n- A clean-shell manual walkthrough of the install and quickstart was not performed; it needs network installs and a Podman host. The gated packaging suite was not rerun.\n\n```forge-result\n{\"summary\":\"Replaced README.md with the easy-host README and added tests/docs/links.test.ts; docs tests (13), typecheck, lint, and the full suite (831) pass.\",\"unresolved\":[],\"decisions\":[\"The README links to the existing authoritative PRD sections and feature documents for operations and reference material because docs/operations and docs/reference are DOC-1.4-1.6 deliverables; the drift test is ready to cover those files via DOCUMENTED_MARKDOWN.\",\"The four success scenarios are add reachability, reboot recovery, broken-update retention/revert, and rollback; removal volume retention is covered by the volume-safety section because PRD 6.2 enumerates five criteria.\",\"Documented podman-docker only as the verified Ubuntu release-gate package, not as a general distribution requirement.\",\"Documented direct npm install -g git+<url>#tag as unsupported because npm runs prepare before devDependencies for git dependencies, matching DOC-1.1's probe.\"],\"interfaces\":[\"DOCUMENTED_MARKDOWN, REQUIRED_HEADINGS, and SCENARIO_HEADINGS are exported test constants for later docs tasks to extend.\",\"assertLinkResolves(sourcePath, link), parseLinks(markdown, lineOffset), commandInvocations(markdown), and stripMigrationNote(markdown) are the reusable drift helpers.\"],\"tests\":[\"npm test -- tests/docs/links.test.ts: 13 passed\",\"npm run typecheck: exit 0\",\"npm run lint: exit 0 (3 pre-existing infos)\",\"npm test: 831 passed across 35 files\",\"Non-vacuity: branding, forbidden-command, broken-link, and missing-heading mutations each failed the docs suite before restoration\"],\"warnings\":[\"DOC-1.4 through DOC-1.6 must add docs/operations, docs/reference, and docs/MIGRATION links to the README and DOCUMENTED_MARKDOWN; those canonical files do not exist yet, so the README currently links to the authoritative PRD sections and feature documents.\",\"package.json files ships docs/operations and docs/reference but not docs/features or docs/PRD.md; the current feature/PRD links are repository-facing until the canonical guides are added.\",\"No v0.1.0 git tag exists in this checkout; the tag install path comes from the DOC-1.1 packaging contract and manual probe.\",\"The podman-docker note is scoped to the verified Ubuntu v0.1.0 gate host.\"],\"validationLimitations\":[\"A clean-shell manual walkthrough of the install and quickstart was not run; it requires network installs and a Podman host.\",\"The gated packaging suite was not rerun because it requires registry access.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 505738,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 546743 (line 3519 column 7297)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm test -- tests/docs/links.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Replaced README.md with the easy-host README and added tests/docs/links.test.ts; docs tests (13), typecheck, lint, and the full suite (831) pass.",
+    "unresolved": [],
+    "decisions": [
+      "The README links to the existing authoritative PRD sections and feature documents for operations and reference material because docs/operations and docs/reference are DOC-1.4-1.6 deliverables; the drift test is ready to cover those files via DOCUMENTED_MARKDOWN.",
+      "The four success scenarios are add reachability, reboot recovery, broken-update retention/revert, and rollback; removal volume retention is covered by the volume-safety section because PRD 6.2 enumerates five criteria.",
+      "Documented podman-docker only as the verified Ubuntu release-gate package, not as a general distribution requirement.",
+      "Documented direct npm install -g git+<url>#tag as unsupported because npm runs prepare before devDependencies for git dependencies, matching DOC-1.1's probe."
+    ],
+    "interfaces": [
+      "DOCUMENTED_MARKDOWN, REQUIRED_HEADINGS, and SCENARIO_HEADINGS are exported test constants for later docs tasks to extend.",
+      "assertLinkResolves(sourcePath, link), parseLinks(markdown, lineOffset), commandInvocations(markdown), and stripMigrationNote(markdown) are the reusable drift helpers."
+    ],
+    "tests": [
+      "npm test -- tests/docs/links.test.ts: 13 passed",
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0 (3 pre-existing infos)",
+      "npm test: 831 passed across 35 files",
+      "Non-vacuity: branding, forbidden-command, broken-link, and missing-heading mutations each failed the docs suite before restoration"
+    ],
+    "warnings": [
+      "DOC-1.4 through DOC-1.6 must add docs/operations, docs/reference, and docs/MIGRATION links to the README and DOCUMENTED_MARKDOWN; those canonical files do not exist yet, so the README currently links to the authoritative PRD sections and feature documents.",
+      "package.json files ships docs/operations and docs/reference but not docs/features or docs/PRD.md; the current feature/PRD links are repository-facing until the canonical guides are added.",
+      "No v0.1.0 git tag exists in this checkout; the tag install path comes from the DOC-1.1 packaging contract and manual probe.",
+      "The podman-docker note is scoped to the verified Ubuntu v0.1.0 gate host."
+    ],
+    "validationLimitations": [
+      "A clean-shell manual walkthrough of the install and quickstart was not run; it requires network installs and a Podman host.",
+      "The gated packaging suite was not rerun because it requires registry access."
+    ]
+  }
+}

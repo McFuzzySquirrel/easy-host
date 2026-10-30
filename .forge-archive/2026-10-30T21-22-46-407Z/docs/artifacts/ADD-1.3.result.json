@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T01:21:08.387Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "ADD-1.3",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/health/probe.ts",
+      "tests/unit/probe.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nNow I'll implement the probe module.\nNow the focused test suite.\nImplemented and verified `ADD-1.3`.\n\n## Adapter contract\n\n**`src/health/probe.ts`**\n\n- `probeHealth(options: ProbeOptions): Promise<ProbeResult>`\n  - `port` required; validated to `1024..65535`.\n  - Defaults: `probe=\"http\"`, `healthPath=\"/\"`, `intervalMs=2000`, `timeoutMs=5000`, `startupMs=90000`.\n  - HTTP: `GET http://127.0.0.1:<port><health_path>`; 2xx/3xx healthy; 4xx/5xx/network/timeout are failures.\n  - TCP: connect to `127.0.0.1:<port>`.\n  - Runs the first attempt immediately, then waits the declared interval. No attempt starts at or after the startup budget, and attempts near the budget are clamped to the remaining time.\n  - Each attempt is bounded by a race between the operation and a clock timer plus `AbortController`; a client that ignores abort cannot hang the probe.\n  - Response bodies are never read and are cancelled; results contain no bodies or headers.\n- `probeApp(spec, runtime?): Promise<ProbeResult>` maps `AppSpec` fields (`port`, `probe`, `health_path`, `health_*_ms`) onto `probeHealth`.\n- Injectable seams: `ProbeClock` (`now`, `sleep`, `setTimeout`, `clearTimeout`), `ProbeFetch`, `TcpConnector`; default TCP connector exported as `connectTcp`.\n- `ProbeResult` reports `state`, `healthy`, `kind`, `port`, `target`, `attempts`, `elapsedMs`, `lastStatus`, `lastError`, `intervalMs`, `timeoutMs`, `startupMs`.\n- Failure mapping: `PROBE_HTTP_STATUS`, `PROBE_TIMEOUT`, `PROBE_CONNECTION_REFUSED`, `PROBE_NETWORK_ERROR`. Invalid inputs throw `UsageError` with `INVALID_PROBE_OPTIONS` (exit 1). An unhealthy probe is a normal result for lifecycle to map to exit 4.\n- Defaults are imported from `APP_SPEC_DEFAULTS`, keeping config and probe timings in one place.\n\n**Test fake-runner/fake-clock contract:** tests inject a virtual `ProbeClock` and either real local HTTP/TCP servers or a hanging `ProbeFetch`. HTTP success, 302, 404, 500, retry success, refused, half-open timeout, abort-ignoring client, TCP success/refusal, budget exhaustion, spec mapping, and invalid options are covered.\n\n## Files created\n\n- `src/health/probe.ts`\n- `tests/unit/probe.test.ts`\n\n## Validation\n\n- `npm run typecheck` — passed\n- `npm run lint` — passed\n- `npm test -- tests/unit/probe.test.ts` — 14 tests passed\n- `npm test` — 477 tests across 19 files passed\n- `npm run build` — passed\n- Gated `EASY_HOST_INTEGRATION` check not run; `tests/integration/add.test.ts` does not exist yet and this task has no host-facing path.\n\n```forge-result\n{\"summary\":\"Implemented the bounded HTTP/TCP health probe with injectable clock and fetch, default 2s/5s/90s timings, structured attempt/elapsed results, abort-bounded attempts, body-safe diagnostics, and 14 focused tests; typecheck, lint, focused tests, full suite, and build pass.\",\"unresolved\":[],\"decisions\":[\"HTTP probes use redirect:'manual' so a 3xx is healthy without following the redirect.\",\"Per-attempt timeout uses a clock timer plus AbortController and races the operation, so even an abort-ignoring client cannot exceed the attempt bound.\",\"An unhealthy probe returns a ProbeResult instead of throwing; lifecycle maps it to HealthError exit 4.\",\"Invalid probe options throw UsageError exit 1 with stable code INVALID_PROBE_OPTIONS.\",\"Probe defaults are sourced from APP_SPEC_DEFAULTS to avoid drift with config schema defaults.\"],\"interfaces\":[\"probeHealth(options: ProbeOptions): Promise<ProbeResult>\",\"probeApp(spec: ProbeAppSpec, runtime?: ProbeRuntimeOptions): Promise<ProbeResult>\",\"ProbeResult {state, healthy, kind, port, target, attempts, elapsedMs, lastStatus, lastError, intervalMs, timeoutMs, startupMs}\",\"ProbeFailure {kind, code, message, status, timeoutMs, causeCode}\",\"ProbeClock {now, sleep, setTimeout, clearTimeout}, ProbeFetch, TcpConnector\",\"PROBE_DEFAULTS, PROBE_FAILURE_CODES, PROBE_HOST, formatProbeTarget, connectTcp\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/probe.test.ts: 14 passed\",\"npm test: 477 passed\",\"npm run build: exit 0\"],\"warnings\":[\"New stable code INVALID_PROBE_OPTIONS (exit 1) for invalid probe inputs.\",\"ADD-1.4 must treat an unhealthy ProbeResult as the health failure that triggers container cleanup and exit 4.\",\"No probe consumer exists yet, so there were no consumer tests beyond this module's suite.\"],\"validationLimitations\":[\"Gated host integration was not run; tests/integration/add.test.ts does not exist yet and this task requires no real host.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 241534,
+    "usage": {
+      "inputTokens": 44972,
+      "outputTokens": 12248,
+      "reasoningTokens": 30218,
+      "cacheReadTokens": 1204224,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.035838072,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/probe.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented the bounded HTTP/TCP health probe with injectable clock and fetch, default 2s/5s/90s timings, structured attempt/elapsed results, abort-bounded attempts, body-safe diagnostics, and 14 focused tests; typecheck, lint, focused tests, full suite, and build pass.",
+    "unresolved": [],
+    "decisions": [
+      "HTTP probes use redirect:'manual' so a 3xx is healthy without following the redirect.",
+      "Per-attempt timeout uses a clock timer plus AbortController and races the operation, so even an abort-ignoring client cannot exceed the attempt bound.",
+      "An unhealthy probe returns a ProbeResult instead of throwing; lifecycle maps it to HealthError exit 4.",
+      "Invalid probe options throw UsageError exit 1 with stable code INVALID_PROBE_OPTIONS.",
+      "Probe defaults are sourced from APP_SPEC_DEFAULTS to avoid drift with config schema defaults."
+    ],
+    "interfaces": [
+      "probeHealth(options: ProbeOptions): Promise<ProbeResult>",
+      "probeApp(spec: ProbeAppSpec, runtime?: ProbeRuntimeOptions): Promise<ProbeResult>",
+      "ProbeResult {state, healthy, kind, port, target, attempts, elapsedMs, lastStatus, lastError, intervalMs, timeoutMs, startupMs}",
+      "ProbeFailure {kind, code, message, status, timeoutMs, causeCode}",
+      "ProbeClock {now, sleep, setTimeout, clearTimeout}, ProbeFetch, TcpConnector",
+      "PROBE_DEFAULTS, PROBE_FAILURE_CODES, PROBE_HOST, formatProbeTarget, connectTcp"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/probe.test.ts: 14 passed",
+      "npm test: 477 passed",
+      "npm run build: exit 0"
+    ],
+    "warnings": [
+      "New stable code INVALID_PROBE_OPTIONS (exit 1) for invalid probe inputs.",
+      "ADD-1.4 must treat an unhealthy ProbeResult as the health failure that triggers container cleanup and exit 4.",
+      "No probe consumer exists yet, so there were no consumer tests beyond this module's suite."
+    ],
+    "validationLimitations": [
+      "Gated host integration was not run; tests/integration/add.test.ts does not exist yet and this task requires no real host."
+    ]
+  }
+}

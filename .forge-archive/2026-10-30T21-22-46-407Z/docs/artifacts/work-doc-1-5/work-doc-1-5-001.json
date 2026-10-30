@@ -1,0 +1,53 @@
+{
+  "type": "work.doc-1.5",
+  "category": "work",
+  "taskId": "DOC-1.5",
+  "producedBy": "docs-engineer",
+  "status": "complete",
+  "summary": "Wrote the verified CLI and config references, added reference drift tests, linked both pages from the README, and extended the documentation link test.",
+  "inputs": [
+    "work-doc-1-3-001",
+    "work-obs-1-1-001",
+    "work-doc-1-1-001",
+    "work-doc-1-2-001"
+  ],
+  "filesChanged": [
+    "docs/reference/cli.md",
+    "docs/reference/config.md",
+    "tests/docs/reference.test.ts",
+    "README.md",
+    "tests/docs/links.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Wrote the verified CLI and config references, added reference drift tests, linked both pages from the README, and extended the documentation link test.",
+    "decisions": [
+      "The reference describes the real commander surface, including --json on mutation commands, rather than the narrower PRD 12.1 synopsis.",
+      "Config keys are checked against APP_SPEC_KEYS and their documented defaults against APP_SPEC_DEFAULTS."
+    ],
+    "interfaces": [],
+    "tests": [
+      "npm test -- tests/docs/reference.test.ts: exit 0 (engine-verified)",
+      "npm test -- tests/docs/links.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm test -- tests/docs/reference.test.ts",
+      "npm test -- tests/docs/links.test.ts",
+      "npm run typecheck",
+      "npm test",
+      "npm run lint"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "PRD 12.1 omits --json for add, update, rollback, and remove while the CLI registers it; the reference documents the actual error-only JSON behavior.",
+      "The config --help text calls --path a directory path, but the command prints config.toml's path; the reference follows the code."
+    ],
+    "validationLimitations": [
+      "No manual clean-shell walkthrough on a prepared Podman host was run; claims were verified against source and the CLI program.",
+      "Lint exits successfully but reports three pre-existing useTemplate infos in image-label source and test files."
+    ],
+    "taskDescription": "Write docs/reference/cli.md with every command, flag, argument, exit code, and example, and docs/reference/config.md with every key, type, default, and validation rule including the volumes table and env precedence. Add a test that extracts the command and flag names from the CLI program and asserts each appears in the reference, and asserts each config key in the schema appears in the config reference. Extend the docs link test."
+  },
+  "nextActions": [],
+  "artifactId": "work-doc-1-5-001",
+  "createdAt": "2026-10-30T20:57:15.656Z"
+}

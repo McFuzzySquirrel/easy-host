@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T00:09:39.065Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "BLD-1.1",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/platform/versions.ts",
+      "src/platform/railpack.ts",
+      "tests/unit/railpack.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and orienting in the project.\nNow I'll implement the pinned version module.\nNow the unit tests, with a real tar builder and injected fetch.\n## Result report\n\n**Task:** BLD-1.1 — Resolve, verify, and cache the Railpack binary.\n\n### Pinned artifacts\n\n| Artifact | Pin |\n|---|---|\n| Railpack | `0.43.0` |\n| `railpack-v0.43.0-x86_64-unknown-linux-musl.tar.gz` | `248a8f60f36854aabed6124113631078a802de3461660855fc4de9c26065c1fb` |\n| `railpack-v0.43.0-arm64-unknown-linux-musl.tar.gz` | `732ece14eb4f4676a43ebba19431f954edf7b130acb76159ef0f2ff86ac42ac9` |\n| BuildKit image | `docker.io/moby/buildkit:v0.34.1-rootless@sha256:f68752a5a94acfcdad2d07867b7075601a421638e17fc5f28efc1c814d0c4f89` |\n\nBoth archive digests were independently re-hashed from the downloaded assets; the x86_64 value matches the BLD-0.1 spike, and the aarch64 value matches the upstream `checksums.txt`.\n\n### Implementation\n\n- `versions.ts` is the sole pin declaration point: version, per-architecture asset/URL/SHA-256 table, `RAILPACK_SHA256`, image name/tag/digest, and the fully pinned image reference.\n- `railpack.ts`:\n  - honors `EASY_HOST_RAILPACK_BIN` first, resolving `~/` and validating regular-file + executable-bit without downloading;\n  - rejects unsupported platform/architecture before any network or layout work;\n  - downloads the pinned archive once, checks SHA-256 **before** gunzip/extraction, and aborts on mismatch without writing or executing a binary;\n  - extracts only the `railpack` member in-process (no `tar`/shell), writes it atomically at `<root>/tools/railpack` mode `0755`, and records a verification receipt;\n  - reuses a cached binary only when the receipt matches version, architecture, asset, digest, and binary name, and the file is still executable;\n  - classifies failures: override misuse → exit 1, unsupported host → exit 2, download/digest/archive failures → exit 3.\n\n### Commands executed\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | pass |\n| `npm run lint` | pass (35 files) |\n| `npm test -- tests/unit/railpack.test.ts` | pass, 19 tests, ~180 ms |\n| `npm test` | pass, 312 tests / 12 files |\n| `npm run build` | pass |\n| Real-host end-to-end resolve | downloaded pinned archive in ~2.6 s, digest matched, `railpack version 0.43.0`, mode `0755`; second resolve returned `source: cache` with exactly 1 fetch call |\n\nThe unit suite covers cache hit, cache miss, digest mismatch (marker proves no execution), override path, non-executable/missing override, unsupported architecture/platform, stale receipt, corrupt/missing archive member, HTTP failure, and receipt-driven re-download.\n\n### Files created\n\n- `src/platform/versions.ts`\n- `src/platform/railpack.ts`\n- `tests/unit/railpack.test.ts`\n\nNo commit was made; `docs/artifacts/` and the execution file were not modified.\n\n### Notes\n\n- Nonblocking: the gated `tests/integration/build.test.ts` suite belongs to BLD-1.6 and does not exist yet, so it was not run.\n- Nonblocking: aarch64 was verified by URL + digest, not executed (this host is x86_64). The override's version is intentionally not probed here; doctor owns that check.\n\n```forge-result\n{\"summary\":\"Implemented pinned Railpack 0.43.0 and BuildKit v0.34.1-rootless declarations in versions.ts, digest-verified download/cache/override resolution in railpack.ts, and 19 unit tests covering all required scenarios; typecheck, lint, focused tests, full unit suite, build, and a real pinned-archive install all pass.\",\"unresolved\":[],\"decisions\":[\"Cache reuse is receipt-based: version, architecture, asset, archive SHA-256, and binary name must match, and the cached file must remain a regular executable; any mismatch re-downloads.\",\"The archive is verified before gunzip/extraction, parsed in-process (no tar process or shell), and the binary is staged and atomically renamed into <root>/tools with mode 0755.\",\"Failure mapping: invalid EASY_HOST_RAILPACK_BIN exits 1 (usage), unsupported platform/architecture exits 2 (prerequisite), download/digest/archive failures exit 3 (build infrastructure).\",\"The download is held in memory only until verification; no archive or partial binary is placed at the executable path before the digest matches.\"],\"interfaces\":[\"resolveRailpack(options): Promise<RailpackBinary>\",\"installRailpack(options): Promise<RailpackBinary>\",\"railpackBinaryPath(toolsDir), railpackReceiptPath(toolsDir), railpackArchitecture(arch)\",\"RailpackBinary { path, version | undefined, source: override|cache|download, sha256 | undefined }\",\"versions.ts exports RAILPACK_VERSION, RAILPACK_SHA256, RAILPACK_RELEASES, BUILDKIT_IMAGE, BUILDKIT_DIGEST, BUILDKIT_IMAGE_REFERENCE\"],\"tests\":[\"npm run typecheck: pass\",\"npm run lint: pass\",\"npm test -- tests/unit/railpack.test.ts: 19 passed\",\"npm test: 312 passed\",\"npm run build: pass\",\"Real-host pinned archive install: digest matched, binary reports railpack version 0.43.0, second resolve used cache with one fetch call\"],\"warnings\":[\"The BLD-1.6 gated build integration suite does not exist yet and was not run.\",\"aarch64 was verified by pinned URL and SHA-256 only; execution was verified on x86_64.\",\"EASY_HOST_RAILPACK_BIN version probing is intentionally deferred to doctor (BLD-FR-05).\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 320652,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 401171 (line 2843 column 23)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/railpack.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented pinned Railpack 0.43.0 and BuildKit v0.34.1-rootless declarations in versions.ts, digest-verified download/cache/override resolution in railpack.ts, and 19 unit tests covering all required scenarios; typecheck, lint, focused tests, full unit suite, build, and a real pinned-archive install all pass.",
+    "unresolved": [],
+    "decisions": [
+      "Cache reuse is receipt-based: version, architecture, asset, archive SHA-256, and binary name must match, and the cached file must remain a regular executable; any mismatch re-downloads.",
+      "The archive is verified before gunzip/extraction, parsed in-process (no tar process or shell), and the binary is staged and atomically renamed into <root>/tools with mode 0755.",
+      "Failure mapping: invalid EASY_HOST_RAILPACK_BIN exits 1 (usage), unsupported platform/architecture exits 2 (prerequisite), download/digest/archive failures exit 3 (build infrastructure).",
+      "The download is held in memory only until verification; no archive or partial binary is placed at the executable path before the digest matches."
+    ],
+    "interfaces": [
+      "resolveRailpack(options): Promise<RailpackBinary>",
+      "installRailpack(options): Promise<RailpackBinary>",
+      "railpackBinaryPath(toolsDir), railpackReceiptPath(toolsDir), railpackArchitecture(arch)",
+      "RailpackBinary { path, version | undefined, source: override|cache|download, sha256 | undefined }",
+      "versions.ts exports RAILPACK_VERSION, RAILPACK_SHA256, RAILPACK_RELEASES, BUILDKIT_IMAGE, BUILDKIT_DIGEST, BUILDKIT_IMAGE_REFERENCE"
+    ],
+    "tests": [
+      "npm run typecheck: pass",
+      "npm run lint: pass",
+      "npm test -- tests/unit/railpack.test.ts: 19 passed",
+      "npm test: 312 passed",
+      "npm run build: pass",
+      "Real-host pinned archive install: digest matched, binary reports railpack version 0.43.0, second resolve used cache with one fetch call"
+    ],
+    "warnings": [
+      "The BLD-1.6 gated build integration suite does not exist yet and was not run.",
+      "aarch64 was verified by pinned URL and SHA-256 only; execution was verified on x86_64.",
+      "EASY_HOST_RAILPACK_BIN version probing is intentionally deferred to doctor (BLD-FR-05)."
+    ]
+  }
+}

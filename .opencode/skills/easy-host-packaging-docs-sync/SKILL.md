@@ -24,7 +24,7 @@ Generated artifacts come from source. Hand-edited completions or references drif
 
 ### Step 1: Find the source of truth for the change
 
-Read `docs/features/08-docs-and-packaging.md` plus the feature that owns the behavior you are documenting (`01`, `03`, `07`). Inspect `src/cli/program.ts`, `src/config/schema.ts`, `package.json`, `scripts/generate-completions.ts`, and the relevant docs page.
+Read the code that owns the behavior you are documenting. Inspect `src/cli/program.ts`, `src/config/schema.ts`, `package.json`, `scripts/generate-completions.ts`, and the relevant docs page.
 
 If a doc and the executable disagree, then the executable wins until a deliberate contract change lands with tests.
 

@@ -1,0 +1,61 @@
+{
+  "type": "work.add-1.6",
+  "category": "work",
+  "taskId": "ADD-1.6",
+  "producedBy": "qa-engineer",
+  "status": "complete",
+  "summary": "Added and validated the gated real-host add integration suite (tests/integration/add.test.ts): Vite, Express, and FastAPI are cloned, built through the managed rootless buildkitd, started with restart=always and the declared port published, probed, and fetched over HTTP; the no-listener app exits 4 with the container removed, image and app directory kept, unhealthy state recorded, and the log tail plus config remediation printed. Fixed attempt 1's incomplete probe-failure vocabulary (the host reports 'connection closed' for a published port with no container listener) and added proof that the log tail reaches stderr. Typecheck, lint, 529 unit tests, and EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts (6/6, exit 0, 678.6s) pass; the suite fails rather than skips without the gate; host audit confirms no container, volume, image, daemon, or temporary root was orphaned.",
+  "inputs": [
+    "work-add-1-4-001",
+    "work-bld-1-6-001",
+    "work-add-1-1-001",
+    "work-add-1-2-001",
+    "work-add-1-3-001"
+  ],
+  "filesChanged": [
+    "tests/integration/add.test.ts",
+    "src/platform/podman.ts",
+    "tests/unit/podman.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Added and validated the gated real-host add integration suite (tests/integration/add.test.ts): Vite, Express, and FastAPI are cloned, built through the managed rootless buildkitd, started with restart=always and the declared port published, probed, and fetched over HTTP; the no-listener app exits 4 with the container removed, image and app directory kept, unhealthy state recorded, and the log tail plus config remediation printed. Fixed attempt 1's incomplete probe-failure vocabulary (the host reports 'connection closed' for a published port with no container listener) and added proof that the log tail reaches stderr. Typecheck, lint, 529 unit tests, and EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts (6/6, exit 0, 678.6s) pass; the suite fails rather than skips without the gate; host audit confirms no container, volume, image, daemon, or temporary root was orphaned.",
+    "decisions": [
+      "Healthy fixtures drive the production addApp composition (real file:// clone, pinned Railpack 0.43.0, managed buildkitd, Podman, bounded probe); the failure path drives runAddCommand with --json so the CLI exit code and remediation are asserted, not the library exception.",
+      "The no-listener case is a test-owned git repo whose Node server ignores PORT and binds 3000 while add declares container port 3001, so the published port has no listener behind it without needing a broken image.",
+      "Attempt 1 failed because the probe reports 'connection closed' (UND_ERR_SOCKET) for that topology; the assertion now uses the full NETWORK_FAILURE_MESSAGES vocabulary from src/health/probe.ts instead of an ad-hoc subset, and was strengthened to require state.json's detail to contain the exact reason returned to the operator and stderr to carry the container log tail.",
+      "Setup refuses to run when an easy-host-buildkitd container already exists, so the suite never clobbers an operator daemon; every app name, socket, and state root is unique per run.",
+      "Evidence is written to EASY_HOST_ADD_EVIDENCE (default OS temp) after each add and after cleanup, and is not committed."
+    ],
+    "interfaces": [
+      "tests/integration/add.test.ts consumes addApp, runAddCommand, createPaths, createBuildkit, containerName, volumeName, APP_LABEL/ROLE_LABEL/IMAGE_LABEL; no product interface changed."
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test: 21 files / 529 tests passed",
+      "npm test -- tests/unit/podman.test.ts: 40 passed",
+      "npm test -- tests/unit/add.test.ts: 22 passed",
+      "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts: exit 0, 2 files / 6 tests, 678.64s",
+      "gate absent with an including config: exit 1 with the EASY_HOST_INTEGRATION collection error",
+      "post-run host audit: no easy-host containers, volumes, images, daemon, or temporary roots"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "Vitest's default reporter does not echo console.info from passing suites, so the durable record is the evidence JSON (path printed only on failure); the suite writes it after every add and after cleanup.",
+      "The uncommitted src/platform/podman.ts and tests/unit/podman.test.ts changes are platform-engineer's attempt-1 fix for Podman 5.7 'no such object' inspect output; QA verified but did not author them."
+    ],
+    "validationLimitations": [
+      "Real builds ran on x86_64 only; the Vite cold build ranged 472-509s across runs, so the suite's timeouts (15 min per test, 15 min setup, 5 min cleanup) carry headroom but remain network-dependent.",
+      "A SIGKILL of the runner itself would bypass afterAll; the suite tolerates crashes by naming every resource uniquely and verifying removal, but that path is reasoned, not exercised.",
+      "ADD-FR-04's TCP probe mode is unit-tested (tests/unit/probe.test.ts) and not re-proven on the host, because all three v1 fixtures answer over HTTP."
+    ],
+    "taskDescription": "Add the gated integration test for add. For each fixture, run add with flags into a temporary state root, assert the container is running with restart=always, the port is published, the probe succeeded, and the app is reachable over HTTP. Assert the failed-add path by pointing an app at a port with no listener and confirming the container is removed, the image remains, and the exit code is 4. Clean up containers, volumes, images, and the temporary root."
+  },
+  "nextActions": [],
+  "artifactId": "work-add-1-6-001",
+  "createdAt": "2026-10-30T03:03:41.061Z"
+}

@@ -1,0 +1,61 @@
+{
+  "type": "work.bld-1.5",
+  "category": "work",
+  "taskId": "BLD-1.5",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Implemented the BLD-1.5 doctor build-check group for Railpack presence/executable/pinned-version and bounded BuildKit socket reachability, wired it into the stable doctor composition with human and schemaVersion 1 JSON output, and verified typecheck, lint, focused tests, the full unit suite, and a build.",
+  "inputs": [
+    "work-bld-1-1-001",
+    "work-bld-1-2-001",
+    "work-pre-1-5-001",
+    "work-bld-0-1-001"
+  ],
+  "filesChanged": [
+    "src/doctor/build-checks.ts",
+    "src/doctor/index.ts",
+    "tests/unit/doctor-build.test.ts",
+    "tests/unit/doctor.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented the BLD-1.5 doctor build-check group for Railpack presence/executable/pinned-version and bounded BuildKit socket reachability, wired it into the stable doctor composition with human and schemaVersion 1 JSON output, and verified typecheck, lint, focused tests, the full unit suite, and a build.",
+    "decisions": [
+      "Doctor remains synchronous to preserve the existing CLI and command contract; the default BuildKit probe uses a short-lived shell-free node child process that performs exactly one connect with a 500 ms timeout because Node's socket API is async.",
+      "Missing Railpack is a failure rather than a skip, matching the acceptance criterion; doctor never downloads it and points remediation at the first build or EASY_HOST_RAILPACK_BIN.",
+      "EASY_HOST_RAILPACK_BIN is honored and version-probed; the managed fallback is <root>/tools/railpack.",
+      "New checks are ordered after Node.js and before disk: podman, podman-rootless, linger, git, node, railpack, buildkit, disk.",
+      "BuildKit remediation tells the operator to start the managed daemon through the next add/update build; doctor never starts it."
+    ],
+    "interfaces": [
+      "runBuildChecks(environment): DoctorCheck[]",
+      "checkRailpack(environment): DoctorCheck",
+      "checkBuildkit(environment): DoctorCheck",
+      "probeBuildkitSocketSync(socketPath, timeoutMs?): boolean",
+      "BuildCheckEnvironment, BuildkitReachabilityProbe",
+      "DoctorOptions additions: toolsDir, buildkitDir, cwd, homeDir, railpackPath, probeBuildkit"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/doctor-build.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/doctor-build.test.ts: 22 passed",
+      "npm test: 378 passed across 15 files",
+      "npm run build: exit 0",
+      "manual node dist/cli/index.js doctor --json: exit 2 with schemaVersion 1 and railpack/buildkit failure entries"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "On a fresh host with no Railpack install and no running BuildKit daemon, doctor now exits 2 by design; docs/CLI reference must add the railpack and buildkit check IDs and the new order.",
+      "Unit tests inject the socket probe; the default probe was verified against a real local unix socket, but a live BuildKit daemon proof belongs to BLD-1.6.",
+      "The default probe launches a short-lived local node child process; it is timeout-bounded, shell-free, and performs no network access."
+    ],
+    "validationLimitations": [],
+    "taskDescription": "Create the doctor build-check group: Railpack binary present and executable with the expected pinned version, and BuildKit reachable over the managed socket. Wire the group into the doctor composition and ensure doctor stays under its time budget by using connection timeouts rather than retries. Tests cover missing Railpack, wrong Railpack version, unreachable BuildKit, and the all-pass case, and assert that the check order stays stable."
+  },
+  "nextActions": [],
+  "artifactId": "work-bld-1-5-001",
+  "createdAt": "2026-10-30T00:30:05.312Z"
+}

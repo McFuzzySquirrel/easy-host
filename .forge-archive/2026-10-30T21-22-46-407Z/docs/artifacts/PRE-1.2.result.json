@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-29T22:59:49.910Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "PRE-1.2",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/platform/paths.ts",
+      "tests/unit/paths.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nNow I'll implement the paths module and its tests.\nImplementation complete. Here is the result report.\n\n## Files created or changed\n\n- `src/platform/paths.ts` (new) — state-root resolution, typed layout accessors, `ensureLayout()`, and typed failure classes.\n- `tests/unit/paths.test.ts` (new) — 24 unit tests covering resolution order, tilde expansion, mode bits, traversal rejection, and unwritable roots.\n\nNo other tracked files were modified by this task. (`docs/EXECUTION-AUDIT.jsonl` shows as modified because the engine writes to it; I did not edit it, and `docs/artifacts/` was not touched.)\n\n## Requirements satisfied\n\n- **PRE-FR-01** — Resolves `EASY_HOST_HOME`, then `XDG_DATA_HOME/easy-host`, then `~/.local/share/easy-host`; creates `apps/`, `tools/`, `buildkit/` with `0700`; refuses an unwritable root as a prerequisite failure (exit code 2).\n- **PRD-SP-05** — `appDir(name)` validates against `^[a-z0-9][a-z0-9-]{0,31}$` before the name becomes a path, blocking traversal.\n- **PRD-SP-01 (directory half)** — All created directories are `0700`; existing directories are never chmodded (PRD-SP-06).\n- **PRD-NF-02** — Failures name the failed check, the reason, and carry a remediation line.\n- **PRD-NF-07** — Tests use temporary directories, no Podman, no network, no root.\n\n## Contract notes\n\n- New interface: `Paths` (`root`, `appsDir`, `toolsDir`, `buildkitDir`, `appDir(name)`, `ensureLayout(): this`) plus `resolveStateRoot()` and `createPaths()`.\n- New error contract consumed by the top-level mapper: `StateRootError` (`exitCode: 2`, `code: \"STATE_ROOT_NOT_WRITABLE\"`, `remediation`) and `InvalidAppNameError` (`exitCode: 1`, `code: \"INVALID_APP_NAME\"`). PRE-1.3 must honor a numeric `exitCode` property on thrown errors, because `src/cli/errors.ts` does not exist yet and was intentionally not created here.\n- No command, flag, JSON field, config key, or file-mode change.\n\n## Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | Pass (exit 0) |\n| `npm test -- tests/unit/paths.test.ts` | Pass — 24/24 tests |\n| `npm test` | Pass — 27/27 tests across 2 files |\n| `npm run lint` | Pass — 9 files checked, no errors |\n| `npm run build` | Pass — emitted `dist/`; `node dist/cli/index.js` prints `0.1.0` |\n\nNote: `node_modules` was absent in the sandbox, so `npm ci --no-audit --no-fund` was run before validation (install only, no dependency changes).\n\n## Default assumptions applied\n\n- Empty `EASY_HOST_HOME`/`XDG_DATA_HOME` is treated as unset.\n- Relative environment paths are resolved against the process CWD.\n- Writability is checked on the nearest existing ancestor of the root; existing roots are not chmodded.\n- `~user` (without a slash) is not expanded; only `~` and `~/...` are.\n\n```forge-result\n{\"summary\":\"Implemented PRE-FR-01 state-root resolution in src/platform/paths.ts with 0700 layout creation, path-traversal-safe appDir, and typed exit-code-2/1 prerequisite and usage errors; added tests/unit/paths.test.ts covering all three resolution orders, tilde expansion, mode bits, idempotency, out-of-root isolation, and unwritable/file roots. Typecheck, focused and full unit suites, lint, and build all pass.\",\"unresolved\":[],\"decisions\":[\"StateRootError and InvalidAppNameError carry public exitCode/code/remediation fields instead of importing src/cli/errors.ts, which PRE-1.3 owns; the top-level mapper must honor the numeric exitCode property.\",\"appDir enforces the REG-FR-02 name pattern as a path-traversal defense even though name derivation lands later in src/config/name.ts.\",\"Empty EASY_HOST_HOME/XDG_DATA_HOME values are treated as unset; relative environment paths resolve against the process CWD.\",\"Writability is verified on the nearest existing ancestor before any mkdir, with EACCES/EPERM/EROFS/EEXIST/ENOTDIR/ENOSPC converted to StateRootError; existing directories are never chmodded.\"],\"interfaces\":[\"Paths: root, appsDir, toolsDir, buildkitDir, appDir(name), ensureLayout(): this\",\"resolveStateRoot(options?) and createPaths(options?) with env/homeDir/cwd/isWritable injection\",\"StateRootError { exitCode: 2, code: STATE_ROOT_NOT_WRITABLE, remediation }; InvalidAppNameError { exitCode: 1, code: INVALID_APP_NAME, remediation }\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm test -- tests/unit/paths.test.ts: 24/24 passed\",\"npm test: 27/27 passed\",\"npm run lint: exit 0\",\"npm run build: exit 0; node dist/cli/index.js prints 0.1.0\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 135690,
+    "usage": {
+      "inputTokens": 40133,
+      "outputTokens": 8083,
+      "reasoningTokens": 13926,
+      "cacheReadTokens": 867456,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.021827717999999992,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/paths.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented PRE-FR-01 state-root resolution in src/platform/paths.ts with 0700 layout creation, path-traversal-safe appDir, and typed exit-code-2/1 prerequisite and usage errors; added tests/unit/paths.test.ts covering all three resolution orders, tilde expansion, mode bits, idempotency, out-of-root isolation, and unwritable/file roots. Typecheck, focused and full unit suites, lint, and build all pass.",
+    "unresolved": [],
+    "decisions": [
+      "StateRootError and InvalidAppNameError carry public exitCode/code/remediation fields instead of importing src/cli/errors.ts, which PRE-1.3 owns; the top-level mapper must honor the numeric exitCode property.",
+      "appDir enforces the REG-FR-02 name pattern as a path-traversal defense even though name derivation lands later in src/config/name.ts.",
+      "Empty EASY_HOST_HOME/XDG_DATA_HOME values are treated as unset; relative environment paths resolve against the process CWD.",
+      "Writability is verified on the nearest existing ancestor before any mkdir, with EACCES/EPERM/EROFS/EEXIST/ENOTDIR/ENOSPC converted to StateRootError; existing directories are never chmodded."
+    ],
+    "interfaces": [
+      "Paths: root, appsDir, toolsDir, buildkitDir, appDir(name), ensureLayout(): this",
+      "resolveStateRoot(options?) and createPaths(options?) with env/homeDir/cwd/isWritable injection",
+      "StateRootError { exitCode: 2, code: STATE_ROOT_NOT_WRITABLE, remediation }; InvalidAppNameError { exitCode: 1, code: INVALID_APP_NAME, remediation }"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm test -- tests/unit/paths.test.ts: 24/24 passed",
+      "npm test: 27/27 passed",
+      "npm run lint: exit 0",
+      "npm run build: exit 0; node dist/cli/index.js prints 0.1.0"
+    ]
+  }
+}

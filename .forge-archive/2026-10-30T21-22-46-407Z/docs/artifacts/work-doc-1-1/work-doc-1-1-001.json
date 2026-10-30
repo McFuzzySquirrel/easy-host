@@ -1,0 +1,60 @@
+{
+  "type": "work.doc-1.1",
+  "category": "work",
+  "taskId": "DOC-1.1",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Added DOC-FR-06 packaging fields and a gated clean-prefix tarball install suite; typecheck, lint, packaging (10/10), and full unit tests (809/809) pass.",
+  "inputs": [
+    "work-pre-1-1-001",
+    "work-rbk-1-6-001",
+    "work-rbk-1-4-001",
+    "work-rbk-1-5-001",
+    "work-obs-1-1-001",
+    "work-obs-1-2-001",
+    "work-obs-1-3-001",
+    "work-obs-1-4-001"
+  ],
+  "filesChanged": [
+    "package.json",
+    "tests/packaging/install.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Added DOC-FR-06 packaging fields and a gated clean-prefix tarball install suite; typecheck, lint, packaging (10/10), and full unit tests (809/809) pass.",
+    "decisions": [
+      "Kept private:true to enforce the no-registry-publish constraint while still allowing npm pack and global tarball installs.",
+      "Removed dist before npm pack so the build must come from prepare, then restored the developer's original build output.",
+      "Sanitized inherited npm_config_local_prefix/prefix values in child npm invocations so nested runs cannot target an unrelated project.",
+      "The installed help parser reads exactly two-space command indents, ignoring wrapped description lines."
+    ],
+    "interfaces": [
+      "package.json files: dist, completions, README.md, LICENSE, docs/operations, docs/reference",
+      "package.json prepare: npm run build"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm run test:packaging: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run test:packaging: exit 0 (10 tests)",
+      "npm run lint: exit 0 (3 pre-existing infos)",
+      "npm test: exit 0 (809 tests)",
+      "Temporary prepare removal made the packaging suite fail, proving the prepare assertion is non-vacuous"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "LICENSE, completions/, docs/operations/, and docs/reference/ are declared in files but do not exist yet; DOC-1.2 through DOC-1.5 must create them for the final release tarball.",
+      "Direct npm install -g git+<url>#<tag> fails under npm 11.20 here because git-dependency preparation runs prepare before devDependencies are installed; the documented git-tag path uses a clone at the tag followed by npm install and npm install -g .",
+      "The packaging suite requires the npm registry for runtime dependencies and devDependencies for npm pack's prepare step."
+    ],
+    "validationLimitations": [
+      "Installation was proven into a temporary global prefix, not the host system prefix.",
+      "The clone and git-tag install paths were manually probed, not added to the automated packaging suite."
+    ],
+    "taskDescription": "Update package.json with a files list containing dist, completions, README.md, LICENSE, and docs/operations and docs/reference; set bin.easy-host to dist/cli/index.js; set engines.node to >=24; add a prepare script that builds; and add test:packaging. Write tests/packaging/install.test.ts to run npm pack, install the tarball into a clean temporary prefix, and assert the installed easy-host binary prints the package version and lists ten commands. Add scripts/pack-smoke.mjs if a shell wrapper is clearer than inline test code. Document the three install paths in the test output on failure. Tests also assert the tarball contains no source test files and no secrets file."
+  },
+  "nextActions": [],
+  "artifactId": "work-doc-1-1-001",
+  "createdAt": "2026-10-30T19:40:10.480Z"
+}

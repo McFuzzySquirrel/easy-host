@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-29T23:19:50.549Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "REG-1.1",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/config/schema.ts",
+      "src/config/parse.ts",
+      "tests/unit/config-parse.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file to understand the task.\nI'll explore the project structure and referenced docs before implementing.\nNow I have the requirements. Let me implement the schema and parser.\nImplemented and verified. Summary of work:\n\n**Changed/created files**\n- `src/config/schema.ts` — zod `AppSpec` schema, defaults, allowlists, typed `ConfigValidationError`\n- `src/config/parse.ts` — strict TOML parse, object validation, comment-preserving serializer\n- `tests/unit/config-parse.test.ts` — 65 focused tests covering defaults, exclusivity, every rejection class, traversal, secret safety, and comment round-trips\n\n**Validation**\n- `npm run typecheck` → exit 0\n- `npm test -- tests/unit/config-parse.test.ts` → 65 passed\n- `npm run lint` → exit 0\n- `npm test` → 164 passed across 6 files\n- `npm run build` → exit 0\n\n```forge-result\n{\"summary\":\"Implemented the zod AppSpec schema and strict TOML parser/serializer with documented defaults, repo/local_path exclusivity, allowlisted ports and binds, path-traversal rejection, secret-safe keyed errors, and comment-preserving round-trip; all required and focused checks pass.\",\"unresolved\":[],\"decisions\":[\"Config keys: repo, local_path, ref, port, container_port, bind, probe, health_path, health_interval_ms, health_timeout_ms, health_startup_ms, env_file, volumes, env. Inline env is parsed as data now; secrets merging remains REG-1.5.\",\"volumes is a TOML table mapping a volume name to an absolute container path, matching the documented name:container-path CLI shape.\",\"local_path and env_file are app-directory-relative; absolute paths and any '..' segment are rejected. This is the traversal defence required by REG-FR-01/PRD-SP-05.\",\"container_port uses the same 1024-65535 unprivileged range as port because REG-FR-01 states the range without distinguishing the two fields.\",\"Validation errors are UsageError subclasses with exit code 1 and code INVALID_CONFIG; details carry file, reason, setting, received, and TOML line/column without env values.\",\"serializeConfig accepts an optional source and also remembers the parsed source in a WeakMap, so a plain parse/serialize round-trip preserves comments.\"],\"interfaces\":[\"appSpecSchema, AppSpec, AppSpecInput\",\"APP_SPEC_DEFAULTS, APP_SPEC_KEYS, BIND_ADDRESSES, PROBE_KINDS, MIN_HOST_PORT, MAX_PORT\",\"VOLUME_NAME_PATTERN, ENV_NAME_PATTERN, isValidRef\",\"ConfigValidationError { exitCode: 1, code: INVALID_CONFIG, setting }\",\"parseConfigToml(source, { file? }): AppSpec\",\"validateAppSpec(input, { file? }): AppSpec\",\"serializeConfig(spec, { source? }): string\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm test -- tests/unit/config-parse.test.ts: 65 passed\",\"npm run lint: exit 0\",\"npm test: 164 passed across 6 files\",\"npm run build: exit 0\"],\"warnings\":[\"Contract addition for other agents/docs: INVALID_CONFIG error code and detail fields setting/received/reason/line/column.\",\"The accepted config key set now includes env and volumes; docs should reflect the volume table shape and relative-path rules.\",\"No file-mode changes: this module performs no filesystem writes; atomic 0644/0600 writes remain REG-1.3 scope.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 362491,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 545911 (line 4985 column 899)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/config-parse.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented the zod AppSpec schema and strict TOML parser/serializer with documented defaults, repo/local_path exclusivity, allowlisted ports and binds, path-traversal rejection, secret-safe keyed errors, and comment-preserving round-trip; all required and focused checks pass.",
+    "unresolved": [],
+    "decisions": [
+      "Config keys: repo, local_path, ref, port, container_port, bind, probe, health_path, health_interval_ms, health_timeout_ms, health_startup_ms, env_file, volumes, env. Inline env is parsed as data now; secrets merging remains REG-1.5.",
+      "volumes is a TOML table mapping a volume name to an absolute container path, matching the documented name:container-path CLI shape.",
+      "local_path and env_file are app-directory-relative; absolute paths and any '..' segment are rejected. This is the traversal defence required by REG-FR-01/PRD-SP-05.",
+      "container_port uses the same 1024-65535 unprivileged range as port because REG-FR-01 states the range without distinguishing the two fields.",
+      "Validation errors are UsageError subclasses with exit code 1 and code INVALID_CONFIG; details carry file, reason, setting, received, and TOML line/column without env values.",
+      "serializeConfig accepts an optional source and also remembers the parsed source in a WeakMap, so a plain parse/serialize round-trip preserves comments."
+    ],
+    "interfaces": [
+      "appSpecSchema, AppSpec, AppSpecInput",
+      "APP_SPEC_DEFAULTS, APP_SPEC_KEYS, BIND_ADDRESSES, PROBE_KINDS, MIN_HOST_PORT, MAX_PORT",
+      "VOLUME_NAME_PATTERN, ENV_NAME_PATTERN, isValidRef",
+      "ConfigValidationError { exitCode: 1, code: INVALID_CONFIG, setting }",
+      "parseConfigToml(source, { file? }): AppSpec",
+      "validateAppSpec(input, { file? }): AppSpec",
+      "serializeConfig(spec, { source? }): string"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm test -- tests/unit/config-parse.test.ts: 65 passed",
+      "npm run lint: exit 0",
+      "npm test: 164 passed across 6 files",
+      "npm run build: exit 0"
+    ],
+    "warnings": [
+      "Contract addition for other agents/docs: INVALID_CONFIG error code and detail fields setting/received/reason/line/column.",
+      "The accepted config key set now includes env and volumes; docs should reflect the volume table shape and relative-path rules.",
+      "No file-mode changes: this module performs no filesystem writes; atomic 0644/0600 writes remain REG-1.3 scope."
+    ]
+  }
+}

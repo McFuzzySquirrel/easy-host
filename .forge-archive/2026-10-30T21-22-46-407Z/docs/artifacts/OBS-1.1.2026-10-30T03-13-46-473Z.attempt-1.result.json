@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T03:13:46.473Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "OBS-1.1",
+  "attempt": 1,
+  "outcome": "failed",
+  "reason": "forge-result.unresolved must be a string array; use [] when no blocking requirements remain.",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/cli/json.ts",
+      "src/cli/schemas.ts",
+      "tests/unit/json.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and the referenced documentation.\nNow I have the full picture. Let me create the schema module first.\nNow the focused test suite:\nImplemented and verified the frozen JSON output contract.\n\n## Result report\n\n**Requirement coverage**\n- **OBS-FR-01** — `src/cli/json.ts` now owns serializers for `list`, `status`, `doctor`, `config`, and `version`. Each emits one document with `schemaVersion: 1`, stable field names, typed booleans/numbers, `null` for unknown scalar facts, and always-present arrays (`apps`, `checks`, `ports`, `volumes`). Timestamps are normalised to ISO 8601 UTC with `Z`. Every string passes through the shared redactor; every `[env]` value becomes `[redacted]`.\n- **OBS-NF-01** — Handlers select the JSON serializer only when `json` is true and write through `writeJsonDocument` to stdout. `config --edit` narration remains on stderr; error documents keep their existing stdout contract.\n- **OBS-NF-02** — All prior field names are preserved; `src/cli/schemas.ts` documents additive-only evolution and the version-bump rule. No renames or removals.\n- **PRD §12.1 / §16** — No commands or flags were added; the contract stays inside the ten-command surface and remains telemetry-free.\n\n**Contract notes**\n- Timestamps previously passed through as-is; they are now converted with `toIsoUtc(...)` (offsets become `Z`, invalid values become `null`). This is a tightening, not a field change.\n- `[env]` values are `[redacted]` in `status` and `config`; nested spec strings are ANSI- and URL-credential-scrubbed.\n- Empty arrays are never omitted: `{\"schemaVersion\":1,\"apps\":[]}` for an empty registry, `[]` for no ports/volumes.\n- Doctor’s document is consumed from the shared serializer; check order and fields (`id`, `status`, `detail`, `remediation`) are unchanged.\n\n**Validation**\n- `npm run typecheck` → exit 0\n- `npm run lint` → exit 0\n- `npm test -- tests/unit/json.test.ts` → 18 passed\n- `npm test -- tests/unit/json.test.ts tests/unit/read-commands.test.ts tests/unit/doctor.test.ts tests/unit/program.test.ts` → 91 passed\n- `npm test` → 585 passed across 23 files\n- `npm run build` → exit 0\n- Manual `node dist/cli/index.js version --json` → one `schemaVersion: 1` document\n- Manual `node dist/cli/index.js doctor --json` → one document, 8 checks, no ANSI, 1.06 s; exit 2 reflects this host’s real missing prerequisites\n\n**Created**\n- `src/cli/schemas.ts`\n- `src/cli/json.ts`\n- `tests/unit/json.test.ts`\n\n**Changed**\n- `src/cli/commands/list.ts`\n- `src/cli/commands/status.ts`\n- `src/cli/commands/config.ts`\n- `src/cli/commands/read-model.ts`\n- `src/cli/program.ts`\n- `src/doctor/index.ts`\n\n```forge-result\n{\"summary\":\"Freezes the JSON output contract in src/cli/schemas.ts and src/cli/json.ts, routes list, status, config, doctor, and version through the shared serializers, normalises timestamps to ISO 8601 UTC, preserves empty arrays and typed values, and redacts every [env] value and ANSI/URL-credential string. Typecheck, lint, the 18-test focused suite, the 585-test full unit suite, build, and manual version/doctor JSON checks pass.\",\"decisions\":[\"All document types live in src/cli/schemas.ts and all projections in src/cli/json.ts; command modules re-export the old names so existing imports keep working.\",\"Timestamps are normalised through toIsoUtc: Date and offset strings become UTC ...Z, unparseable values become null.\",\"Every emitted string is passed through redactText, and redactedSpec recursively preserves config structure while replacing all [env] values with [redacted].\",\"serializeJson/writeJsonDocument are the only JSON writers used by command handlers, keeping human narration and error text on their existing streams.\",\"No field renames or removals were made; schemaVersion stays 1 and additive fields remain allowed under OBS-NF-02.\"],\"interfaces\":[\"JSON_SCHEMA_VERSION, VersionDocument, ListDocument, StatusDocument, DoctorDocument, ConfigDocument, JsonDocument, AppStatusLabel in src/cli/schemas.ts\",\"toIsoUtc, redactedSpec, toVersionDocument, toListDocument, toStatusDocument, toDoctorDocument, toConfigDocument, serializeJson, writeJsonDocument in src/cli/json.ts\",\"runListCommand/runStatusCommand/runConfigCommand select JSON via their existing json option; runDoctorCommand and the version command use the same serializer.\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/json.test.ts: 18 passed\",\"npm test -- tests/unit/json.test.ts tests/unit/read-commands.test.ts tests/unit/doctor.test.ts tests/unit/program.test.ts: 91 passed\",\"npm test: 585 passed across 23 files\",\"npm run build: exit 0\",\"node dist/cli/index.js version --json: schemaVersion 1 document\",\"node dist/cli/index.js doctor --json: one document, 8 checks, no ANSI, 1.06 s, exit 2 from real host prerequisites\"],\"warnings\":[\"Wiring the async read-command handlers into program.ts action dispatch is unchanged from ADD-1.5; program.ts still uses placeholders for list, status, logs, and config, while their handlers already select the shared JSON serializer when json is true.\",\"Doctor on this host exits 2 because real prerequisites are missing; that is host state, not a JSON contract failure.\"],\"validationLimitations\":[\"The manual doctor run reports this host's actual check results; no attempt was made to make the host healthy.\",\"No real Podman container was needed: the JSON suite injects the runtime and registry/state fixtures use real temporary files.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 343155,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Expected property name or '}' in JSON at position 547412 (line 3898 column 4)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "failed",
+      "reason": "forge-result.unresolved must be a string array; use [] when no blocking requirements remain."
+    },
+    {
+      "gate": "requirements",
+      "status": "skipped",
+      "reason": "Not reached"
+    },
+    {
+      "gate": "validation",
+      "status": "skipped",
+      "reason": "Not reached"
+    }
+  ]
+}

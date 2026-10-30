@@ -1,0 +1,18 @@
+{
+  "type": "work.bld-0.1",
+  "category": "work",
+  "taskId": "BLD-0.1",
+  "producedBy": "human-reviewer",
+  "status": "complete",
+  "summary": "Operator evidence verified for Verify Railpack and BuildKit on rootless Podman 5.7.0",
+  "filesChanged": [
+    "docs/reviews/buildkit-spike.json"
+  ],
+  "inputs": [],
+  "payload": {
+    "reviewFile": "docs/reviews/buildkit-spike.json"
+  },
+  "nextActions": [],
+  "artifactId": "work-bld-0-1-001",
+  "createdAt": "2026-10-30T00:04:17.283Z"
+}

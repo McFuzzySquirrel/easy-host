@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T01:12:09.502Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "ADD-1.1",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/platform/git.ts",
+      "tests/unit/git.test.ts"
+    ],
+    "stdout": "Now I have enough context. Let me implement the git adapter.\n## Result\n\nImplemented `src/platform/git.ts` and `tests/unit/git.test.ts` for `ADD-1.1` / `ADD-FR-02`.\n\n### Adapter contract\n\n| Operation | Exact argument array | Timeout |\n|---|---|---|\n| clone | `git clone --no-checkout -- <repo> <appDir>/workspace` | `GIT_CLONE_TIMEOUT_MS` = 300 000 ms |\n| fetch | `git -C <workspace> fetch --prune --tags origin` | `GIT_FETCH_TIMEOUT_MS` = 120 000 ms |\n| ref resolve | `git -C <workspace> rev-parse --verify --quiet refs/remotes/origin/<ref>^{commit}`, then `<ref>^{commit}` | `GIT_REV_PARSE_TIMEOUT_MS` = 15 000 ms |\n| checkout | `git -C <workspace> checkout --detach <resolved-commit>` | `GIT_CHECKOUT_TIMEOUT_MS` = 60 000 ms |\n\nEvery call goes through the injectable `GitRunner` with `GIT_TERMINAL_PROMPT=0`, `LC_ALL=C`, and `LANG=C`, inheriting the operator's environment so the SSH agent/credential helper still works. The default runner is shell-free `spawnSync`.\n\n### Failure mapping\n\n- Missing repository → `BuildError` exit 3, `GIT_REPOSITORY_NOT_FOUND`\n- Authentication failure → `BuildError` exit 3, `GIT_AUTHENTICATION_FAILED`\n- Unknown ref → `BuildError` exit 3, `GIT_UNKNOWN_REF` (detected before `checkout`, never a raw pathspec error)\n- Missing git binary / spawn failure → `PrerequisiteError` exit 2, `GIT_UNAVAILABLE`\n- Generic clone/fetch/checkout/rev-parse failure → exit 3 with operation-specific code\n- Invalid ref/repo/local path → `UsageError` exit 1\n- Occupied non-checkout workspace → `ConflictError` exit 6\n\nURL credentials are redacted before entering any summary, detail, or remediation. `--local` resolves an app-relative directory, validates it is an existing directory, returns it in place with `devOnly: true`, `mode: \"local\"`, and copies nothing. The clone target is always derived as `<appDir>/workspace`; the repository/ref values cannot redirect it.\n\n### Validation\n\n- `npm run typecheck` — pass\n- `npm run lint` — pass\n- `npm test -- tests/unit/git.test.ts` — 32 tests pass\n- `npm test` — 425 tests across 17 files pass\n- `npm run build` — pass\n\nReal-git tests use a temporary bare repository (clone, non-default branch, tag, re-fetch of a new upstream commit, missing repo, unknown ref); recording-runner tests assert exact argument arrays, timeouts, env, auth failure, redaction, timeout handling, local mode, and confinement.\n\n### Files created\n\n- `src/platform/git.ts`\n- `tests/unit/git.test.ts`\n\n```forge-result\n{\"summary\":\"Implemented ADD-FR-02 git workspace preparation with clone/fetch/checkout, confined workspace targets, distinct missing-repository/auth/unknown-ref failures, credential redaction, and no-copy local mode; typecheck, lint, 32 focused tests, the 425-test unit suite, and the build pass.\",\"unresolved\":[],\"decisions\":[\"Git adapter exposes an injectable GitRunner; the default runner is shell-free spawnSync with finite timeouts, and the shared platform runner can replace it structurally.\",\"Ref resolution prefers refs/remotes/origin/<ref> so a freshly fetched branch is used, then falls back to the ref itself for tags and commits; unresolved refs are reported as GIT_UNKNOWN_REF before checkout.\",\"Failure mapping: missing repository/auth/unknown ref are BuildError exit 3; missing git is PrerequisiteError exit 2; invalid repo/ref/local path is UsageError exit 1; an occupied non-checkout workspace is ConflictError exit 6.\",\"URL credentials are redacted from error summaries, details, and remediations, not only at the renderer boundary.\",\"Local mode resolves the app-relative directory in place, marks devOnly true, and never copies or creates workspace/.\",\"Every git child gets GIT_TERMINAL_PROMPT=0 and LC_ALL=C; the rest of process.env is inherited so the operator's SSH agent and credential helper are used.\"],\"interfaces\":[\"prepareWorkspace(options): Promise<PreparedWorkspace>\",\"cloneWorkspace(options), fetchWorkspace(options), checkoutWorkspace(options)\",\"resolveLocalWorkspace(appDir, localPath), workspacePath(appDir), redactRepositoryUrl(repo), classifyGitFailure(output)\",\"GitRunner, GitCommandResult, GitCommandOptions\",\"PreparedWorkspace {app, appDir, workspace, mode: git|local, repo|undefined, ref|undefined, commit|undefined, devOnly, cloned, fetched}\",\"GIT_CLONE_TIMEOUT_MS, GIT_FETCH_TIMEOUT_MS, GIT_CHECKOUT_TIMEOUT_MS, GIT_REV_PARSE_TIMEOUT_MS, GIT_CHILD_ENVIRONMENT, GIT_FAILURE_CODES\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/git.test.ts: exit 0 (32 tests)\",\"npm test: exit 0 (425 tests, 17 files)\",\"npm run build: exit 0\"],\"warnings\":[\"Authentication failure and URL-credential redaction are proven with an injected runner because the test environment has no credentialed remote; real-git tests cover bare-repo clone, branch, tag, re-fetch, missing repository, and unknown ref.\",\"The default runner blocks synchronously via spawnSync, matching the existing buildkit adapter; the shared process runner can be injected when it lands.\"],\"validationLimitations\":[\"The gated host check EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts was not run because that suite is ADD-1.6 scope and does not exist yet.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 334903,
+    "usage": {
+      "inputTokens": 81508,
+      "outputTokens": 23249,
+      "reasoningTokens": 24769,
+      "cacheReadTokens": 5141120,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.05646035999999999,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/git.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented ADD-FR-02 git workspace preparation with clone/fetch/checkout, confined workspace targets, distinct missing-repository/auth/unknown-ref failures, credential redaction, and no-copy local mode; typecheck, lint, 32 focused tests, the 425-test unit suite, and the build pass.",
+    "unresolved": [],
+    "decisions": [
+      "Git adapter exposes an injectable GitRunner; the default runner is shell-free spawnSync with finite timeouts, and the shared platform runner can replace it structurally.",
+      "Ref resolution prefers refs/remotes/origin/<ref> so a freshly fetched branch is used, then falls back to the ref itself for tags and commits; unresolved refs are reported as GIT_UNKNOWN_REF before checkout.",
+      "Failure mapping: missing repository/auth/unknown ref are BuildError exit 3; missing git is PrerequisiteError exit 2; invalid repo/ref/local path is UsageError exit 1; an occupied non-checkout workspace is ConflictError exit 6.",
+      "URL credentials are redacted from error summaries, details, and remediations, not only at the renderer boundary.",
+      "Local mode resolves the app-relative directory in place, marks devOnly true, and never copies or creates workspace/.",
+      "Every git child gets GIT_TERMINAL_PROMPT=0 and LC_ALL=C; the rest of process.env is inherited so the operator's SSH agent and credential helper are used."
+    ],
+    "interfaces": [
+      "prepareWorkspace(options): Promise<PreparedWorkspace>",
+      "cloneWorkspace(options), fetchWorkspace(options), checkoutWorkspace(options)",
+      "resolveLocalWorkspace(appDir, localPath), workspacePath(appDir), redactRepositoryUrl(repo), classifyGitFailure(output)",
+      "GitRunner, GitCommandResult, GitCommandOptions",
+      "PreparedWorkspace {app, appDir, workspace, mode: git|local, repo|undefined, ref|undefined, commit|undefined, devOnly, cloned, fetched}",
+      "GIT_CLONE_TIMEOUT_MS, GIT_FETCH_TIMEOUT_MS, GIT_CHECKOUT_TIMEOUT_MS, GIT_REV_PARSE_TIMEOUT_MS, GIT_CHILD_ENVIRONMENT, GIT_FAILURE_CODES"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/git.test.ts: exit 0 (32 tests)",
+      "npm test: exit 0 (425 tests, 17 files)",
+      "npm run build: exit 0"
+    ],
+    "warnings": [
+      "Authentication failure and URL-credential redaction are proven with an injected runner because the test environment has no credentialed remote; real-git tests cover bare-repo clone, branch, tag, re-fetch, missing repository, and unknown ref.",
+      "The default runner blocks synchronously via spawnSync, matching the existing buildkit adapter; the shared process runner can be injected when it lands."
+    ],
+    "validationLimitations": [
+      "The gated host check EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts was not run because that suite is ADD-1.6 scope and does not exist yet."
+    ]
+  }
+}

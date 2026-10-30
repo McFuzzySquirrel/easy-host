@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-29T23:31:20.913Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "REG-1.5",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/config/env.ts",
+      "tests/unit/config-env.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nNow I'll implement `src/config/env.ts`.\nThe unreadable-file path leaks the underlying OS message into diagnostics. I'll record only the errno code instead.\nAll checks pass. Let me add one integration test tying the parsed `config.toml` to `env.ts`, then re-verify.\nImplementation complete and verified.\n\n## What was built\n\n**`src/config/env.ts`** — REG-FR-06 environment assembly:\n- `parseSecretsFile()` parses `KEY=VALUE` lines with blank lines, full-line comments, inline comments on unquoted values, literal single-quoted values, double-quoted values with `\\n`/`\\r`/`\\t`/escaped quotes, CRLF, and UTF-8 BOM. Duplicate keys keep the last value.\n- `mergeEnvironment()` applies the inline `[env]` table first and the secrets file second, so file values win.\n- `loadEnvironment()` reads the default `<app>/secrets.env` when present, or the app-relative `env_file` from `config.toml`. A declared-but-missing file is a usage error (exit 1); an unreadable file is a prerequisite error (exit 2). A second lexical containment check rejects paths escaping the app directory.\n- `redactEnvironment()` and `ContainerEnvironment.redacted` expose a diagnostics-safe name → `[redacted]` view.\n- Parse errors carry the file and line only — never the value. The unreadable-file path records only the errno code, since a lower-level error message could quote file content.\n\n**`tests/unit/config-env.test.ts`** — 30 tests covering comments, blank lines, quotes, escapes, duplicates, invalid names with line numbers, missing declared file, traversal, unreadable file, merge precedence, config.toml integration, and redaction in text/JSON error paths.\n\n## Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm test -- tests/unit/config-env.test.ts` | 30 passed |\n| `npm run lint` | exit 0 |\n| `npm test` | 267 passed across 9 files |\n| `npm run build` | exit 0 |\n\n`npm ci` was run because `node_modules` was absent; no tracked dependency files changed.\n\n## Contract notes\n\n- New stable error codes: `INVALID_ENV_FILE` (exit 1) and `SECRETS_FILE_MISSING` (exit 1). Unreadable secrets reuse the existing `SECRETS_UNREADABLE` code (exit 2).\n- Default behavior assumption: when `env_file` is absent, `<app>/secrets.env` is still read if present (optional); `env_file` selects an alternate app-relative file and makes its absence a usage error.\n- No changes to exit-code values, JSON schemas, config keys, or file modes.\n\n## Files created/changed\n\n- `src/config/env.ts` (created)\n- `tests/unit/config-env.test.ts` (created)\n\n`docs/artifacts/REG-1.5.md` was not modified. The pre-existing engine edits to `docs/EXECUTION-AUDIT.jsonl` and `docs/WORKFLOW-STATE.json` were left untouched.\n\n```forge-result\n{\"summary\":\"Implemented REG-FR-06 environment assembly in src/config/env.ts with secrets-file parsing, inline merge where file wins, line-only invalid-name errors, missing-declared-file usage errors, and a redacted diagnostics view; 30 focused tests and all typecheck/lint/full-suite/build checks pass.\",\"unresolved\":[],\"decisions\":[\"When env_file is absent, the default <app>/secrets.env is read if present but remains optional; a declared env_file that is missing is a usage error (exit 1).\",\"Parsing supports full-line comments, inline comments on unquoted values, single-quoted literals, double-quoted escapes, CRLF, BOM, and last-value-wins duplicate keys.\",\"Unreadable files report only the errno code, not the lower-level message, so a custom reader cannot leak file content.\",\"A lexical containment re-check in loadEnvironment rejects env_file paths escaping the app directory even if the schema was bypassed.\"],\"interfaces\":[\"DEFAULT_SECRETS_FILE=\\\"secrets.env\\\"\",\"INVALID_ENV_FILE_CODE, SECRETS_FILE_MISSING_CODE\",\"EnvironmentFileError { file, line, exitCode 1, code INVALID_ENV_FILE }\",\"EnvironmentSpec = Pick<AppSpec, \\\"env\\\" | \\\"env_file\\\">\",\"parseSecretsFile(source, {file?}): Record<string,string>\",\"mergeEnvironment(inline?, secrets?): Record<string,string>\",\"redactEnvironment(environment): Record<string,string>\",\"SecretsFileReader, LoadEnvironmentOptions { read?, file? }\",\"ContainerEnvironment { values, names, redacted, file }\",\"loadEnvironment(appDir, spec, options?): ContainerEnvironment\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm test -- tests/unit/config-env.test.ts: 30 passed\",\"npm run lint: exit 0\",\"npm test: 267 passed across 9 files\",\"npm run build: exit 0\"],\"warnings\":[\"New stable codes INVALID_ENV_FILE and SECRETS_FILE_MISSING (both exit 1); unreadable secrets reuse SECRETS_UNREADABLE (exit 2), so docs should list the new codes.\",\"ContainerEnvironment.values contains secret material by design; callers must pass it only to the container runtime and use .redacted for any diagnostics.\"],\"validationLimitations\":[]}\n```\n",
+    "stderr": "",
+    "durationMs": 157387,
+    "usage": {
+      "inputTokens": 64713,
+      "outputTokens": 11913,
+      "reasoningTokens": 10325,
+      "cacheReadTokens": 1810688,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.028481813999999994,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/config-env.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented REG-FR-06 environment assembly in src/config/env.ts with secrets-file parsing, inline merge where file wins, line-only invalid-name errors, missing-declared-file usage errors, and a redacted diagnostics view; 30 focused tests and all typecheck/lint/full-suite/build checks pass.",
+    "unresolved": [],
+    "decisions": [
+      "When env_file is absent, the default <app>/secrets.env is read if present but remains optional; a declared env_file that is missing is a usage error (exit 1).",
+      "Parsing supports full-line comments, inline comments on unquoted values, single-quoted literals, double-quoted escapes, CRLF, BOM, and last-value-wins duplicate keys.",
+      "Unreadable files report only the errno code, not the lower-level message, so a custom reader cannot leak file content.",
+      "A lexical containment re-check in loadEnvironment rejects env_file paths escaping the app directory even if the schema was bypassed."
+    ],
+    "interfaces": [
+      "DEFAULT_SECRETS_FILE=\"secrets.env\"",
+      "INVALID_ENV_FILE_CODE, SECRETS_FILE_MISSING_CODE",
+      "EnvironmentFileError { file, line, exitCode 1, code INVALID_ENV_FILE }",
+      "EnvironmentSpec = Pick<AppSpec, \"env\" | \"env_file\">",
+      "parseSecretsFile(source, {file?}): Record<string,string>",
+      "mergeEnvironment(inline?, secrets?): Record<string,string>",
+      "redactEnvironment(environment): Record<string,string>",
+      "SecretsFileReader, LoadEnvironmentOptions { read?, file? }",
+      "ContainerEnvironment { values, names, redacted, file }",
+      "loadEnvironment(appDir, spec, options?): ContainerEnvironment"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm test -- tests/unit/config-env.test.ts: 30 passed",
+      "npm run lint: exit 0",
+      "npm test: 267 passed across 9 files",
+      "npm run build: exit 0"
+    ],
+    "warnings": [
+      "New stable codes INVALID_ENV_FILE and SECRETS_FILE_MISSING (both exit 1); unreadable secrets reuse SECRETS_UNREADABLE (exit 2), so docs should list the new codes.",
+      "ContainerEnvironment.values contains secret material by design; callers must pass it only to the container runtime and use .redacted for any diagnostics."
+    ],
+    "validationLimitations": []
+  }
+}

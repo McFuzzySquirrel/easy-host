@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T03:03:41.058Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "ADD-1.6",
+  "attempt": 2,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "tests/integration/add.test.ts",
+      "src/platform/podman.ts",
+      "tests/unit/podman.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file and the referenced docs.\nNow I'll fix the assertion that failed attempt 1 (the probe reports `connection closed` for a published port with no listener behind it), tightening it rather than loosening it.\nHost preconditions check out (Podman 5.7.0, docker loader present, no leftover daemon/images/volumes/temp roots). Now the gated run:\nThe run is green. Now I'll close one coverage gap in the failure path: `ADD-FR-05` requires the logs to be *printed*, and the suite currently only checks the error document, not the operator-visible log tail.\nAll checks are green. Here is the result report.\n\n## Suite under test\n\n`tests/integration/add.test.ts` — gated real-host end-to-end proof of `add`.\nRequirement IDs covered: **ADD-FR-03, ADD-FR-04, ADD-FR-05**, plus **PRD-NF-07** (gate/no-Podman unit separation) and **PRD-C-10** (only Vite/React static, Node/Express, Python/FastAPI are claimed because those are the three stacks actually built and probed).\n\n## Exact commands and results\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | **PASS** (exit 0) |\n| `npm run lint` | **PASS** (60 files, no findings) |\n| `npm test` | **PASS** — 21 files / 529 tests |\n| `npm test -- tests/unit/podman.test.ts` | **PASS** — 40 tests |\n| `npm test -- tests/unit/add.test.ts` | **PASS** — 22 tests |\n| `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts` | **PASS** — 2 files / 6 tests, exit 0, 678.6 s |\n| Gate absent: `npx vitest run --config <temp config including tests/integration>` | **FAIL as designed** — exit 1, `EASY_HOST_INTEGRATION must be set to \"1\" …` at collection (temp config deleted afterwards) |\n| Gate absent under the shipped config: `npx vitest run tests/integration/add.test.ts --exclude …` | exit 1, `No test files found` (never a silent skip) |\n\nNote: `npm run test:integration -- <file>` expands to `vitest run tests/integration <file>`, so `build.test.ts` also ran (2 of the 6 tests).\n\n### What the suite actually proves (final run)\n- **ADD-FR-03** — for each fixture, independent `podman inspect` of `easy-host-<app>`: `State.Running=true`, `HostConfig.RestartPolicy.Name=\"always\"`, `Ports[\"3000/tcp\"][0]` with `HostPort=<declared>` and `HostIp=127.0.0.1`, `Env` contains `PORT=3000`, labels `io.easy-host.app/role=app/image` correct; Express's `easy-host-<app>-data` volume is type `volume`, mounted at `/var/lib/data`, and labelled `io.easy-host.app=<app>`.\n- **ADD-FR-04** — probe result `healthy`, `state=\"healthy\"`, `target=\"http://127.0.0.1:<host-port>/\"`, and a live `GET` returns 200 with the fixture marker (Vite title, `express-api`, `fastapi-app`). Health observed at 2 attempts / ~2.0 s for every fixture, well inside the 90 s budget.\n- **ADD-FR-05** — no-listener app (server binds 3000, `add` declares container port 3001): exit **4**, `code=HEALTH_CHECK_FAILED`, `details.state=\"unhealthy\"`, reason is a documented probe network failure (`connection closed` — Podman's forwarder accepts then closes, so the earlier `connection refused|reset|timed out` list was incomplete and has been replaced by the full `NETWORK_FAILURE_MESSAGES` vocabulary from `src/platform/probe.ts`), remediation contains `easy-host update <app>` and `easy-host config <app>`, the container is gone (`container exists` false and `podman ps -a --filter name=` empty), the image is kept, `apps/<name>/config.toml` is kept, and `state.json` holds `images.current=<image>`, `containerId=null`, `health.status=\"unhealthy\"` with a detail containing the same reason. The log tail is now also asserted on **stderr** (`container logs (last 200 lines)` plus the app's own `listening on fixed port 3000` line), which is the part of ADD-FR-05 that previously had no observable proof.\n\nLive timings (evidence): Vite 509 s cold, Express 22.5 s, FastAPI 36.7 s, failed add 90 s probe budget then exit 4.\n\n### Cleanup — named actions, all confirmed\n1. `podman rm --force easy-host-<app>` for all four apps → `podman container exists` false for each.\n2. Volumes discovered by `label=io.easy-host.app=<app>` and removed with `podman volume rm --force` → re-listing the label returns nothing.\n3. Images discovered by the run's unique app prefix **and** returned refs removed with `podman rmi --force` → re-listing finds none.\n4. Managed buildkitd stopped/removed via `buildkit.stop()`; temporary state root deleted (with `podman unshare rm -rf` fallback for BuildKit's `000`/subuid directories) → path absent.\n5. Independent post-run host audit: no `easy-host*` containers, volumes, images, daemon, or `/tmp/easy-host-add-it-*` roots. The attempt-1 failing run likewise left the host clean (pre-run audit was empty).\n\n## Defect handed off earlier (not fixed by QA)\nAttempt 1 exposed that `podman inspect` on 5.7.0 reports an absent container as `Error: no such object: \"<name>\"` (exit 125), so `add` preflight saw a prerequisite failure instead of \"free name\". `platform-engineer` fixed `src/platform/podman.ts` (`isMissingInspectTarget`, anchored to that exact wording) with two unit tests; I verified the fix rather than editing it.\n\n## Files\n\n**Created/changed by me**\n- `tests/integration/add.test.ts`\n\n**Present in the working tree from attempt 1, verified but not authored by me**\n- `src/platform/podman.ts`, `tests/unit/podman.test.ts`\n\nI did not modify `docs/artifacts/ADD-1.6.md` and created no stray config files.\n\n**Evidence:** `/tmp/easy-host-add-evidence-152694.json` (final add run, `cleanup: \"ok\"`) and `/tmp/easy-host-build-evidence-152695.json`; raw logs at `/tmp/opencode/add-it-attempt2-final.log`.\n\n```forge-result\n{\"summary\":\"Added and validated the gated real-host add integration suite (tests/integration/add.test.ts): Vite, Express, and FastAPI are cloned, built through the managed rootless buildkitd, started with restart=always and the declared port published, probed, and fetched over HTTP; the no-listener app exits 4 with the container removed, image and app directory kept, unhealthy state recorded, and the log tail plus config remediation printed. Fixed attempt 1's incomplete probe-failure vocabulary (the host reports 'connection closed' for a published port with no container listener) and added proof that the log tail reaches stderr. Typecheck, lint, 529 unit tests, and EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts (6/6, exit 0, 678.6s) pass; the suite fails rather than skips without the gate; host audit confirms no container, volume, image, daemon, or temporary root was orphaned.\",\"unresolved\":[],\"decisions\":[\"Healthy fixtures drive the production addApp composition (real file:// clone, pinned Railpack 0.43.0, managed buildkitd, Podman, bounded probe); the failure path drives runAddCommand with --json so the CLI exit code and remediation are asserted, not the library exception.\",\"The no-listener case is a test-owned git repo whose Node server ignores PORT and binds 3000 while add declares container port 3001, so the published port has no listener behind it without needing a broken image.\",\"Attempt 1 failed because the probe reports 'connection closed' (UND_ERR_SOCKET) for that topology; the assertion now uses the full NETWORK_FAILURE_MESSAGES vocabulary from src/health/probe.ts instead of an ad-hoc subset, and was strengthened to require state.json's detail to contain the exact reason returned to the operator and stderr to carry the container log tail.\",\"Setup refuses to run when an easy-host-buildkitd container already exists, so the suite never clobbers an operator daemon; every app name, socket, and state root is unique per run.\",\"Evidence is written to EASY_HOST_ADD_EVIDENCE (default OS temp) after each add and after cleanup, and is not committed.\"],\"interfaces\":[\"tests/integration/add.test.ts consumes addApp, runAddCommand, createPaths, createBuildkit, containerName, volumeName, APP_LABEL/ROLE_LABEL/IMAGE_LABEL; no product interface changed.\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test: 21 files / 529 tests passed\",\"npm test -- tests/unit/podman.test.ts: 40 passed\",\"npm test -- tests/unit/add.test.ts: 22 passed\",\"EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts: exit 0, 2 files / 6 tests, 678.64s\",\"gate absent with an including config: exit 1 with the EASY_HOST_INTEGRATION collection error\",\"post-run host audit: no easy-host containers, volumes, images, daemon, or temporary roots\"],\"warnings\":[\"Vitest's default reporter does not echo console.info from passing suites, so the durable record is the evidence JSON (path printed only on failure); the suite writes it after every add and after cleanup.\",\"The uncommitted src/platform/podman.ts and tests/unit/podman.test.ts changes are platform-engineer's attempt-1 fix for Podman 5.7 'no such object' inspect output; QA verified but did not author them.\"],\"validationLimitations\":[\"Real builds ran on x86_64 only; the Vite cold build ranged 472-509s across runs, so the suite's timeouts (15 min per test, 15 min setup, 5 min cleanup) carry headroom but remain network-dependent.\",\"A SIGKILL of the runner itself would bypass afterAll; the suite tolerates crashes by naming every resource uniquely and verifying removal, but that path is reasoned, not exercised.\",\"ADD-FR-04's TCP probe mode is unit-tested (tests/unit/probe.test.ts) and not re-proven on the host, because all three v1 fixtures answer over HTTP.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 1507960,
+    "usage": {
+      "inputTokens": 87019,
+      "outputTokens": 8128,
+      "reasoningTokens": 9591,
+      "cacheReadTokens": 3513728,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.034225434,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Added and validated the gated real-host add integration suite (tests/integration/add.test.ts): Vite, Express, and FastAPI are cloned, built through the managed rootless buildkitd, started with restart=always and the declared port published, probed, and fetched over HTTP; the no-listener app exits 4 with the container removed, image and app directory kept, unhealthy state recorded, and the log tail plus config remediation printed. Fixed attempt 1's incomplete probe-failure vocabulary (the host reports 'connection closed' for a published port with no container listener) and added proof that the log tail reaches stderr. Typecheck, lint, 529 unit tests, and EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts (6/6, exit 0, 678.6s) pass; the suite fails rather than skips without the gate; host audit confirms no container, volume, image, daemon, or temporary root was orphaned.",
+    "unresolved": [],
+    "decisions": [
+      "Healthy fixtures drive the production addApp composition (real file:// clone, pinned Railpack 0.43.0, managed buildkitd, Podman, bounded probe); the failure path drives runAddCommand with --json so the CLI exit code and remediation are asserted, not the library exception.",
+      "The no-listener case is a test-owned git repo whose Node server ignores PORT and binds 3000 while add declares container port 3001, so the published port has no listener behind it without needing a broken image.",
+      "Attempt 1 failed because the probe reports 'connection closed' (UND_ERR_SOCKET) for that topology; the assertion now uses the full NETWORK_FAILURE_MESSAGES vocabulary from src/health/probe.ts instead of an ad-hoc subset, and was strengthened to require state.json's detail to contain the exact reason returned to the operator and stderr to carry the container log tail.",
+      "Setup refuses to run when an easy-host-buildkitd container already exists, so the suite never clobbers an operator daemon; every app name, socket, and state root is unique per run.",
+      "Evidence is written to EASY_HOST_ADD_EVIDENCE (default OS temp) after each add and after cleanup, and is not committed."
+    ],
+    "interfaces": [
+      "tests/integration/add.test.ts consumes addApp, runAddCommand, createPaths, createBuildkit, containerName, volumeName, APP_LABEL/ROLE_LABEL/IMAGE_LABEL; no product interface changed."
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test: 21 files / 529 tests passed",
+      "npm test -- tests/unit/podman.test.ts: 40 passed",
+      "npm test -- tests/unit/add.test.ts: 22 passed",
+      "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/add.test.ts: exit 0, 2 files / 6 tests, 678.64s",
+      "gate absent with an including config: exit 1 with the EASY_HOST_INTEGRATION collection error",
+      "post-run host audit: no easy-host containers, volumes, images, daemon, or temporary roots"
+    ],
+    "warnings": [
+      "Vitest's default reporter does not echo console.info from passing suites, so the durable record is the evidence JSON (path printed only on failure); the suite writes it after every add and after cleanup.",
+      "The uncommitted src/platform/podman.ts and tests/unit/podman.test.ts changes are platform-engineer's attempt-1 fix for Podman 5.7 'no such object' inspect output; QA verified but did not author them."
+    ],
+    "validationLimitations": [
+      "Real builds ran on x86_64 only; the Vite cold build ranged 472-509s across runs, so the suite's timeouts (15 min per test, 15 min setup, 5 min cleanup) carry headroom but remain network-dependent.",
+      "A SIGKILL of the runner itself would bypass afterAll; the suite tolerates crashes by naming every resource uniquely and verifying removal, but that path is reasoned, not exercised.",
+      "ADD-FR-04's TCP probe mode is unit-tested (tests/unit/probe.test.ts) and not re-proven on the host, because all three v1 fixtures answer over HTTP."
+    ]
+  }
+}

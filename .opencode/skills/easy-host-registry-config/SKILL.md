@@ -23,11 +23,11 @@ The filesystem is the registry. `apps/<name>/config.toml` is truth; `state.json`
 
 ## Process
 
-### Step 1: Read the owning requirement and the current schema
+### Step 1: Read the current schema
 
-Read `docs/features/03-app-registry-and-config.md` and the relevant section of `docs/features/07-observability-and-output.md`. Inspect `src/config/schema.ts`, `parse.ts`, `name.ts`, `env.ts`, `src/registry/store.ts`, `state.ts`, `ports.ts`, and `src/platform/lock.ts` with their tests.
+Inspect `src/config/schema.ts`, `parse.ts`, `name.ts`, `env.ts`, `src/registry/store.ts`, `state.ts`, `ports.ts`, and `src/platform/lock.ts` with their tests. The [architecture note](../../../docs/ARCHITECTURE.md#on-disk-state) describes the storage contract.
 
-If the schema change is not additive, then treat it as a v1 schema break: the PRD defines no migration path, so it needs an explicit decision before coding.
+If the schema change is not additive, then treat it as a v1 schema break: there is no migration path, so it needs an explicit decision from `support-lead` before coding.
 
 ### Step 2: Change the schema in one place
 

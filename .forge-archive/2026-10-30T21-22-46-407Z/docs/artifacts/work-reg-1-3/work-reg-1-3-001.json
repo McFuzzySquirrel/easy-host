@@ -1,0 +1,72 @@
+{
+  "type": "work.reg-1.3",
+  "category": "work",
+  "taskId": "REG-1.3",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Implemented the directory-as-truth registry and lenient rebuildable state cache with crash-safe atomic writes and documented file modes; typecheck, lint, build, 35 focused tests, and the full 237-test suite pass.",
+  "inputs": [
+    "work-reg-1-1-001",
+    "work-reg-1-2-001",
+    "work-pre-1-2-001",
+    "work-pre-1-1-001",
+    "work-pre-1-3-001",
+    "work-pre-1-4-001",
+    "work-pre-1-5-001"
+  ],
+  "filesChanged": [
+    "src/registry/store.ts",
+    "src/registry/state.ts",
+    "tests/unit/registry-store.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented the directory-as-truth registry and lenient rebuildable state cache with crash-safe atomic writes and documented file modes; typecheck, lint, build, 35 focused tests, and the full 237-test suite pass.",
+    "decisions": [
+      "The directory tree is authoritative: list() never reads state.json, so deleting the cache cannot remove an app.",
+      "state.json layout is {schemaVersion, name, images:{current,previous}, containerId, health:{status,checkedAt,detail}, createdAt, updatedAt}; containerId is included for OBS-FR-03 drift detection and name is for debugging only.",
+      "Only unparseable JSON, a non-object document, or a different schemaVersion forces a rebuild; other bad/missing optional fields are salvaged so partial image history is kept.",
+      "A rebuilt cache that cannot be persisted still returns usable state with persisted:false instead of failing the read (REG-FR-04, PRD-NF-06).",
+      "Rebuild createdAt comes from config.toml birth/mtime when available; updatedAt uses the injected clock. update() stamps health.checkedAt when a status is set without a timestamp.",
+      "AppState lives in src/registry/state.ts (the feature table mentions schema.ts) to keep REG-1.3 changes within its declared output files.",
+      "create() provisions the app directory and workspace/ with 0700; config.toml, secrets.env, and state.json are created by their owning writers (state lazily on first load).",
+      "Symlinked entries under apps/ are reported as broken and never followed; plain files are ignored because only directories are apps.",
+      "state.json is written with mode 0644 because it holds no secrets; config.toml is 0644 and secrets.env is 0600 as required."
+    ],
+    "interfaces": [
+      "Registry(appsDir | Paths): exists, record, list, readConfig, writeConfig, readSecrets, writeSecrets, create, remove({confirmed})",
+      "AppRecord {name, directory, configPath, secretsPath, statePath, workspacePath}",
+      "AppListEntry = OkAppEntry {status:'ok', spec} | BrokenAppEntry {status:'broken', error: EasyHostError}",
+      "writeFileAtomic(target, contents, {mode?, beforeRename?}) and AtomicWriteOptions/BeforeRenameHook",
+      "CONFIG_FILE_MODE=0644, SECRETS_FILE_MODE=0600, STATE_FILE_MODE=0644, APP_DIRECTORY_MODE=0700",
+      "StateStore(appDir, {clock?, runtime?, beforeRename?}): load, readCache, rebuild, write, update, reset",
+      "StateLoadResult {state, source:'cache'|'rebuilt', reason?:'missing'|'invalid', persisted}",
+      "AppStatePatch {images?, containerId?, health?}",
+      "isIsoTimestamp(value), STATE_SCHEMA_VERSION=1, HEALTH_STATUSES"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/registry-store.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/registry-store.test.ts: 35 passed",
+      "npm test: 237 passed across 8 files",
+      "npm run build: exit 0",
+      "compiled dist smoke test: registry list ok and state rebuilt"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "Contract addition for docs/other agents: state.json field set and semantics above; additive fields are safe, renames/removals should bump the state schemaVersion.",
+      "New stable error codes: APP_NOT_FOUND, APP_NOT_A_DIRECTORY, MISSING_CONFIG, CONFIG_UNREADABLE, SECRETS_UNREADABLE, APP_NAME_CONFLICT, CONFIRMATION_REQUIRED, APP_CREATE_FAILED, APP_DELETE_FAILED, APPS_DIRECTORY_NOT_WRITABLE, APPS_DIRECTORY_INVALID, APPS_DIRECTORY_UNREADABLE, INVALID_APPS_DIRECTORY.",
+      "File modes beyond the documented config/secrets pair: state.json 0644, app and workspace directories 0700.",
+      "Registry.create creates <root>/apps when it is absent; all other mutations stay inside a single app directory.",
+      "Stale .tmp files from a hard crash are not garbage-collected on read; they are hidden from the app listing and harmless to config parsing."
+    ],
+    "validationLimitations": [],
+    "taskDescription": "Implement store.ts and state.ts. Listing scans apps/, reads each config, and reports broken entries with the parse error instead of hiding them. Writing config.toml and secrets.env uses a same-directory temporary file plus rename with the documented modes. state.json is read leniently, rebuilt when missing or invalid, and written atomically. Deleting an app removes its directory only after the caller has confirmed. Tests use a temporary root to cover list, read, write, broken entry, missing state rebuild, corrupt state rebuild, atomic replace under a simulated write failure, and mode bits."
+  },
+  "nextActions": [],
+  "artifactId": "work-reg-1-3-001",
+  "createdAt": "2026-10-29T23:28:41.918Z"
+}

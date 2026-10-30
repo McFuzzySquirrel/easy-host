@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T03:57:43.598Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "OBS-1.3",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/registry/drift.ts",
+      "tests/unit/drift.test.ts",
+      "src/cli/commands/list.ts",
+      "src/cli/commands/read-model.ts",
+      "src/cli/commands/status.ts",
+      "src/cli/json.ts",
+      "src/cli/schemas.ts",
+      "tests/unit/format.test.ts",
+      "tests/unit/json.test.ts",
+      "tests/unit/read-commands.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nImplemented OBS-1.3: typed, read-only drift detection plus `status`/`list` wiring.\n\n### Requirement coverage\n\n- **OBS-FR-03** — Detects and labels `missing-container`, `stopped-container`, `image-mismatch`, and `unhealthy-probe`; compares recorded container id and image against the live container; also reports `none` (clean) and `unknown` (inspect failed or not checked).\n- **PRD-NF-06** — A missing/unusable `state.json` is treated as absent history (`statePresent: false`), detection still succeeds, and the app directory remains authoritative.\n- **PRD 13 / 7.3** — Drift is derived from live Podman facts, not `state.json`; the report carries a typed recommendation (`no-op`, `config-only`, `rebuild`, or `investigate`).\n- **Constraint: failed inspect is unknown, not healthy** — `status` reports `status: unknown`, preserves the inspect error's exit code, and prints `drift: unknown` with `easy-host doctor` as the next step. `list` marks the row `unknown` and likewise returns the inspect error code.\n- **Constraint: read-only** — `detectDrift` is pure; `status`/`list` use an in-memory rebuild and never persist `state.json`. Existing state-preservation tests still pass.\n\n### Contract changes (additive)\n\n- `list --json` and `status --json` now include an additive `drift` object under each app. `schemaVersion` remains `1`.\n- `list` now returns the inspect error's documented exit code (usually `2`) when Podman inspect fails, while still printing the table. `status` does the same instead of aborting with only stderr.\n- No changes to config keys, file modes, or existing exit-code values.\n\n### Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0, 74 files checked |\n| `npm test -- tests/unit/drift.test.ts` | exit 0, 24 tests passed |\n| `npm test` | exit 0, 27 files / 688 tests passed |\n| `npm run build` | exit 0 |\n| Manual `node dist/cli/index.js --help`, `list --json`, `status` | valid output; missing-container drift printed and JSON shape verified |\n\n### Files created\n\n- `src/registry/drift.ts`\n- `tests/unit/drift.test.ts`\n\n### Files changed\n\n- `src/cli/commands/read-model.ts`\n- `src/cli/commands/status.ts`\n- `src/cli/commands/list.ts`\n- `src/cli/json.ts`\n- `src/cli/schemas.ts`\n- `tests/unit/format.test.ts`\n- `tests/unit/json.test.ts`\n- `tests/unit/read-commands.test.ts`\n\n`docs/artifacts/` and `docs/artifacts/OBS-1.3.md` were not modified.\n\n```forge-result\n{\"summary\":\"Implemented typed read-only drift detection for missing-container, stopped-container, image-mismatch, and unhealthy-probe, with clean/unknown handling, a recommended update action, missing-state recovery, and status/list human and additive JSON output. Added 24 focused drift tests plus command-level drift and failed-inspect coverage; typecheck, lint, build, focused tests, and the full 688-test suite pass.\",\"unresolved\":[],\"decisions\":[\"drift.ts is pure and performs no I/O; read-model inspects Podman, maps NotFoundError to missing, and maps other failures to unknown while preserving their exit code.\",\"A rebuilt in-memory state is display-only; drift receives state:null so a deleted cache is reported as absent history instead of being compared.\",\"The recommended action mirrors update-diff precedence: image mismatch wins and requires --rebuild even when the container is also stopped; otherwise missing/stopped/unhealthy recreate from the recorded image, and a missing cache or absent current image requires a rebuild.\",\"drifted is true for any non-none class, including unknown, so consumers never mistake an unverified app for a clean one.\",\"JSON gains an additive drift object (class, drifted, statePresent, recordedImage, liveImage, containerIdMatches, summary, recommendedAction) while schemaVersion stays 1.\",\"list and status now preserve a failed inspect's documented exit code (usually 2) while still printing the full report; list still treats broken apps, missing containers, and unhealthy apps as non-fatal survey findings.\",\"status prints drift and a next command only for non-none classes, avoiding a rebuild recommendation for a clean app whose cache is merely missing.\"],\"interfaces\":[\"detectDrift(input): DriftReport; collectDriftReports(inputs); uncheckedDrift(app, reason)\",\"compareImageReferences(recorded, live): boolean | null; compareContainerIds(recorded, live): boolean | null\",\"DriftInput, DriftObservation, DriftRecordedState, DriftContainer, DriftReport, DriftAction, DriftClass, DriftIssueClass, DRIFT_CLASSES\",\"readAppStateRecord(store): { state, source: 'cache' | 'rebuilt' }; AppRow gains drift and inspectionError\",\"toDriftDocument(report): DriftDocument; ListAppDocument.drift and StatusAppDocument.drift\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/drift.test.ts: 24 passed\",\"npm test: 27 files / 688 tests passed\",\"npm run build: exit 0\",\"Manual built-CLI list --json, status, and --help checks: pass\"],\"warnings\":[\"Behavioral contract note for docs-engineer: list and status now return the inspect error exit code while printing a report; JSON list/status app objects gained the additive drift field.\"],\"validationLimitations\":[\"Drift unit coverage injects inspect observations, so no real container with a wrong image or unhealthy probe was exercised; the manual CLI run confirmed missing-container against the host Podman.\",\"No gated integration or packaging suite was run because no Podman lifecycle, build, or packaging code changed.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 580090,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Expected property name or '}' in JSON at position 546500 (line 3435 column 14)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/drift.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented typed read-only drift detection for missing-container, stopped-container, image-mismatch, and unhealthy-probe, with clean/unknown handling, a recommended update action, missing-state recovery, and status/list human and additive JSON output. Added 24 focused drift tests plus command-level drift and failed-inspect coverage; typecheck, lint, build, focused tests, and the full 688-test suite pass.",
+    "unresolved": [],
+    "decisions": [
+      "drift.ts is pure and performs no I/O; read-model inspects Podman, maps NotFoundError to missing, and maps other failures to unknown while preserving their exit code.",
+      "A rebuilt in-memory state is display-only; drift receives state:null so a deleted cache is reported as absent history instead of being compared.",
+      "The recommended action mirrors update-diff precedence: image mismatch wins and requires --rebuild even when the container is also stopped; otherwise missing/stopped/unhealthy recreate from the recorded image, and a missing cache or absent current image requires a rebuild.",
+      "drifted is true for any non-none class, including unknown, so consumers never mistake an unverified app for a clean one.",
+      "JSON gains an additive drift object (class, drifted, statePresent, recordedImage, liveImage, containerIdMatches, summary, recommendedAction) while schemaVersion stays 1.",
+      "list and status now preserve a failed inspect's documented exit code (usually 2) while still printing the full report; list still treats broken apps, missing containers, and unhealthy apps as non-fatal survey findings.",
+      "status prints drift and a next command only for non-none classes, avoiding a rebuild recommendation for a clean app whose cache is merely missing."
+    ],
+    "interfaces": [
+      "detectDrift(input): DriftReport; collectDriftReports(inputs); uncheckedDrift(app, reason)",
+      "compareImageReferences(recorded, live): boolean | null; compareContainerIds(recorded, live): boolean | null",
+      "DriftInput, DriftObservation, DriftRecordedState, DriftContainer, DriftReport, DriftAction, DriftClass, DriftIssueClass, DRIFT_CLASSES",
+      "readAppStateRecord(store): { state, source: 'cache' | 'rebuilt' }; AppRow gains drift and inspectionError",
+      "toDriftDocument(report): DriftDocument; ListAppDocument.drift and StatusAppDocument.drift"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/drift.test.ts: 24 passed",
+      "npm test: 27 files / 688 tests passed",
+      "npm run build: exit 0",
+      "Manual built-CLI list --json, status, and --help checks: pass"
+    ],
+    "warnings": [
+      "Behavioral contract note for docs-engineer: list and status now return the inspect error exit code while printing a report; JSON list/status app objects gained the additive drift field."
+    ],
+    "validationLimitations": [
+      "Drift unit coverage injects inspect observations, so no real container with a wrong image or unhealthy probe was exercised; the manual CLI run confirmed missing-container against the host Podman.",
+      "No gated integration or packaging suite was run because no Podman lifecycle, build, or packaging code changed."
+    ]
+  }
+}

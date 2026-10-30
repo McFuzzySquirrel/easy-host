@@ -1,0 +1,59 @@
+{
+  "type": "work.rbk-1.5",
+  "category": "work",
+  "taskId": "RBK-1.5",
+  "producedBy": "qa-engineer",
+  "status": "complete",
+  "summary": "Added and verified the gated real-host removal suite (tests/integration/remove.test.ts): default removal keeps the labelled volume and its data (read back from the volume mountpoint) while deleting container, image, workspace and app directory, re-add returns the same bytes over HTTP, --volumes deletes only the labelled app volume, and an unlabelled name-pattern volume is reported and never deleted. typecheck, lint, 787 unit tests, and EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts (4/4, exit 0, 264s) pass; host audit after cleanup shows no container, volume, image, daemon, or temp root. Fixed the harness's test:integration script so an appended suite path actually scopes the run instead of silently running every gated suite (attempt 2's failure), and removed the orphaned daemon/temp root from the superseded run.",
+  "inputs": [
+    "work-rbk-1-3-001",
+    "work-add-1-6-001",
+    "work-rbk-1-1-001",
+    "work-rbk-1-2-001"
+  ],
+  "filesChanged": [
+    "tests/integration/remove.test.ts",
+    "package.json",
+    "src/platform/podman.ts",
+    "tests/unit/podman.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Added and verified the gated real-host removal suite (tests/integration/remove.test.ts): default removal keeps the labelled volume and its data (read back from the volume mountpoint) while deleting container, image, workspace and app directory, re-add returns the same bytes over HTTP, --volumes deletes only the labelled app volume, and an unlabelled name-pattern volume is reported and never deleted. typecheck, lint, 787 unit tests, and EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts (4/4, exit 0, 264s) pass; host audit after cleanup shows no container, volume, image, daemon, or temp root. Fixed the harness's test:integration script so an appended suite path actually scopes the run instead of silently running every gated suite (attempt 2's failure), and removed the orphaned daemon/temp root from the superseded run.",
+    "decisions": [
+      "Scenarios drive runRemoveCommand (CLI exit code, stdout summary, stderr phases) for the removal contract, and addApp for the real clone/build/run/probe setup.",
+      "Data retention is proven twice: bytes read from the retained volume's mountpoint after removal, and bytes returned over HTTP by a re-added container on the same volume (same CreatedAt) - no assertion trusts a volume listing.",
+      "Every 'only the app volume' claim compares the full host volume set before and after: default removal must delete none, --volumes must delete exactly the labelled app volume.",
+      "The unlabelled foreign volume uses the app volume's exact name prefix plus '-foreign', so the refusal path is exercised on both a default and a --volumes removal.",
+      "An unlabelled volume with the app's name pattern is refused and reported; cleanup owns and deletes it afterwards."
+    ],
+    "interfaces": [
+      "tests/integration/remove.test.ts consumes addApp, runRemoveCommand, createPaths, createBuildkit, containerName, volumeName, APP_LABEL/ROLE_LABEL/IMAGE_LABEL, Registry; no product interface changed."
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test: 31 files / 787 tests passed",
+      "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts: 1 file / 4 tests passed, 264.02s, exit 0",
+      "Gate absent: exit 1 with the explicit EASY_HOST_INTEGRATION error when the file is collected; exit 1 (no files) under the default config - never a skip"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "The test:integration script previously appended the suite path as an OR filter and therefore ran every gated suite; it now forwards positional args exclusively (default tests/integration). This changes how other tasks' appended suite paths are interpreted, matching the documented command form.",
+      "Real builds ran on x86_64 only; the cold fixture build is network-dependent (Railpack/BuildKit acquisition), 264s with a warm cache.",
+      "A SIGKILL of the runner would bypass afterAll; unique pid+time names make retries safe, but that path is reasoned, not exercised.",
+      "npm run test:packaging exits 1 with 'No test files found' because tests/packaging does not exist yet (PKG phase not built); unrelated to this change."
+    ],
+    "validationLimitations": [
+      "Default-volume retention was proven against the rootless volume mountpoint and a re-added container; a host reboot is outside this suite (v0.1.0 human-run gate).",
+      "No packaging or docs suites exist yet in this repository, so those quality gates were not exercisable here."
+    ],
+    "taskDescription": "Add the gated integration test for removal. Add an app with a declared volume, write data into it, remove without --volumes, and assert the container, workspace, images, and app directory are gone while the volume and its data remain and are reported. Re-add the app, then remove with --volumes and assert the volume is gone. Assert an unlabelled volume with the same name pattern is not deleted."
+  },
+  "nextActions": [],
+  "artifactId": "work-rbk-1-5-001",
+  "createdAt": "2026-10-30T08:32:53.994Z"
+}

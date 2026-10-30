@@ -8,7 +8,7 @@ The command that checks the host before the first `add` is:
 easy-host doctor
 ```
 
-`doctor` exits `0` when every check passes or warns, and exits `2` when any check fails. Each failing line is followed by a `next:` remediation. It reads only local state and never installs or downloads anything. The full check list and its output contract are in the Prerequisites and Doctor feature document (`docs/features/01-prerequisites-and-doctor.md`).
+`doctor` exits `0` when every check passes or warns, and exits `2` when any check fails. Each failing line is followed by a `next:` remediation. It reads only local state and never installs or downloads anything. The full check list and its output contract are in the [CLI reference](../reference/cli.md#doctor) and in `src/doctor/index.ts`.
 
 ## Summary
 
@@ -47,7 +47,7 @@ The first command must print `5.7.0` or newer in the 5.x line. The second must p
 
 ### Why 4.9 and 6.x are excluded
 
-- **Podman 4.9.3 is out of security support** and is the package shipped by stock Ubuntu 24.04 and Debian 12. Supporting it would mean owning rootless BuildKit defects on an unmaintained runtime, so it is below the hard minimum. This is the platform finding recorded in PRD §5.4.
+- **Podman 4.9.3 is out of security support** and is the package shipped by stock Ubuntu 24.04 and Debian 12. Supporting it would mean owning rootless BuildKit defects on an unmaintained runtime, so it is below the hard minimum. This is the platform finding recorded in the [architecture note](../ARCHITECTURE.md#build-layer).
 - **Podman 6.x is excluded while that major line is unstable.** The supported window stops at `6.0.0` (exclusive). A 6.x host is rejected even if the version number looks newer. Re-entering 6.x requires a stable release and a passing rootless BuildKit spike, so there is no flag, environment variable, or config key that opts in early. `doctor` reports the found version and a downgrade starting point.
 - **Every version below 5.7.0 fails**, including 4.9.3. `doctor` exits `2` and names both the found version and `>= 5.7.0, < 6.0.0`.
 
@@ -146,7 +146,7 @@ systemctl --user enable --now podman-restart.service
 
 `add` enables this unit when it creates an app; re-running `add` for an app that already exists is rejected with a conflict, so use the direct `systemctl` command above for an existing app.
 
-The consequence of skipping both steps is the same: the app is healthy before the reboot and absent afterwards, with no easy-host command involved. Scenario 2 in the v0.1.0 gate record (`docs/reviews/v1-success-scenarios-evidence.md`) is the verified reboot case with `Linger=yes` and the unit enabled.
+The consequence of skipping both steps is the same: the app is healthy before the reboot and absent afterwards, with no easy-host command involved. Scenario 2 in the v0.1.0 gate record (`docs/operations/release-gate-v0.1.0.md`) is the verified reboot case with `Linger=yes` and the unit enabled.
 
 ## git 2.40 or newer
 
@@ -217,7 +217,7 @@ The state root is `$EASY_HOST_HOME` when set, otherwise `$XDG_DATA_HOME/easy-hos
 
 ## What was verified on this project's hosts
 
-The v0.1.0 release gate ran on Ubuntu 26.04.1 LTS (aarch64) with Podman `5.7.0` rootless, `Linger=yes`, Node.js `24.22.2`, and git `2.53.0`; `easy-host doctor` reported 10 passed, 0 warnings, 0 failed, 0 skipped. The commands, exit codes, and output are recorded in the v0.1.0 success-scenario evidence (`docs/reviews/v1-success-scenarios-evidence.md`).
+The v0.1.0 release gate ran on Ubuntu 26.04.1 LTS (aarch64) with Podman `5.7.0` rootless, `Linger=yes`, Node.js `24.22.2`, and git `2.53.0`; `easy-host doctor` reported 10 passed, 0 warnings, 0 failed, 0 skipped. The commands, exit codes, and output are recorded in the [v0.1.0 release-gate record](release-gate-v0.1.0.md).
 
 Not verified by this project: an in-place upgrade from Podman 4.9.3 on Ubuntu 24.04 or Debian 12; a real Podman 5.8.x host (only the doctor unit tests cover 5.8.9); and `podman-docker` on any distribution other than the Ubuntu gate host. The steps above are an explicit path, not a claim that every package version was exercised here.
 
@@ -225,5 +225,5 @@ Not verified by this project: an in-place upgrade from Podman 4.9.3 on Ubuntu 24
 
 - Install easy-host and run the five-command [quickstart](../../README.md#quickstart).
 - Schedule recurring updates with a [systemd user timer](systemd-timer.md).
-- Read the full check and remediation contract in `docs/features/01-prerequisites-and-doctor.md`.
-- Read the pinned build tooling in `docs/features/02-buildkit-and-railpack.md`.
+- Read the full check and remediation contract in the [CLI reference](../reference/cli.md#doctor).
+- Read the pinned build tooling in the [architecture note](../ARCHITECTURE.md#build-layer).

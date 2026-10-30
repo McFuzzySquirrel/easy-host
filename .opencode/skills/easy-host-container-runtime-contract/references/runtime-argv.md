@@ -71,7 +71,7 @@ podman run -d
 
 - Listen on a unix socket under the state root; export `BUILDKIT_HOST=unix://<socket>` to Railpack.
 - Reuse a healthy daemon; never start a second one.
-- The exact flags follow the Phase 0 spike record; any elevated option is documented and justified.
+- The exact flags are recorded in `docs/ARCHITECTURE.md#build-layer`; any elevated option is documented and justified.
 - `doctor` reports reachability without starting the daemon.
 - Never list it as an app; `list` filters `io.easy-host.role=app`.
 

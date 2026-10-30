@@ -78,4 +78,4 @@ Each path must produce a working `easy-host` binary; the packaging test covers t
 - Two-image rollback window.
 - Exit codes `0–7` as documented.
 
-Any claim that is not true of the current binary is a documentation bug, even if the PRD says it should be true.
+Any claim that is not true of the current binary is a documentation bug, even if an earlier design said it should be true.

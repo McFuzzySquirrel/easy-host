@@ -1,0 +1,63 @@
+{
+  "type": "work.obs-1.2",
+  "category": "work",
+  "taskId": "OBS-1.2",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Implemented src/cli/format.ts with TTY/NO_COLOR colour decisions, text status labels, 80-column tables, column shrinking/dropping, and full-value detail lines; routed list, status, and config through it. Added 19 format tests plus command-level TTY/NO_COLOR coverage. Typecheck, lint, focused tests, the 623-test suite, build, and manual PTY/plain/JSON checks pass.",
+  "inputs": [
+    "work-obs-1-1-001",
+    "work-add-1-4-001",
+    "work-add-1-5-001",
+    "work-add-1-6-001"
+  ],
+  "filesChanged": [
+    "src/cli/format.ts",
+    "tests/unit/format.test.ts",
+    "src/cli/commands/config.ts",
+    "src/cli/commands/list.ts",
+    "src/cli/commands/read-model.ts",
+    "src/cli/commands/status.ts",
+    "tests/unit/read-commands.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented src/cli/format.ts with TTY/NO_COLOR colour decisions, text status labels, 80-column tables, column shrinking/dropping, and full-value detail lines; routed list, status, and config through it. Added 19 format tests plus command-level TTY/NO_COLOR coverage. Typecheck, lint, focused tests, the 623-test suite, build, and manual PTY/plain/JSON checks pass.",
+    "decisions": [
+      "Colour is enabled only when NO_COLOR is absent, TERM is not dumb, and the output stream reports isTTY; status meaning always comes from the text label.",
+      "Tables shrink optional REF/IMAGE columns first, then drop them and print full values on detail lines; NAME and PORT never shrink below their content, and any value that must be clipped also appears in full on a labelled detail line.",
+      "Read commands build the formatter from their injected stdout and environment, so tests force TTY, pipe, and NO_COLOR without process globals.",
+      "Doctor output was left uncoloured; it already uses text labels and meets PRD-ACC-02 without adding colour."
+    ],
+    "interfaces": [
+      "createFormatter({stream, env, color}): Formatter; Formatter.tone/status/field/table",
+      "detectColor, noColorRequested, displayWidth, stripAnsi, wrapText, formatField, formatTable, OUTPUT_WIDTH, TableColumn, TableRow",
+      "formatListReport(rows, formatter?), formatStatusReport(rows, formatter?), formatConfigReport(record, spec, formatter?)",
+      "ReadOutputStream gained optional isTTY"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/format.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/format.test.ts: 19 passed",
+      "npm test -- tests/unit/read-commands.test.ts: 29 passed",
+      "npm test: 623 passed",
+      "npm run build: exit 0",
+      "manual PTY list: ANSI around status label; NO_COLOR/pipe: no ANSI; list --json: no ANSI"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "doctor --json exits 2 on this host because Railpack and BuildKit are absent; the JSON document itself is valid schemaVersion 1 and free of ANSI.",
+      "`formatField`'s third positional argument changed from a number to an options object; no documented CLI surface changed."
+    ],
+    "validationLimitations": [
+      "Real TTY behaviour was exercised through the built CLI under `script` and through an injected isTTY recorder, not an interactive human terminal; screen-reader behaviour was reasoned from text-only output, not tested with assistive software."
+    ],
+    "taskDescription": "Implement format.ts and route the read commands through it. Decide color from TTY and NO_COLOR, render status labels as text, fit tables to 80 columns, and move long values to a detail line rather than truncating them. Tests run with forced TTY, forced non-TTY, NO_COLOR set, and an 80-column width, asserting no ANSI escapes in non-color modes and no row wider than 80 columns."
+  },
+  "nextActions": [],
+  "artifactId": "work-obs-1-2-001",
+  "createdAt": "2026-10-30T03:32:23.146Z"
+}

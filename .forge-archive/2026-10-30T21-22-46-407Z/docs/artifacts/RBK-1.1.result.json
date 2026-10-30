@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T05:11:12.025Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "RBK-1.1",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "src/lifecycle/rollback.ts",
+      "src/cli/commands/rollback.ts",
+      "tests/unit/rollback.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nNow I'll implement `src/lifecycle/rollback.ts`.\n## Result\n\n**Transition implemented:** `rollback <app>` — validated → locked → inspected (two distinct recorded images required) → swapped (stop/remove current container, start recorded *previous* image, probe) → **kept** (pair swapped: restored becomes `current`, former current becomes `previous`, recorded in `state.json`) or **reverted** (candidate torn down, previously serving image restarted and probed; image pair untouched; exit 4).\n\n**Resources:** creates no container, volume, image, or config entry before preflight. Removes only containers (via `swap.ts`). No image, host path, config, or volume is deleted. Lock is released on every path.\n\n**Recovery path on failure:** any candidate failure after the old container stops restarts the recorded current image with its recorded spec/environment, records health/container facts only, and throws `HealthError` (exit 4) with the failed stage, candidate, serving image, recovery outcome, unchanged rollback target, and concrete next commands.\n\n**Checks run:** `npm run typecheck` ✅, `npm run lint` ✅ (80 files), `npm test -- tests/unit/rollback.test.ts` ✅ (25/25), full `npm test` ✅ (734/734 across 29 files), `npm run build` ✅. No gated host suite was run (RBK-1.4 / qa-engineer owns it).\n\nFiles created:\n- `src/lifecycle/rollback.ts`\n- `src/cli/commands/rollback.ts`\n- `tests/unit/rollback.test.ts`\n\nNo other files were modified (the pre-existing `docs/EXECUTION-AUDIT.jsonl` / `docs/WORKFLOW-STATE.json` changes are engine-generated; I did not touch them).\n\n```forge-result\n{\"summary\":\"Implemented src/lifecycle/rollback.ts (lock-scoped, two-image requirement, swap.ts reuse, swapped state pair only after a healthy probe, revert with unchanged pair and exit 4) and src/cli/commands/rollback.ts (handler plus restored/rollback-target summary), with 25 focused unit tests. Typecheck, lint, the declared focused suite, the full 734-test suite, and build pass.\",\"unresolved\":[],\"decisions\":[\"The recorded image pair is read from state.json (readCache) and must contain two distinct, non-empty references; a missing cache, a null previous, or an identical pair all exit 5 before any container operation.\",\"rollbackApp passes no state writer to swapApp: the shared swap's kept pair (previous=candidate) is wrong for rollback, so the orchestrator persists {current=restored, previous=former current} itself only after the candidate is healthy.\",\"A reverted rollback records health and container facts but omits the image pair, so a retry still targets the same older image.\",\"No builder, git, or build module is reachable from rollback; it depends only on the swap runtime/prober and the state writer.\",\"No image is removed: retention (RBK-FR-02) is RBK-1.2's scope, so rollback reports that it skipped retention rather than deleting anything.\",\"A state write failure after a healthy keep is a warning and exit 0, matching update's treatment: the app is serving and the operator is told the recorded pair is stale.\",\"The command handler is implemented but program.ts registration stays with cli-engineer, matching the update/add precedent.\"],\"interfaces\":[\"rollbackApp(request, overrides?): Promise<RollbackResult>\",\"RollbackRequest, RollbackDependencies, RollbackDependencyOverrides, RollbackResult, RollbackPhase, ROLLBACK_PHASES, ROLLBACK_FAILURE_CODES\",\"RollbackPaths-free seams: RollbackRegistry, RollbackRuntime, RollbackRecordedState, RollbackStateStore, RollbackOutput, createDefaultRollbackOutput, createDefaultRollbackRuntime, createDefaultRollbackProber\",\"runRollbackCommand(options): Promise<ExitCode>, formatRollbackResult(result): string, RollbackCommandOptions\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test -- tests/unit/rollback.test.ts: exit 0 (25/25)\",\"npm test -- tests/unit/rollback.test.ts tests/unit/update.test.ts tests/unit/swap.test.ts tests/unit/program.test.ts: exit 0 (97/97)\",\"npm test: exit 0 (734/734, 29 files)\",\"npm run build: exit 0\"],\"warnings\":[\"src/cli/program.ts still registers rollback with the not-implemented placeholder; command registration is owned by cli-engineer and was not an expected output.\",\"The gated real-host rollback suite (tests/integration/rollback.test.ts, RBK-1.4) is owned by qa-engineer and was not run here.\"],\"validationLimitations\":[\"No real Podman container swap, image, or HTTP probe was exercised; runtime, prober, and clock were injected fakes, and the state cache/registry were the real filesystem implementations under a temporary root.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 278255,
+    "usage": {
+      "inputTokens": 73118,
+      "outputTokens": 18819,
+      "reasoningTokens": 15604,
+      "cacheReadTokens": 4365568,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.044718204,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm test -- tests/unit/rollback.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Implemented src/lifecycle/rollback.ts (lock-scoped, two-image requirement, swap.ts reuse, swapped state pair only after a healthy probe, revert with unchanged pair and exit 4) and src/cli/commands/rollback.ts (handler plus restored/rollback-target summary), with 25 focused unit tests. Typecheck, lint, the declared focused suite, the full 734-test suite, and build pass.",
+    "unresolved": [],
+    "decisions": [
+      "The recorded image pair is read from state.json (readCache) and must contain two distinct, non-empty references; a missing cache, a null previous, or an identical pair all exit 5 before any container operation.",
+      "rollbackApp passes no state writer to swapApp: the shared swap's kept pair (previous=candidate) is wrong for rollback, so the orchestrator persists {current=restored, previous=former current} itself only after the candidate is healthy.",
+      "A reverted rollback records health and container facts but omits the image pair, so a retry still targets the same older image.",
+      "No builder, git, or build module is reachable from rollback; it depends only on the swap runtime/prober and the state writer.",
+      "No image is removed: retention (RBK-FR-02) is RBK-1.2's scope, so rollback reports that it skipped retention rather than deleting anything.",
+      "A state write failure after a healthy keep is a warning and exit 0, matching update's treatment: the app is serving and the operator is told the recorded pair is stale.",
+      "The command handler is implemented but program.ts registration stays with cli-engineer, matching the update/add precedent."
+    ],
+    "interfaces": [
+      "rollbackApp(request, overrides?): Promise<RollbackResult>",
+      "RollbackRequest, RollbackDependencies, RollbackDependencyOverrides, RollbackResult, RollbackPhase, ROLLBACK_PHASES, ROLLBACK_FAILURE_CODES",
+      "RollbackPaths-free seams: RollbackRegistry, RollbackRuntime, RollbackRecordedState, RollbackStateStore, RollbackOutput, createDefaultRollbackOutput, createDefaultRollbackRuntime, createDefaultRollbackProber",
+      "runRollbackCommand(options): Promise<ExitCode>, formatRollbackResult(result): string, RollbackCommandOptions"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/rollback.test.ts: exit 0 (25/25)",
+      "npm test -- tests/unit/rollback.test.ts tests/unit/update.test.ts tests/unit/swap.test.ts tests/unit/program.test.ts: exit 0 (97/97)",
+      "npm test: exit 0 (734/734, 29 files)",
+      "npm run build: exit 0"
+    ],
+    "warnings": [
+      "src/cli/program.ts still registers rollback with the not-implemented placeholder; command registration is owned by cli-engineer and was not an expected output.",
+      "The gated real-host rollback suite (tests/integration/rollback.test.ts, RBK-1.4) is owned by qa-engineer and was not run here."
+    ],
+    "validationLimitations": [
+      "No real Podman container swap, image, or HTTP probe was exercised; runtime, prober, and clock were injected fakes, and the state cache/registry were the real filesystem implementations under a temporary root."
+    ]
+  }
+}

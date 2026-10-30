@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T19:40:10.475Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "DOC-1.1",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "package.json",
+      "tests/packaging/install.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nNow let me update `package.json` with the packaging fields.\nNow I'll create the packaging test.\nLet me verify the packaging test is non-vacuous by temporarily removing the prepare script.\n## Result report\n\n### Changed files\n\n| File | Change |\n|---|---|\n| `package.json` | Added the `files` allow-list (`dist`, `completions`, `README.md`, `LICENSE`, `docs/operations`, `docs/reference`) and `prepare: \"npm run build\"`. Retained `bin.easy-host = dist/cli/index.js`, `engines.node = \">=24\"`, `private: true`, and `test:packaging`. |\n| `tests/packaging/install.test.ts` | New gated packaging suite: packs the repository, verifies the tarball, installs it into a clean temporary global prefix, and runs the installed binary. 10 tests. |\n\nNo CLI source, exit-code, JSON, config, or file-mode behavior changed. The two modified `docs/EXECUTION-AUDIT.jsonl` / `docs/WORKFLOW-STATE.json` entries were pre-existing engine writes and were not touched.\n\n### Requirements satisfied\n\n- **DOC-FR-06** — manifest packaging fields, golden bin entry, Node 24 floor, `prepare` build, and clean-prefix tarball install smoke.\n- **PRD-NF-08** — installs from a packed tarball with no registry publish; `private: true` is retained and asserted.\n- **PRD-C-12** — Node `>=24`, no single-binary build, no registry publish path.\n- **Acceptance criteria**\n  - Tarball install into a clean prefix produces a working binary — verified.\n  - Tarball excludes tests and secrets — asserted against the actual `tar` listing.\n  - Installed binary lists exactly the ten commands — parsed from the installed `--help`.\n  - `prepare` builds without a manual step — `dist` is removed before `npm pack`; the rebuilt `dist/cli/index.js` is asserted in the tarball.\n- **Constraints** — no `postinstall`/`install` hooks (asserted), no publish (`private` asserted).\n\n### Validation commands and results\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run test:packaging` | exit 0 — 1 file, **10/10 tests passed** |\n| `npm run lint` | exit 0 — 3 pre-existing informational notes elsewhere; no errors |\n| `npm test` | exit 0 — 33 files, **809/809 tests passed** (packaging excluded by the gate) |\n| `node dist/cli/index.js version` | `0.1.0` |\n| `node dist/cli/index.js --help` | lists exactly the ten documented commands |\n| `node dist/cli/index.js doctor --json` | valid `schemaVersion: 1`, no ANSI, 10 checks; exit 2 is this host's missing Railpack/BuildKit state |\n\nNon-vacuity check: temporarily removing `prepare` made the packaging suite fail at setup (dangling installed bin) and print the three install paths; `package.json` was restored and the suite re-ran green.\n\n### Contract notes\n\n- No changes to commands, flags, exit codes, JSON fields, config keys, or file modes.\n- New packaging contract: `files` allow-list and `prepare`; `private: true` continues to prevent registry publication.\n- The tarball currently contains `dist`, `package.json`, and `README.md`. `completions/`, `LICENSE`, `docs/operations/`, and `docs/reference/` are declared but do not exist yet; npm omits missing entries. Those files belong to DOC-1.2–DOC-1.5.\n\n### Warnings / limitations\n\n- The packaging test needs network access for runtime dependencies, consistent with open question 2 in the feature doc; `npm pack` also needs devDependencies because `prepare` runs `tsc`.\n- Direct `npm install -g git+<url>#<tag>` failed under npm 11.20 in this environment: its git-dependency preparation runs `prepare` before devDependencies are available. The test's failure guidance instead documents `git clone --branch v0.1.0 … && npm install && npm install -g .`, which was manually verified. This should be reflected by `docs-engineer`.\n- The automated install uses a temporary global prefix, not the host's system prefix, so it does not prove system-wide permissions. Clone/tag installation was manually probed, not automated.\n\n```forge-result\n{\"summary\":\"Added DOC-FR-06 packaging fields and a gated clean-prefix tarball install suite; typecheck, lint, packaging (10/10), and full unit tests (809/809) pass.\",\"unresolved\":[],\"decisions\":[\"Kept private:true to enforce the no-registry-publish constraint while still allowing npm pack and global tarball installs.\",\"Removed dist before npm pack so the build must come from prepare, then restored the developer's original build output.\",\"Sanitized inherited npm_config_local_prefix/prefix values in child npm invocations so nested runs cannot target an unrelated project.\",\"The installed help parser reads exactly two-space command indents, ignoring wrapped description lines.\"],\"interfaces\":[\"package.json files: dist, completions, README.md, LICENSE, docs/operations, docs/reference\",\"package.json prepare: npm run build\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run test:packaging: exit 0 (10 tests)\",\"npm run lint: exit 0 (3 pre-existing infos)\",\"npm test: exit 0 (809 tests)\",\"Temporary prepare removal made the packaging suite fail, proving the prepare assertion is non-vacuous\"],\"warnings\":[\"LICENSE, completions/, docs/operations/, and docs/reference/ are declared in files but do not exist yet; DOC-1.2 through DOC-1.5 must create them for the final release tarball.\",\"Direct npm install -g git+<url>#<tag> fails under npm 11.20 here because git-dependency preparation runs prepare before devDependencies are installed; the documented git-tag path uses a clone at the tag followed by npm install and npm install -g .\",\"The packaging suite requires the npm registry for runtime dependencies and devDependencies for npm pack's prepare step.\"],\"validationLimitations\":[\"Installation was proven into a temporary global prefix, not the host system prefix.\",\"The clone and git-tag install paths were manually probed, not added to the automated packaging suite.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 519235,
+    "usage": {
+      "source": "unavailable",
+      "note": "opencode usage unavailable: Unterminated string in JSON at position 546877 (line 6272 column 1904)"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm run test:packaging: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Added DOC-FR-06 packaging fields and a gated clean-prefix tarball install suite; typecheck, lint, packaging (10/10), and full unit tests (809/809) pass.",
+    "unresolved": [],
+    "decisions": [
+      "Kept private:true to enforce the no-registry-publish constraint while still allowing npm pack and global tarball installs.",
+      "Removed dist before npm pack so the build must come from prepare, then restored the developer's original build output.",
+      "Sanitized inherited npm_config_local_prefix/prefix values in child npm invocations so nested runs cannot target an unrelated project.",
+      "The installed help parser reads exactly two-space command indents, ignoring wrapped description lines."
+    ],
+    "interfaces": [
+      "package.json files: dist, completions, README.md, LICENSE, docs/operations, docs/reference",
+      "package.json prepare: npm run build"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run test:packaging: exit 0 (10 tests)",
+      "npm run lint: exit 0 (3 pre-existing infos)",
+      "npm test: exit 0 (809 tests)",
+      "Temporary prepare removal made the packaging suite fail, proving the prepare assertion is non-vacuous"
+    ],
+    "warnings": [
+      "LICENSE, completions/, docs/operations/, and docs/reference/ are declared in files but do not exist yet; DOC-1.2 through DOC-1.5 must create them for the final release tarball.",
+      "Direct npm install -g git+<url>#<tag> fails under npm 11.20 here because git-dependency preparation runs prepare before devDependencies are installed; the documented git-tag path uses a clone at the tag followed by npm install and npm install -g .",
+      "The packaging suite requires the npm registry for runtime dependencies and devDependencies for npm pack's prepare step."
+    ],
+    "validationLimitations": [
+      "Installation was proven into a temporary global prefix, not the host system prefix.",
+      "The clone and git-tag install paths were manually probed, not added to the automated packaging suite."
+    ]
+  }
+}

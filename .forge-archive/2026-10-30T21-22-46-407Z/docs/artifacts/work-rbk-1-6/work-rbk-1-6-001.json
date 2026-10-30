@@ -1,0 +1,18 @@
+{
+  "type": "work.rbk-1.6",
+  "category": "work",
+  "taskId": "RBK-1.6",
+  "producedBy": "human-reviewer",
+  "status": "complete",
+  "summary": "Operator evidence verified for Run the v0.1.0 release gate",
+  "filesChanged": [
+    "docs/reviews/v1-success-scenarios.json"
+  ],
+  "inputs": [],
+  "payload": {
+    "reviewFile": "docs/reviews/v1-success-scenarios.json"
+  },
+  "nextActions": [],
+  "artifactId": "work-rbk-1-6-001",
+  "createdAt": "2026-10-30T19:31:27.442Z"
+}

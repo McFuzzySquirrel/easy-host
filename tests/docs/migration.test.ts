@@ -1,10 +1,10 @@
 /**
- * Migration note checks (`DOC-FR-07`).
+ * Migration note checks.
  *
  * The note is the only place the old project name may appear, so this suite
- * keeps it honest: it must name both names, link to the README and the PRD,
- * state that the repository rename is manual, and never claim that rename has
- * already happened.
+ * keeps it honest: it must name both names, link to the README and the
+ * architecture note, state that the repository rename is manual, and never
+ * claim that rename has already happened.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -16,7 +16,7 @@ import { PODMAN_VERSION_RANGE } from "../../src/doctor/checks.js";
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const MIGRATION_PATH = join(REPO_ROOT, "docs/MIGRATION.md");
 const README_PATH = join(REPO_ROOT, "README.md");
-const PRD_PATH = join(REPO_ROOT, "docs/PRD.md");
+const DESIGN_PATH = join(REPO_ROOT, "docs/ARCHITECTURE.md");
 const MIGRATION = readFileSync(MIGRATION_PATH, "utf8");
 const README = readFileSync(README_PATH, "utf8");
 
@@ -84,13 +84,15 @@ describe("migration note", () => {
     expect(MIGRATION).toContain("easy-host");
   });
 
-  it("links to the README and the PRD", () => {
+  it("links to the README and the architecture note", () => {
     const targets = localLinkTargets(MIGRATION);
 
     expect(targets, "the migration note does not link to README.md").toContain(README_PATH);
-    expect(targets, "the migration note does not link to docs/PRD.md").toContain(PRD_PATH);
+    expect(targets, "the migration note does not link to docs/ARCHITECTURE.md").toContain(
+      DESIGN_PATH,
+    );
     expect(existsSync(README_PATH)).toBe(true);
-    expect(existsSync(PRD_PATH)).toBe(true);
+    expect(existsSync(DESIGN_PATH)).toBe(true);
   });
 
   it("is linked from the README documentation index", () => {

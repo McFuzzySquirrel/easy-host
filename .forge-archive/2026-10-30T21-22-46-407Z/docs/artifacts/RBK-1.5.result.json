@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-30T08:32:53.990Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "RBK-1.5",
+  "attempt": 3,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "tests/integration/remove.test.ts",
+      "package.json",
+      "src/platform/podman.ts",
+      "tests/unit/podman.test.ts"
+    ],
+    "stdout": "I'll start by reading the execution file.\nThe execution file is clear, and I found the real reason attempt 2 was rejected: the declared command expands to **all** integration suites, and a concurrent/leftover run had already claimed the single `easy-host-buildkitd` daemon. Let me inspect the orphaned state before acting.\nHost is clean again. Now let me fix the harness scoping problem (the declared command currently runs every integration suite) and strengthen the suite's \"only the app volume\" proof.\nTypecheck and lint are green. Now the gated real-host run of the removal suite (the declared command, now correctly scoped):\nAnother verification run of the same suite was queued and is now building (same code, same scope). While it runs, let me verify the removal implementation matches the assertions I added.\nThe queued run passed 4/4, but it started before my final edit, so I must re-run the declared command against the final file. First confirm the host is clean:\nDeclared validation passed. Now verifying the evidence contents, gate failure mode, and host cleanliness:\nGate guard proven (exit 1, explicit message). Now the final checks on the exact final file state — typecheck, lint, and the full unit suite:\n## Result report — RBK-1.5\n\n### Outcome\n`tests/integration/remove.test.ts` is complete and passing on the real host. The engine rejected attempt 2 for an environment/harness reason, not a product or suite defect: the declared command `npm run test:integration -- tests/integration/remove.test.ts` was expanding to **all** gated suites (`vitest run tests/integration <file>` treats both positionals as OR filters), and a daemon left behind by an interrupted run made add/update/rollback abort on their `easy-host-buildkitd` guard. I fixed the script so the appended path actually scopes the run, killed the orphaned verification run from the superseded attempt, cleaned its daemon/temp root, and re-ran the command end to end.\n\n### Requirement coverage (suite: `tests/integration/remove.test.ts`, 4 scenarios)\n\n| Scenario | Proves | Observed |\n|---|---|---|\n| Add `express-api` fixture with declared volume `data:/var/lib/data`, write payload over `POST /data` | setup + real volume mount | healthy add, volume labelled `io.easy-host.app`, one image |\n| Remove **without** `--volumes` | RBK-FR-03, RBK-NF-01, PRD-C-08 | exit 0; container, image, workspace, app dir, `state.json` and registry entry gone; volume kept with identical `CreatedAt`; payload read byte-for-byte from the volume mountpoint; `volumes: … (kept)` and `next: podman volume rm …` printed; unlabelled name-pattern volume listed as `refused … (unlabelled)` and untouched; **no other host volume disappeared** |\n| Re-add on the retained volume | RBK-NF-01 read-back | same volume (`CreatedAt` unchanged), payload returned over HTTP by a brand-new container, only the rebuilt image exists |\n| Remove **with** `--volumes` | RBK-FR-04, PRD-C-08 | exit 0; only the labelled app volume deleted (`volumesDeleted == [app volume]`); unlabelled name-pattern volume still present and still unlabelled; no container/image/workspace/app dir left |\n\nEvidence: `/tmp/easy-host-remove-evidence-555635.json` (`cleanup: \"ok\"`, Podman 5.7.0, x86_64), not committed.\n\n### Commands and results\n- `npm run typecheck` → **exit 0**\n- `npm run lint` → **exit 0** (87 files)\n- `npm test` → **exit 0**, 31 files / **787 tests** passed\n- `EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts` → **exit 0**, 1 file / **4 tests passed**, 264.02 s; only `remove.test.ts` collected\n- Gate check without `EASY_HOST_INTEGRATION`: default config → **exit 1, \"No test files found\"** (never a skip); with a collecting config overridden to include the file → **exit 1** with the explicit `EASY_HOST_INTEGRATION must be set to \"1\"` error\n- `npm run test:packaging` → exit 1, \"No test files found\": `tests/packaging/` does not exist in this repository yet (pre-existing, unrelated to this change; PKG phase not built)\n\n### Defect found and fixed (QA-owned harness)\n`package.json`'s `test:integration` appended the suite path as a second OR filter, so the declared validation ran add/build/remove/rollback/update sequentially on the same fixed `easy-host-buildkitd`. Attempt 1 timed out at 3600 s; attempt 2 collided with a leftover daemon. The script now forwards positional args exclusively (defaults to `tests/integration` when none are given), so `-- tests/integration/<suite>.test.ts` runs that suite only. No product module was modified.\n\n### Cleanup actions (all completed)\n- Killed the orphaned verification run (superseded attempt) and its detached `railpack build` process.\n- `podman stop` + `podman rm -f easy-host-buildkitd` (daemon left by that interrupted run).\n- Removed `/tmp/easy-host-rollback-it-p4JLur` (required `podman unshare rm -rf` for rootless BuildKit `000` work dirs).\n- Suite's own `afterAll`: app container, app images, labelled volume, unlabelled foreign volume, managed daemon, temp state root — each re-read afterwards to prove removal.\n- Removed the temporary gate-check vitest config.\n- Final audit: **0** easy-host containers, **0** easy-host volumes, **0** easy-host images, **0** temporary roots, no daemon, no stray build processes.\n\n### Files created/changed\n- created `tests/integration/remove.test.ts` (gated suite; added host-wide volume-set assertions so `--volumes` provably deletes *only* the app volume)\n- changed `package.json` (integration script scoping — the fix for the repeat validation failure)\n- untouched, pre-existing uncommitted changes left as-is: `src/platform/podman.ts`, `tests/unit/podman.test.ts` (ADD-1.6), `docs/EXECUTION-AUDIT.jsonl`, `docs/WORKFLOW-STATE.json` (engine)\n\n```forge-result\n{\"summary\":\"Added and verified the gated real-host removal suite (tests/integration/remove.test.ts): default removal keeps the labelled volume and its data (read back from the volume mountpoint) while deleting container, image, workspace and app directory, re-add returns the same bytes over HTTP, --volumes deletes only the labelled app volume, and an unlabelled name-pattern volume is reported and never deleted. typecheck, lint, 787 unit tests, and EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts (4/4, exit 0, 264s) pass; host audit after cleanup shows no container, volume, image, daemon, or temp root. Fixed the harness's test:integration script so an appended suite path actually scopes the run instead of silently running every gated suite (attempt 2's failure), and removed the orphaned daemon/temp root from the superseded run.\",\"unresolved\":[],\"decisions\":[\"Scenarios drive runRemoveCommand (CLI exit code, stdout summary, stderr phases) for the removal contract, and addApp for the real clone/build/run/probe setup.\",\"Data retention is proven twice: bytes read from the retained volume's mountpoint after removal, and bytes returned over HTTP by a re-added container on the same volume (same CreatedAt) - no assertion trusts a volume listing.\",\"Every 'only the app volume' claim compares the full host volume set before and after: default removal must delete none, --volumes must delete exactly the labelled app volume.\",\"The unlabelled foreign volume uses the app volume's exact name prefix plus '-foreign', so the refusal path is exercised on both a default and a --volumes removal.\",\"An unlabelled volume with the app's name pattern is refused and reported; cleanup owns and deletes it afterwards.\"],\"interfaces\":[\"tests/integration/remove.test.ts consumes addApp, runRemoveCommand, createPaths, createBuildkit, containerName, volumeName, APP_LABEL/ROLE_LABEL/IMAGE_LABEL, Registry; no product interface changed.\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0\",\"npm test: 31 files / 787 tests passed\",\"EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts: 1 file / 4 tests passed, 264.02s, exit 0\",\"Gate absent: exit 1 with the explicit EASY_HOST_INTEGRATION error when the file is collected; exit 1 (no files) under the default config - never a skip\"],\"warnings\":[\"The test:integration script previously appended the suite path as an OR filter and therefore ran every gated suite; it now forwards positional args exclusively (default tests/integration). This changes how other tasks' appended suite paths are interpreted, matching the documented command form.\",\"Real builds ran on x86_64 only; the cold fixture build is network-dependent (Railpack/BuildKit acquisition), 264s with a warm cache.\",\"A SIGKILL of the runner would bypass afterAll; unique pid+time names make retries safe, but that path is reasoned, not exercised.\",\"npm run test:packaging exits 1 with 'No test files found' because tests/packaging does not exist yet (PKG phase not built); unrelated to this change.\"],\"validationLimitations\":[\"Default-volume retention was proven against the rootless volume mountpoint and a re-added container; a host reboot is outside this suite (v0.1.0 human-run gate).\",\"No packaging or docs suites exist yet in this repository, so those quality gates were not exercisable here.\"]}\n```\n",
+    "stderr": "",
+    "durationMs": 937778,
+    "usage": {
+      "inputTokens": 98697,
+      "outputTokens": 13484,
+      "reasoningTokens": 30213,
+      "cacheReadTokens": 5776384,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.05835190199999999,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Added and verified the gated real-host removal suite (tests/integration/remove.test.ts): default removal keeps the labelled volume and its data (read back from the volume mountpoint) while deleting container, image, workspace and app directory, re-add returns the same bytes over HTTP, --volumes deletes only the labelled app volume, and an unlabelled name-pattern volume is reported and never deleted. typecheck, lint, 787 unit tests, and EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts (4/4, exit 0, 264s) pass; host audit after cleanup shows no container, volume, image, daemon, or temp root. Fixed the harness's test:integration script so an appended suite path actually scopes the run instead of silently running every gated suite (attempt 2's failure), and removed the orphaned daemon/temp root from the superseded run.",
+    "unresolved": [],
+    "decisions": [
+      "Scenarios drive runRemoveCommand (CLI exit code, stdout summary, stderr phases) for the removal contract, and addApp for the real clone/build/run/probe setup.",
+      "Data retention is proven twice: bytes read from the retained volume's mountpoint after removal, and bytes returned over HTTP by a re-added container on the same volume (same CreatedAt) - no assertion trusts a volume listing.",
+      "Every 'only the app volume' claim compares the full host volume set before and after: default removal must delete none, --volumes must delete exactly the labelled app volume.",
+      "The unlabelled foreign volume uses the app volume's exact name prefix plus '-foreign', so the refusal path is exercised on both a default and a --volumes removal.",
+      "An unlabelled volume with the app's name pattern is refused and reported; cleanup owns and deletes it afterwards."
+    ],
+    "interfaces": [
+      "tests/integration/remove.test.ts consumes addApp, runRemoveCommand, createPaths, createBuildkit, containerName, volumeName, APP_LABEL/ROLE_LABEL/IMAGE_LABEL, Registry; no product interface changed."
+    ],
+    "tests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test: 31 files / 787 tests passed",
+      "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/remove.test.ts: 1 file / 4 tests passed, 264.02s, exit 0",
+      "Gate absent: exit 1 with the explicit EASY_HOST_INTEGRATION error when the file is collected; exit 1 (no files) under the default config - never a skip"
+    ],
+    "warnings": [
+      "The test:integration script previously appended the suite path as an OR filter and therefore ran every gated suite; it now forwards positional args exclusively (default tests/integration). This changes how other tasks' appended suite paths are interpreted, matching the documented command form.",
+      "Real builds ran on x86_64 only; the cold fixture build is network-dependent (Railpack/BuildKit acquisition), 264s with a warm cache.",
+      "A SIGKILL of the runner would bypass afterAll; unique pid+time names make retries safe, but that path is reasoned, not exercised.",
+      "npm run test:packaging exits 1 with 'No test files found' because tests/packaging does not exist yet (PKG phase not built); unrelated to this change."
+    ],
+    "validationLimitations": [
+      "Default-volume retention was proven against the rootless volume mountpoint and a re-added container; a host reboot is outside this suite (v0.1.0 human-run gate).",
+      "No packaging or docs suites exist yet in this repository, so those quality gates were not exercisable here."
+    ]
+  }
+}

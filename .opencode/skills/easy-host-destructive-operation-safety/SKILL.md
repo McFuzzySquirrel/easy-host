@@ -26,7 +26,7 @@ Every delete resolves its target by the app label and requires the operator's ex
 
 ### Step 1: Resolve the app and enumerate what will change
 
-Read `docs/features/06-rollback-and-remove.md` and the relevant lifecycle sections of the PRD. Load the app from `apps/<name>/config.toml`; an unknown app is exit `5`.
+Read the current rollback and removal code. Load the app from `apps/<name>/config.toml`; an unknown app is exit `5`.
 
 Before any mutation, enumerate the exact resources: container `easy-host-<app>`, workspace, app directory, retained images, and labelled volumes. Print that list.
 

@@ -142,5 +142,5 @@ Errors are raised before any container, volume, or directory mutation. Fix the n
 
 - [CLI reference](cli.md) for every command, flag, and exit code.
 - [Host prerequisites](../operations/prerequisites.md) for Podman, lingering, git, Node.js, and the port floor.
-- [App registry and config](../features/03-app-registry-and-config.md) for the requirement and acceptance criteria behind this schema.
-- [Observability and output](../features/07-observability-and-output.md) for the `--json` document contract.
+- [Architecture](../ARCHITECTURE.md#on-disk-state) for the storage contract behind this schema.
+- [Architecture](../ARCHITECTURE.md#output) for the `--json` document contract.

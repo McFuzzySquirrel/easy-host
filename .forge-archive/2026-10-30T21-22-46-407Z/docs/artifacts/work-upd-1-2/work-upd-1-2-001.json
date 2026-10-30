@@ -1,0 +1,60 @@
+{
+  "type": "work.upd-1.2",
+  "category": "work",
+  "taskId": "UPD-1.2",
+  "producedBy": "lifecycle-engineer",
+  "status": "complete",
+  "summary": "Implemented src/lifecycle/swap.ts with a health-gated stop/start/probe/keep-or-revert sequence, ordered phase reporting, a bounded hung-probe deadline, and state writes that update images only after candidate health. Added 14 focused tests covering keep, healthy and unhealthy recovery, candidate start failure, cleanup failure during recovery, hung candidate and recovery probes, missing current containers, state write failure, input validation, and secret-free output. Typecheck, lint, focused tests, full 603-test suite, and build pass.",
+  "inputs": [
+    "work-upd-1-1-001",
+    "work-add-1-2-001",
+    "work-add-1-3-001",
+    "work-add-1-4-001",
+    "work-add-1-5-001",
+    "work-add-1-6-001"
+  ],
+  "filesChanged": [
+    "src/lifecycle/swap.ts",
+    "tests/unit/swap.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented src/lifecycle/swap.ts with a health-gated stop/start/probe/keep-or-revert sequence, ordered phase reporting, a bounded hung-probe deadline, and state writes that update images only after candidate health. Added 14 focused tests covering keep, healthy and unhealthy recovery, candidate start failure, cleanup failure during recovery, hung candidate and recovery probes, missing current containers, state write failure, input validation, and secret-free output. Typecheck, lint, focused tests, full 603-test suite, and build pass.",
+    "decisions": [
+      "Any failure after the current container stops enters the revert path, including candidate start failure, so the previous image is always restarted before returning.",
+      "The old container is stopped and removed before the candidate starts because the fixed container name must be free; only containers are deleted, never images.",
+      "State is written with current=candidate and previous=replaced image only after a healthy probe; a revert writes health and container facts but omits images entirely.",
+      "A probe that does not settle is cut off at the startup budget plus one capped probe interval, which absorbs timer ordering without letting a hung prober stall the operation.",
+      "Recovery start and probe phases are folded into reverting/reverted so the emitted phase order stays stopping, starting, probing, reverting, reverted."
+    ],
+    "interfaces": [
+      "swapApp(request, dependencies?): Promise<SwapResult>",
+      "SwapRequest, SwapSpec, SwapDependencies, SwapRuntime, SwapProber, SwapReporter, SwapStateStore",
+      "SwapKeptResult, SwapRevertedResult, SwapResult, SwapFailure, SwapRecovery, SwapImages",
+      "SWAP_PHASES, SWAP_STATUSES, SWAP_FAILURE_CODES, SWAP_PROBE_SETTLE_MS, swapProbeDeadlineMs",
+      "createDefaultSwapRuntime, createDefaultSwapProber, createDefaultSwapReporter"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/swap.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/swap.test.ts: 14 passed",
+      "npm test: 603 passed",
+      "npm run build: exit 0"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "The gated host integration suite was not run; UPD-1.4 owns tests/integration/update.test.ts and is the real-host proof of this swap.",
+      "swapApp returns a reverted result rather than throwing exit 4; the update orchestrator must map that status to HealthError, as documented in the module."
+    ],
+    "validationLimitations": [
+      "No real Podman container swap or HTTP probe was exercised here; all runtime and probe behavior was injected fakes."
+    ],
+    "taskDescription": "Implement swap.ts. Stop the current container, start the candidate with the same port and settings, and probe. On success return kept with the candidate image. On failure stop and remove the candidate, restart the previous container from its recorded image, probe it once, and return reverted with the failure and recovery results. Emit phase events (stopping, starting, probing, keeping, reverting, reverted) through an injected reporter. Tests use fake runtime and probe to cover keep, revert with a healthy old version, revert with an unhealthy old version, candidate start failure, and a probe that hangs until the budget expires."
+  },
+  "nextActions": [],
+  "artifactId": "work-upd-1-2-001",
+  "createdAt": "2026-10-30T03:25:32.855Z"
+}

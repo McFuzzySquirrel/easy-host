@@ -1,0 +1,52 @@
+{
+  "type": "work.rbk-1.4",
+  "category": "work",
+  "taskId": "RBK-1.4",
+  "producedBy": "qa-engineer",
+  "status": "complete",
+  "summary": "Added the gated real-host rollback suite (RBK-FR-01, RBK-NF-02): add v1, one-image rollback exits 5 without touching the container, update to v2, rollback restores v1 and swaps the pair, second rollback returns to v2; both rollbacks invoked zero builds (non-vacuous build-seam counter plus identical image tag/id sets) and cleanup was verified. Typecheck, lint, 785 unit tests, and the scoped gated suite (5/5) pass; the suite fails loudly without EASY_HOST_INTEGRATION.",
+  "inputs": [
+    "work-rbk-1-1-001",
+    "work-upd-1-4-001",
+    "work-rbk-1-2-001",
+    "work-rbk-1-3-001"
+  ],
+  "filesChanged": [
+    "tests/integration/rollback.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Added the gated real-host rollback suite (RBK-FR-01, RBK-NF-02): add v1, one-image rollback exits 5 without touching the container, update to v2, rollback restores v1 and swaps the pair, second rollback returns to v2; both rollbacks invoked zero builds (non-vacuous build-seam counter plus identical image tag/id sets) and cleanup was verified. Typecheck, lint, 785 unit tests, and the scoped gated suite (5/5) pass; the suite fails loudly without EASY_HOST_INTEGRATION.",
+    "decisions": [
+      "The no-build claim is proven by a vi.mock wrapper around the production buildWorkspace seam that also observed the add (1) and update (2) builds, so a counter that never fires would fail rather than pass vacuously; a full image tag+id snapshot equality backs it independently.",
+      "The one-image scenario runs immediately after add and before update, so exit 5 is exercised on a real single-image app without a second build, and container id/body/state/pair absence are all asserted.",
+      "The app declares one labelled data volume so every swap's mount preservation and volume cleanup are exercised on the real host.",
+      "The fixture is a test-owned git copy of the Express fixture with versioned server.js bodies, so both versions are controlled over file:// without a public remote."
+    ],
+    "interfaces": [],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "EASY_HOST_INTEGRATION=1 npm run test:integration -- tests/integration/rollback.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test: 31 files / 785 tests passed",
+      "EASY_HOST_INTEGRATION=1 npx vitest run tests/integration/rollback.test.ts: 5/5 passed in 263.75s",
+      "Gate check without EASY_HOST_INTEGRATION: exit 1 with the named-variable error (never a skip)"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "The declared npm command expands to all four gated files. Its first run had add/build/update green and rollback 4/5; the single failure was my own phase assertion (rollback emits inspecting only after the pair is accepted), now fixed and verified by a 5/5 scoped run of the same file under the same env/config. The full wrapper was not re-run end to end after the fix to stay inside the task budget; the other three suites were unchanged and already green in that same run.",
+      "`src/cli/program.ts` still registers rollback with the not-implemented placeholder (cli-engineer ownership); the suite calls runRollbackCommand directly as the add/update suites do."
+    ],
+    "validationLimitations": [
+      "The failed-rollback revert path (delete the rollback target image, expect exit 4 and an unchanged pair) is covered only by tests/unit/rollback.test.ts; it was not injected on the real host because it would consume one of the two images the required success scenarios depend on.",
+      "Real builds ran on x86_64 only; the fixture build is cold (~250s) because each run owns and deletes its BuildKit state, and the host remains network-dependent for npm, Railpack, and BuildKit acquisition.",
+      "A SIGKILL of the runner bypasses afterAll; unique pid+time app names make retries safe, but that path is reasoned, not exercised."
+    ],
+    "taskDescription": "Add the gated integration test for rollback. Add an app, update it to a second version, roll back, assert the first version serves, assert the images swapped in state, roll back again, and assert the second version serves. Assert that no build occurs during either rollback and that a one-image app exits 5. Clean up all resources."
+  },
+  "nextActions": [],
+  "artifactId": "work-rbk-1-4-001",
+  "createdAt": "2026-10-30T06:26:40.151Z"
+}

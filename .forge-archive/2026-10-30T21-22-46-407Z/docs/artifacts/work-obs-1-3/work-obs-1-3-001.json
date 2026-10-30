@@ -1,0 +1,69 @@
+{
+  "type": "work.obs-1.3",
+  "category": "work",
+  "taskId": "OBS-1.3",
+  "producedBy": "cli-engineer",
+  "status": "complete",
+  "summary": "Implemented typed read-only drift detection for missing-container, stopped-container, image-mismatch, and unhealthy-probe, with clean/unknown handling, a recommended update action, missing-state recovery, and status/list human and additive JSON output. Added 24 focused drift tests plus command-level drift and failed-inspect coverage; typecheck, lint, build, focused tests, and the full 688-test suite pass.",
+  "inputs": [
+    "work-add-1-5-001",
+    "work-reg-1-3-001",
+    "work-add-1-4-001",
+    "work-add-1-6-001"
+  ],
+  "filesChanged": [
+    "src/registry/drift.ts",
+    "tests/unit/drift.test.ts",
+    "src/cli/commands/list.ts",
+    "src/cli/commands/read-model.ts",
+    "src/cli/commands/status.ts",
+    "src/cli/json.ts",
+    "src/cli/schemas.ts",
+    "tests/unit/format.test.ts",
+    "tests/unit/json.test.ts",
+    "tests/unit/read-commands.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented typed read-only drift detection for missing-container, stopped-container, image-mismatch, and unhealthy-probe, with clean/unknown handling, a recommended update action, missing-state recovery, and status/list human and additive JSON output. Added 24 focused drift tests plus command-level drift and failed-inspect coverage; typecheck, lint, build, focused tests, and the full 688-test suite pass.",
+    "decisions": [
+      "drift.ts is pure and performs no I/O; read-model inspects Podman, maps NotFoundError to missing, and maps other failures to unknown while preserving their exit code.",
+      "A rebuilt in-memory state is display-only; drift receives state:null so a deleted cache is reported as absent history instead of being compared.",
+      "The recommended action mirrors update-diff precedence: image mismatch wins and requires --rebuild even when the container is also stopped; otherwise missing/stopped/unhealthy recreate from the recorded image, and a missing cache or absent current image requires a rebuild.",
+      "drifted is true for any non-none class, including unknown, so consumers never mistake an unverified app for a clean one.",
+      "JSON gains an additive drift object (class, drifted, statePresent, recordedImage, liveImage, containerIdMatches, summary, recommendedAction) while schemaVersion stays 1.",
+      "list and status now preserve a failed inspect's documented exit code (usually 2) while still printing the full report; list still treats broken apps, missing containers, and unhealthy apps as non-fatal survey findings.",
+      "status prints drift and a next command only for non-none classes, avoiding a rebuild recommendation for a clean app whose cache is merely missing."
+    ],
+    "interfaces": [
+      "detectDrift(input): DriftReport; collectDriftReports(inputs); uncheckedDrift(app, reason)",
+      "compareImageReferences(recorded, live): boolean | null; compareContainerIds(recorded, live): boolean | null",
+      "DriftInput, DriftObservation, DriftRecordedState, DriftContainer, DriftReport, DriftAction, DriftClass, DriftIssueClass, DRIFT_CLASSES",
+      "readAppStateRecord(store): { state, source: 'cache' | 'rebuilt' }; AppRow gains drift and inspectionError",
+      "toDriftDocument(report): DriftDocument; ListAppDocument.drift and StatusAppDocument.drift"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/drift.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/drift.test.ts: 24 passed",
+      "npm test: 27 files / 688 tests passed",
+      "npm run build: exit 0",
+      "Manual built-CLI list --json, status, and --help checks: pass"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "Behavioral contract note for docs-engineer: list and status now return the inspect error exit code while printing a report; JSON list/status app objects gained the additive drift field."
+    ],
+    "validationLimitations": [
+      "Drift unit coverage injects inspect observations, so no real container with a wrong image or unhealthy probe was exercised; the manual CLI run confirmed missing-container against the host Podman.",
+      "No gated integration or packaging suite was run because no Podman lifecycle, build, or packaging code changed."
+    ],
+    "taskDescription": "Implement drift.ts. For each app, compare the recorded container id and image with podman inspect, and classify missing-container, stopped-container, image-mismatch, or unhealthy-probe from the last health result. Return a typed drift report with the recommended action. Wire status to print it and list to mark drifted apps. Tests cover each class, a clean app, a state file missing, and a Podman inspect that fails."
+  },
+  "nextActions": [],
+  "artifactId": "work-obs-1-3-001",
+  "createdAt": "2026-10-30T03:57:43.601Z"
+}

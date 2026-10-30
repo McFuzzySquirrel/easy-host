@@ -1,0 +1,57 @@
+{
+  "type": "work.bld-1.2",
+  "category": "work",
+  "taskId": "BLD-1.2",
+  "producedBy": "build-engineer",
+  "status": "complete",
+  "summary": "Implemented the rootless buildkitd lifecycle in src/platform/buildkit.ts with ensure, status, and stop behind an injectable argument-array process runner; cold start uses the exact spike flags, reuses a healthy daemon, removes stale sockets, distinguishes name/socket conflicts, and enforces finite readiness and command timeouts. Added 21 unit tests using a recording fake runner and real temporary unix sockets; typecheck, lint, focused tests (21), full unit suite (333), and build all pass.",
+  "inputs": [
+    "work-bld-0-1-001",
+    "work-bld-1-1-001"
+  ],
+  "filesChanged": [
+    "src/platform/buildkit.ts",
+    "tests/unit/buildkit.test.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented the rootless buildkitd lifecycle in src/platform/buildkit.ts with ensure, status, and stop behind an injectable argument-array process runner; cold start uses the exact spike flags, reuses a healthy daemon, removes stale sockets, distinguishes name/socket conflicts, and enforces finite readiness and command timeouts. Added 21 unit tests using a recording fake runner and real temporary unix sockets; typecheck, lint, focused tests (21), full unit suite (333), and build all pass.",
+    "decisions": [
+      "Container identity is easy-host-buildkitd with io.easy-host.role=buildkit; a container using that name without the label is foreign and is never removed, and a live socket without the managed container is a conflict rather than an adopted daemon.",
+      "Cold-start readiness is bounded at 20s with 100ms probes and a 1s probe timeout; podman run has a 600s budget for the cold image pull, inspect 15s, stop/rm 30s.",
+      "Lifecycle errors are PrerequisiteError exit 2 (socket timeout, start failure, podman missing, state unwritable) and ConflictError exit 6 (name/socket collision); BLD-1.3 remains responsible for mapping an unreachable daemon to build infrastructure-failure exit 3.",
+      "No --restart flag is added: the task requires flags to match the spike record exactly, and the spike command has no restart policy.",
+      "The shared platform runner does not exist yet, so buildkit.ts exposes a structurally compatible BuildkitRunner seam and ships a shell-free spawnSync default that can be replaced by injection."
+    ],
+    "interfaces": [
+      "Buildkit.ensure(): Promise<BuildkitDaemon>; Buildkit.status(): Promise<BuildkitStatus>; Buildkit.stop(): Promise<BuildkitStopResult>",
+      "ensureBuildkit(options), buildkitStatus(options), stopBuildkit(options), createBuildkit(options)",
+      "BuildkitDaemon { containerName, containerId, image, socketPath, buildkitHost, reused, state }",
+      "BuildkitStatus { state, socketReachable, detail, containerId, socketPath, buildkitHost }",
+      "buildkitLayout(buildkitDir), buildkitRunArguments(layout, {containerName, image}), probeBuildkitSocket(socketPath, timeoutMs)",
+      "BuildkitRunner { run(command, args, {timeoutMs}) } structurally compatible with the shared platform runner"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/buildkit.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: pass",
+      "npm run lint: pass",
+      "npm test -- tests/unit/buildkit.test.ts: 21 passed (3 consecutive runs)",
+      "npm test: 333 passed",
+      "npm run build: pass"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "The real privileged buildkitd was not started in this task; the spike-approved flags are reused verbatim and BLD-1.6 owns the gated real-host proof.",
+      "The feature document's open-question default mentions --restart=unless-stopped, but it is omitted because this task requires the exact spike flag set; the daemon persists while its container runs and cold-starts after stop or reboot.",
+      "Operations-guide documentation of --privileged and the exact flags is still owed by docs-engineer/DOC-1.4; the verified commands and justification are supplied above.",
+      "The aarch64 Railpack asset remains verified by digest only; no build lifecycle difference applies to buildkitd."
+    ],
+    "validationLimitations": [],
+    "taskDescription": "Implement buildkit.ts using the flags recorded by the spike. Provide ensure(): return an existing healthy daemon if its socket accepts a connection, otherwise start the pinned image with a named container, the state root mounted for socket and cache, and a finite readiness timeout. Provide stop() and status(). All podman calls go through the shared process runner with argument arrays. Tests use a recording fake runner and a temporary unix socket to cover reuse, cold start, readiness timeout, port or socket collision, and a failed start."
+  },
+  "nextActions": [],
+  "artifactId": "work-bld-1-2-001",
+  "createdAt": "2026-10-30T00:16:04.647Z"
+}

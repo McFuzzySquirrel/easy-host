@@ -1,0 +1,65 @@
+{
+  "type": "work.add-1.5",
+  "category": "work",
+  "taskId": "ADD-1.5",
+  "producedBy": "lifecycle-engineer",
+  "status": "complete",
+  "summary": "Implemented list, status, logs, and config with a shared read-only model, exact log flag forwarding, EDITOR support, state-preserving reads, 80-column plain-text output, and 28 focused tests.",
+  "inputs": [
+    "work-add-1-4-001",
+    "work-add-1-1-001",
+    "work-add-1-2-001",
+    "work-add-1-3-001"
+  ],
+  "filesChanged": [
+    "src/cli/commands/list.ts",
+    "src/cli/commands/status.ts",
+    "src/cli/commands/logs.ts",
+    "src/cli/commands/config.ts",
+    "tests/unit/read-commands.test.ts",
+    "src/cli/commands/read-model.ts"
+  ],
+  "payload": {
+    "agentOutputExcerpt": "Implemented list, status, logs, and config with a shared read-only model, exact log flag forwarding, EDITOR support, state-preserving reads, 80-column plain-text output, and 28 focused tests.",
+    "decisions": [
+      "Read commands use StateStore.readCache() with an in-memory rebuild fallback, never load/update/reset, so no state.json is created or modified.",
+      "Status label priority is broken, missing, stopped, unhealthy, healthy, unknown; stopped and missing containers are never reported healthy from stale cache data.",
+      "status exits 5 for an unknown app and 4 for stopped, missing, or last-recorded unhealthy apps.",
+      "config --path prints the absolute config.toml path and verifies it exists; --edit opens the parsed $EDITOR command, waits, then re-validates without applying anything.",
+      "The EDITOR value is tokenized into an argument array and spawned without a shell.",
+      "logs forwards follow and tail explicitly through the platform Podman adapter and returns ContainerLogsResult.exitCode.",
+      "JSON output is additive schemaVersion 1 with redacted [env] values; feature 07 can replace or extend the serializers."
+    ],
+    "interfaces": [
+      "runListCommand(options): Promise<ExitCode>; formatListReport(rows); toListDocument(rows)",
+      "runStatusCommand(options): Promise<ExitCode>; formatStatusReport(rows); toStatusDocument(rows)",
+      "runLogsCommand(options): Promise<number>; normalizeTail(value)",
+      "runConfigCommand(options): Promise<ExitCode>; formatConfigReport(record, spec); toConfigDocument(record, spec); parseEditorCommand(value); createDefaultEditorRunner()",
+      "resolveReadDependencies(overrides); readAppState(store); inspectAppContainer(runtime, app); collectAppRows(entries, dependencies); statusLabel(container, state); statusExitCode(status); redactedSpec(spec); formatField/formatTable/wrapText"
+    ],
+    "tests": [
+      "npm run typecheck: exit 0 (engine-verified)",
+      "npm test -- tests/unit/read-commands.test.ts: exit 0 (engine-verified)"
+    ],
+    "agentReportedTests": [
+      "npm run typecheck: exit 0",
+      "npm run lint: exit 0",
+      "npm test -- tests/unit/read-commands.test.ts: 28 passed",
+      "npm test: 527 passed across 21 files",
+      "npm run build: exit 0"
+    ],
+    "unresolved": [],
+    "warnings": [
+      "The four handlers are not registered in src/cli/program.ts; command registration remains cli-engineer ownership. They are exported for one-line handler wiring.",
+      "The gated Podman integration suite was not run; ADD-1.6 owns that suite.",
+      "logs delegates to the platform Podman adapter, which maps typed failures to documented exit codes (2/5); successful results return the adapter's exitCode."
+    ],
+    "validationLimitations": [
+      "No real Podman container, editor, or TTY was exercised; runtime, editor, and output streams were injected fakes while the registry and state cache were real temporary files."
+    ],
+    "taskDescription": "Implement the four read commands. list scans the registry, inspects each app container, and prints a compact table with name, status, port, ref, last update, and image; broken apps appear with their error. status takes one app and prints config, image references, probe settings, container state, and last health result. logs passes through podman logs with -f and --tail and exits with podman's code. config prints the config path, validates on request, and opens EDITOR when asked. Tests cover a mixed registry, a missing app, a stopped container, log flag forwarding, and config validation output."
+  },
+  "nextActions": [],
+  "artifactId": "work-add-1-5-001",
+  "createdAt": "2026-10-30T01:38:47.048Z"
+}

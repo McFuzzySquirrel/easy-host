@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "timestamp": "2026-10-29T22:57:32.857Z",
+  "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
+  "taskId": "PRE-1.1",
+  "attempt": 1,
+  "outcome": "passed",
+  "result": {
+    "success": true,
+    "outputFiles": [
+      "package.json",
+      "tsconfig.json",
+      "tsconfig.build.json",
+      "biome.json",
+      "vitest.config.ts",
+      "src/cli/index.ts",
+      "tests/unit/cli-entry.test.ts",
+      ".gitignore",
+      "package-lock.json"
+    ],
+    "stdout": "I'll start by reading the execution file.\nNow I'll create the scaffold files.\nTypecheck and the entry test pass. Lint is scanning the entire harness (`.opencode/`, `docs/`); I'll scope Biome to the project source/config files.\n## Result\n\nCreated the runnable ESM TypeScript scaffold for `easy-host`. The entry point prints the package version (`0.1.0`) and exits `0`, with no subcommand behavior implemented (that remains with PRE-1.4). Typecheck, lint, focused unit tests, full unit tests, build, and direct runtime checks all pass, including on Node 24.\n\n### Files created or changed\n\n| File | Change |\n|---|---|\n| `package.json` | Created — ESM package, `bin.easy-host`, Node `>=24`, required scripts, pinned PRD runtime/dev dependencies |\n| `package-lock.json` | Created by `npm install` |\n| `tsconfig.json` | Created — strict NodeNext/ESM typecheck config |\n| `tsconfig.build.json` | Created — `tsc` ESM emit to `dist/` |\n| `biome.json` | Created — Biome 2.6.4 lint/format config scoped to project files |\n| `vitest.config.ts` | Created — default run excludes `tests/integration` and `tests/packaging` |\n| `src/cli/index.ts` | Created — shebang entry, package-version reader, exported `main()` |\n| `tests/unit/cli-entry.test.ts` | Created — 3 tests covering version read, stdout output/exit 0, and shebang |\n| `.gitignore` | Updated — ignores `dist/`, `coverage/`, and `*.tsbuildinfo` |\n\n### Requirement coverage\n\n- **PRE-FR-06 (scaffold portion):** package/entry foundation only; ten-command registration, global `--json`, and usage exits are deferred to PRE-1.4 as required by this task.\n- **PRD 7.1/7.2:** Node >=24, TypeScript 7.0.2, tsc ESM build, Biome, Vitest 5, commander/zod/smol-toml/execa/clack/picocolors/ora pinned.\n- **PRD-NF-07:** unit test uses only local filesystem/process APIs — no Podman, network, or root.\n\n### Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | Passed |\n| `npm run lint` | Passed — 7 files checked |\n| `npm test -- tests/unit/cli-entry.test.ts` | Passed — 3/3 tests |\n| `npm test` | Passed — 1 file, 3/3 tests |\n| `npm run build` | Passed |\n| `node dist/cli/index.js` | Printed `0.1.0`, exit `0` |\n| `npx node@24 dist/cli/index.js` | Printed `0.1.0`, exit `0` on Node v24.22.2 |\n| Symlinked-bin invocation via Node | Printed `0.1.0`, exit `0` |\n\n### Contract notes\n\n- No commands, flags, exit codes, JSON fields, config keys, or file modes were introduced or changed.\n- `src/cli/index.ts` is intentionally a temporary version printer; PRE-1.4 will replace it with the ten-command program.\n- Biome is scoped to `src/`, `tests/`, `scripts/`, and root configs so `npm run lint` does not format harness `.opencode/` or documentation files.\n\n```forge-result\n{\"summary\":\"Scaffolded the strict ESM easy-host package with tsc build, Biome, Vitest, a shebang entry that prints the package version and exits 0, and unit coverage. Typecheck, lint, focused and full unit tests, build, and Node 24 runtime checks all pass.\",\"unresolved\":[],\"decisions\":[\"Pinned the PRD 7.1 dependency versions in package.json so later tasks inherit a single source of truth.\",\"Kept the entry limited to version output; ten-command registration remains PRE-1.4 scope.\",\"Gated integration and packaging suites behind EASY_HOST_INTEGRATION/EASY_HOST_PACKAGING so the default test run excludes them.\"],\"tests\":[\"tests/unit/cli-entry.test.ts: 3 passed\"],\"validationLimitations\":[]}\n```\n",
+    "stderr": "",
+    "durationMs": 193553,
+    "usage": {
+      "inputTokens": 53586,
+      "outputTokens": 6057,
+      "reasoningTokens": 13394,
+      "cacheReadTokens": 1188096,
+      "cacheWriteTokens": 0,
+      "costUsd": 0.023272788,
+      "source": "harness"
+    }
+  },
+  "gates": [
+    {
+      "gate": "harness",
+      "status": "passed"
+    },
+    {
+      "gate": "outputs",
+      "status": "passed"
+    },
+    {
+      "gate": "handoff",
+      "status": "passed"
+    },
+    {
+      "gate": "requirements",
+      "status": "passed"
+    },
+    {
+      "gate": "validation",
+      "status": "passed",
+      "evidence": [
+        "npm run typecheck: exit 0 (engine-verified)",
+        "npm run lint: exit 0 (engine-verified)",
+        "npm test -- tests/unit/cli-entry.test.ts: exit 0 (engine-verified)"
+      ]
+    }
+  ],
+  "handoff": {
+    "summary": "Scaffolded the strict ESM easy-host package with tsc build, Biome, Vitest, a shebang entry that prints the package version and exits 0, and unit coverage. Typecheck, lint, focused and full unit tests, build, and Node 24 runtime checks all pass.",
+    "unresolved": [],
+    "decisions": [
+      "Pinned the PRD 7.1 dependency versions in package.json so later tasks inherit a single source of truth.",
+      "Kept the entry limited to version output; ten-command registration remains PRE-1.4 scope.",
+      "Gated integration and packaging suites behind EASY_HOST_INTEGRATION/EASY_HOST_PACKAGING so the default test run excludes them."
+    ],
+    "tests": [
+      "tests/unit/cli-entry.test.ts: 3 passed"
+    ],
+    "validationLimitations": [],
+    "interfaces": []
+  }
+}
