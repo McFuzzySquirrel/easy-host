@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: DOCS-AND-PACKAGING-2
 **Status**: In Progress
-**Validation Gaps**: 42 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T19:54:55.282Z
+**Validation Gaps**: 43 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T20:51:51.853Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -90,6 +90,8 @@
   - Files: scripts/generate-completions.ts, completions/easy-host.bash, completions/easy-host.zsh, completions/easy-host.fish, tests/unit/completions.test.ts
 - [x] Phase DOCS-AND-PACKAGING-2, Task DOC-1.3: Rewrite the README for easy-host (@docs-engineer)
   - Files: README.md, tests/docs/links.test.ts
+- [x] Phase DOCS-AND-PACKAGING-2, Task DOC-1.4: Write the prerequisite and systemd timer guides (@docs-engineer)
+  - Files: docs/operations/prerequisites.md, docs/operations/systemd-timer.md, tests/docs/links.test.ts
 
 ## Current Task
 - None currently running
@@ -143,6 +145,7 @@
 - Task DOC-1.2: The gated packaging install suite was not rerun (npm registry dependency); npm pack --dry-run verified the completion files are in the tarball.
 - Task DOC-1.3: A clean-shell manual walkthrough of the install and quickstart was not run; it requires network installs and a Podman host.
 - Task DOC-1.3: The gated packaging suite was not rerun because it requires registry access.
+- Task DOC-1.4: No clean-shell manual walkthrough of the guides was run; it requires network installs and a prepared Podman host.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e

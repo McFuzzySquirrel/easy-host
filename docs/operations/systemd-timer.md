@@ -34,6 +34,8 @@ This guide uses the app name `blog` and creates one service unit and one timer u
 
 4. If you set `EASY_HOST_HOME` in your shell, note its value. The unit does not inherit it; add it to the unit as shown below. If you never set it, the CLI uses `$XDG_DATA_HOME/easy-host` or `~/.local/share/easy-host`.
 
+5. Run the timer as the same operating-system user that ran `add`. A systemd **user** unit runs under your uid, and each user resolves a different state root; pointing `EASY_HOST_HOME` at another user's state root (created with mode `0700`) makes `update` exit `2` because it cannot read or write that directory.
+
 ## Unit files
 
 Create the directory and the two files under your user unit directory:
@@ -141,11 +143,11 @@ All of those cases are safe. The loser exits `6` instead of starting a second ca
 | Exit | Meaning for `easy-host update blog` | What to do |
 | --- | --- | --- |
 | `0` | Success: the app was updated and is healthy, or nothing changed (a no-op). | None. For a git-backed app, a no-op still fetches the configured ref, so a scheduled run notices a moved commit. |
-| `1` | Usage or validation failure: wrong app name, unsupported flag, or invalid `config.toml`. | Fix the `ExecStart` line or the app configuration; the timer is misconfigured, not unlucky. |
+| `1` | Usage or validation failure: app name that fails the name pattern, unsupported flag, or invalid `config.toml`. | Fix the `ExecStart` line or the app configuration; the timer is misconfigured, not unlucky. |
 | `2` | Prerequisite or environment failure: state root not writable, container engine unavailable, or the environment file could not be read. | Run `easy-host doctor`, fix the failing check, then retry once by hand. |
 | `3` | Fetch or build failure. The serving container and `config.toml` were not touched. | Inspect the build output in the journal. Fix the commit or build inputs; the next scheduled run retries. |
 | `4` | Readiness failure. The candidate did not become healthy; when a previous image exists, it is serving again with `state: reverted`. | Inspect `easy-host logs blog --tail 200` and the probe line in the journal. The previous version keeps serving. |
-| `5` | App not found: `blog` was removed or renamed. | Disable the timer, or correct the app name in `ExecStart`. |
+| `5` | App not found: `blog` was removed, renamed, or mistyped in `ExecStart`. | Disable the timer, or correct the app name in `ExecStart`. |
 | `6` | Conflict or lock held: another mutation of `blog` is running, or a declared port or volume conflicts with another app. | If it coincides with another run, ignore it; the next trigger is fine. If it repeats with no overlapping run, inspect the error block for `PORT_CONFLICT`, `VOLUME_NAME_CONFLICT`, or `LOCK_HELD`. |
 | `7` | Unexpected internal error. | Re-run with `EASY_HOST_DEBUG=1` in the unit environment and capture the journal output for a bug report. |
 

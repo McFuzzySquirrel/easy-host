@@ -20,7 +20,7 @@ easy-host doctor
 | git | 2.40 or newer | `git --version` | `git` |
 | Node.js | 24 or newer | `node --version` | `node` |
 | Docker-compatible image loader | `docker --version` succeeds | `docker --version` | `docker-loader` |
-| One free host port per app | 1024 to 65535, unused, unique per app | `ss -ltnH "sport = :8080"` (empty output means free) | No host-wide check; `add` and `update` validate it |
+| One free host port per app | 1024 to 65535, unused, unique per app | `ss -ltnH "sport = :8080"` (empty output means free) | None by design (no host-wide check); the `add` and `update` preflight validates it |
 | Free disk space | 2 GiB minimum; 5 GiB recommended | `df -h "$HOME"` | `disk` |
 
 The remaining doctor checks, `railpack` and `buildkit`, cover the build tooling that easy-host installs on first use. They are described under [Other doctor checks](#other-doctor-checks).
@@ -40,8 +40,8 @@ podman info --format '{{.Host.Security.Rootless}}'
 
 The first command must print `5.7.0` or newer in the 5.x line. The second must print `true`.
 
-- `podman` is the doctor check for presence and version. It fails when Podman is missing, below `5.7.0`, or at or above `6.0.0`, and names the found version and the supported range.
-- `podman-rootless` is the doctor check for rootless mode. It fails when `podman info` reports `false` or cannot report a value, and tells you to run as a normal user.
+- `podman` is the doctor check for presence and version. It fails when Podman is missing, below `5.7.0`, or at or above `6.0.0`. When it can read a version, it names the found version and the supported range.
+- `podman-rootless` is the doctor check for rootless mode. It fails when `podman info` reports `false` or the call fails, and tells you to run as a normal user. When Podman itself is missing, this check is skipped because the `podman` check has already failed.
 
 `5.7.0` and `5.8.9` rootless are covered by the doctor unit tests; the v0.1.0 release gate ran `5.7.0` rootless. Any later 5.x release is accepted, because the upper bound is the exclusive `6.0.0`.
 

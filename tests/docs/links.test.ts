@@ -34,6 +34,8 @@ import {
   PODMAN_EXCLUSIVE_MAX_MAJOR,
   PODMAN_VERSION_RANGE,
 } from "../../src/doctor/checks.js";
+import { PODMAN_RESTART_SERVICE } from "../../src/platform/boot-recovery.js";
+import { APP_LOCK_FILE_NAME, LOCK_FILE_MODE } from "../../src/platform/lock.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -543,7 +545,7 @@ describe("operations guides", () => {
 
   it("ties lingering to reboot recovery", () => {
     expect(PREREQUISITES).toContain('sudo loginctl enable-linger "$USER"');
-    expect(PREREQUISITES).toContain("podman-restart.service");
+    expect(PREREQUISITES).toContain(PODMAN_RESTART_SERVICE);
     expect(PREREQUISITES).toContain("Linger=yes");
     expect(PREREQUISITES.toLowerCase()).toContain("mandatory");
     expect(PREREQUISITES.toLowerCase()).toContain("reboot");
@@ -586,7 +588,11 @@ describe("operations guides", () => {
   });
 
   it("explains the app lock for overlapping runs", () => {
-    expect(TIMER).toContain(".lock");
+    const lockMode = `0${LOCK_FILE_MODE.toString(8)}`;
+
+    expect(TIMER).toContain(APP_LOCK_FILE_NAME);
+    expect(TIMER).toContain(`<state-root>/apps/blog/${APP_LOCK_FILE_NAME}`);
+    expect(TIMER).toContain(`mode \`${lockMode}\``);
     expect(TIMER).toContain("LOCK_HELD");
     expect(TIMER.toLowerCase()).toContain("non-blocking");
     expect(TIMER).toContain("exits **`6`**");

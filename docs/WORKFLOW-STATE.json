@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-30T19:54:55.279Z",
+  "lastUpdatedAt": "2026-10-30T20:51:51.850Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -1796,10 +1796,66 @@
     },
     "DOC-1.4": {
       "taskId": "DOC-1.4",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "docs-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 3,
+      "outputFiles": [
+        "docs/operations/prerequisites.md",
+        "docs/operations/systemd-timer.md",
+        "tests/docs/links.test.ts"
+      ],
+      "startedAt": "2026-10-30T20:50:03.516Z",
+      "usage": {
+        "inputTokens": 141626,
+        "outputTokens": 11972,
+        "cacheReadTokens": 3474304,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 16222,
+        "costUsd": 0.04858321199999999,
+        "source": "harness"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 2,
+          "outcome": "failed",
+          "reason": "forge-result.unresolved must be a string array; use [] when no blocking requirements remain.",
+          "resultPath": "docs/artifacts/DOC-1.4.2026-10-30T20-49-58-508Z.attempt-2.result.json",
+          "usage": {
+            "inputTokens": 69651,
+            "outputTokens": 6960,
+            "reasoningTokens": 8625,
+            "cacheReadTokens": 1852288,
+            "cacheWriteTokens": 0,
+            "costUsd": 0.025355513999999996,
+            "source": "harness"
+          }
+        },
+        {
+          "attempt": 3,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/DOC-1.4.2026-10-30T20-51-51-839Z.attempt-3.result.json",
+          "usage": {
+            "inputTokens": 71975,
+            "outputTokens": 5012,
+            "reasoningTokens": 7597,
+            "cacheReadTokens": 1622016,
+            "cacheWriteTokens": 0,
+            "costUsd": 0.02322769799999999,
+            "source": "harness"
+          }
+        }
+      ],
+      "completedAt": "2026-10-30T20:51:51.845Z",
+      "agentOutput": "I'll start by reading the execution file to understand the task scope.\nNow I'll run the required validation and broader checks.\n## Result report\n\n### Task scope\nDOC-1.4: prerequisite and systemd user-timer operations guides, plus documentation drift coverage.\n\n### Files created or changed\n- `docs/operations/prerequisites.md` — host prerequisite and upgrade guide.\n- `docs/operations/systemd-timer.md` — scheduled-update user timer guide.\n- `tests/docs/links.test.ts` — extended to cover both guides, their required headings, verification commands, doctor checks, lock/exit-code facts, and relative links.\n\n### Requirements covered\n- **DOC-FR-02** — prerequisites documented with a verification command and matching doctor check:\n  - Rootless Podman `>= 5.7.0, < 6.0.0`; `6.x` explicitly excluded while unstable; upgrade paths from Podman `4.9.3` on Ubuntu 24.04 and Debian 12.\n  - Lingering mandatory, with the reboot consequence; `Linger=yes` verification and `boot-restart`/`podman-restart.service` confirmation.\n  - git `2.40` or newer, Node.js `24` or newer, host ports `1024`–`65535`.\n- **DOC-FR-03** — complete `~/.config/systemd/user/easy-host-update-blog.service` and `.timer` units, enable commands, journal log location, and overlap behavior.\n- **PRD-C-04** — states the tool ships no daemon, scheduler, webhook receiver, or git poller; the operator's timer calls `update`.\n- **PRD-ACC-06 / DOC-NF-01 / DOC-NF-02** — plain Markdown, real headings, verified commands, working relative links, no images or required JavaScript.\n\n### Exact values documented\n- Podman window: `>= 5.7.0, < 6.0.0`; unsupported 4.9.3 and 6.x; downgrade to newest 5.8.x.\n- git `2.40` or newer; Node.js `24` or newer; ports `1024`–`65535`.\n- State root mode `0700`; app lock file mode `0600` at `<state-root>/apps/blog/.lock`.\n- `doctor`: exits `0` when pass/warn, `2` on any failed check; ten checks: `podman`, `podman-rootless`, `docker-loader`, `linger`, `boot-restart`, `git`, `node`, `railpack`, `buildkit`, `disk`.\n- Timer update exit codes `0`–`7`, including lock contention as exit `6` with `LOCK_HELD`.\n- Pinned Railpack `0.43.0`; doctor disk thresholds: warn below 5 GiB, fail below 2 GiB.\n\n### Verification run\n- `npm test -- tests/docs/links.test.ts` — **26 passed** (1 file).\n- `npm run typecheck` — **exit 0**.\n- `npm test` — **844 passed** across 35 test files.\n- `npm run lint` — **exit 0**, 3 pre-existing info-level diagnostics in unrelated `image-label` files; none in changed files.\n\n### Claims that could not be verified on this host\n- The Podman 4.9.3 → 5.7.x in-place upgrade was not replayed; the guide says so explicitly instead of claiming it was exercised.\n- Only Podman `5.7.0` ran on the release-gate host; `5.8.9` is covered only by doctor unit tests.\n- `podman-docker` was verified only on the Ubuntu gate host.\n- No clean-shell manual walkthrough of the guides was performed in this environment.\n- Timer `ExecStart` and `PATH` values are templates; the guide directs operators to substitute `command -v` output.\n\n```forge-result\n{\"summary\":\"Wrote and verified the host-prerequisite and systemd user-timer guides, extended the docs drift suite to cover both, and documented the Podman window, 6.x exclusion, 4.9 upgrade paths, lingering, git/Node/port minimums, lock behavior, and all exit codes.\",\"unresolved\":[],\"decisions\":[\"Ports are documented as having no host-wide doctor check by design; enforcement is the add/update preflight (INVALID_PORT exit 1, PORT_CONFLICT exit 6).\",\"The timer guide presents one unit pair per app so each failure and exit code stays attributable to one app.\",\"The links test derives the Podman range, git/Node/port minimums, lock file mode, and boot service from runtime constants rather than hard-coded prose.\"],\"interfaces\":[\"DOCUMENTED_MARKDOWN now includes docs/operations/prerequisites.md and docs/operations/systemd-timer.md.\"],\"tests\":[\"npm test -- tests/docs/links.test.ts: 26 passed (exit 0)\",\"npm run typecheck: exit 0\",\"npm test: 844 passed (exit 0)\",\"npm run lint: exit 0 (3 pre-existing info diagnostics, unrelated files)\"],\"warnings\":[\"The in-place Podman 4.9.3 upgrade on Ubuntu 24.04 and Debian 12 was not replayed and is reported as unverified in the guide.\",\"Podman 5.8.x is covered by doctor unit tests only; the release gate ran 5.7.0.\",\"podman-docker is verified only on the Ubuntu gate host.\",\"Timer ExecStart and PATH values are templates that operators must resolve with command -v.\"],\"validationLimitations\":[\"No clean-shell manual walkthrough of the guides was run; it requires network installs and a prepared Podman host.\"]}\n```\n",
+      "validationLimitations": [
+        "No clean-shell manual walkthrough of the guides was run; it requires network installs and a prepared Podman host."
+      ],
+      "artifactId": "work-doc-1-4-001",
+      "inputArtifactIds": [
+        "work-doc-1-3-001",
+        "work-doc-1-1-001",
+        "work-doc-1-2-001"
+      ]
     },
     "DOC-1.5": {
       "taskId": "DOC-1.5",

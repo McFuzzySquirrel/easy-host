@@ -8,6 +8,6 @@
   "vizPort": "",
   "autoCommit": true,
   "logHarnessActivity": true,
-  "executionMode": "manual",
+  "executionMode": "auto",
   "selectedTaskIds": []
 }
