@@ -401,6 +401,46 @@ describe("swapApp revert path", () => {
     expect(context.state.patches[0]?.health?.detail).toContain("serving again");
   });
 
+  it("restores the previous config and environment, not the candidate's", async () => {
+    const context = harness();
+    const previousSpec: AppSpec = validateAppSpec({
+      ...SPEC,
+      port: 9090,
+      bind: "127.0.0.1",
+    });
+    context.runtime.runQueue.push(
+      runResult(CANDIDATE, "candidate-id"),
+      runResult(CURRENT, "previous-id"),
+    );
+    context.prober.queue.push(unhealthyProbe(500), healthyProbe());
+
+    const result = await swapApp(
+      request({
+        recoverySpec: previousSpec,
+        recoveryEnvironment: { API_KEY: "previous-secret" },
+      }),
+      context.dependencies,
+    );
+
+    expect(result.status).toBe("reverted");
+    expect(context.runtime.runImages()).toEqual([CANDIDATE, CURRENT]);
+
+    const [candidateRun, recoveryRun] = context.runtime.calls.filter(
+      (call) => call.method === "runContainer",
+    );
+    expect(candidateRun?.options).toMatchObject({
+      port: 8080,
+      bind: "0.0.0.0",
+      environment: { API_KEY: SECRET },
+    });
+    expect(recoveryRun?.options).toMatchObject({
+      port: 9090,
+      bind: "127.0.0.1",
+      environment: { API_KEY: "previous-secret" },
+    });
+    expect(context.prober.specs.map((probe) => probe.port)).toEqual([8080, 9090]);
+  });
+
   it("reports an unhealthy previous image without pretending recovery", async () => {
     const context = harness();
     context.runtime.runQueue.push(

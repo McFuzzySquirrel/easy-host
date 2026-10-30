@@ -15,7 +15,9 @@
  * 4. **keeping** — on a healthy candidate, record the candidate as current and
  *    the replaced image as previous, then report success;
  * 5. **reverting** — on any candidate failure after the old container stopped,
- *    stop and remove the candidate and start the previously serving image;
+ *    stop and remove the candidate and start the previously serving image with
+ *    its recorded config and environment (`recoverySpec`/`recoveryEnvironment`,
+ *    defaulting to the candidate's);
  * 6. **reverted** — probe the restored container once and report whether it is
  *    serving again.
  *
@@ -113,6 +115,18 @@ export interface SwapRequest {
   readonly previousImage?: string | null;
   /** Merged inline and secrets-file environment for the replacement container. */
   readonly environment: Readonly<Record<string, string>>;
+  /**
+   * The config the current container was started with. It defaults to
+   * {@link SwapRequest.spec}; `update` passes the previously applied spec so a
+   * reverted candidate restores the old port, bind, probe, and volumes
+   * (`UPD-FR-02`).
+   */
+  readonly recoverySpec?: SwapSpec;
+  /**
+   * The merged environment the current container was started with. Defaults to
+   * {@link SwapRequest.environment}.
+   */
+  readonly recoveryEnvironment?: Readonly<Record<string, string>>;
 }
 
 /** Container operations the swap performs. `AddRuntime` satisfies this shape. */
@@ -259,6 +273,8 @@ interface SwapContext {
   readonly currentImage: string;
   readonly previousImage: string | null;
   readonly environment: Readonly<Record<string, string>>;
+  readonly recoverySpec: SwapSpec;
+  readonly recoveryEnvironment: Readonly<Record<string, string>>;
   readonly runtime: SwapRuntime;
   readonly prober: SwapProber;
   readonly reporter: SwapReporter;
@@ -339,6 +355,8 @@ function createContext(request: SwapRequest, dependencies: SwapDependencies): Sw
     currentImage: request.currentImage,
     previousImage: request.previousImage ?? null,
     environment: request.environment,
+    recoverySpec: request.recoverySpec ?? request.spec,
+    recoveryEnvironment: request.recoveryEnvironment ?? request.environment,
     runtime: dependencies.runtime ?? createDefaultSwapRuntime(),
     prober: dependencies.prober ?? createDefaultSwapProber(),
     reporter: dependencies.reporter ?? createDefaultSwapReporter(),
@@ -473,7 +491,13 @@ async function recoverPrevious(context: SwapContext): Promise<SwapRecovery> {
   try {
     // The reverting/reverted phases already narrate the recovery; emitting a
     // second starting/probing pair would make the phase order ambiguous.
-    run = await startContainer(context, context.currentImage, false);
+    run = await startContainer(
+      context,
+      context.currentImage,
+      false,
+      context.recoverySpec,
+      context.recoveryEnvironment,
+    );
   } catch (error) {
     return {
       attempted: true,
@@ -486,7 +510,7 @@ async function recoverPrevious(context: SwapContext): Promise<SwapRecovery> {
     };
   }
 
-  const probe = await probeWithinDeadline(context, false);
+  const probe = await probeWithinDeadline(context, false, context.recoverySpec);
   if (probe.kind === "result") {
     const health = probe.result;
     return {
@@ -548,28 +572,33 @@ function startContainer(
   context: SwapContext,
   image: string,
   announce = true,
+  spec: SwapSpec = context.request.spec,
+  environment: Readonly<Record<string, string>> = context.environment,
 ): Promise<ContainerRunResult> {
   if (announce) {
     emit(
       context,
       "starting",
-      `starting ${image} on ${context.request.spec.bind}:${context.request.spec.port} (container port ${context.request.spec.container_port})`,
+      `starting ${image} on ${spec.bind}:${spec.port} (container port ${spec.container_port})`,
     );
   }
 
   return context.runtime.runContainer({
     app: context.app,
     image,
-    port: context.request.spec.port,
-    containerPort: context.request.spec.container_port,
-    bind: context.request.spec.bind,
-    environment: context.environment,
-    volumes: context.request.spec.volumes,
+    port: spec.port,
+    containerPort: spec.container_port,
+    bind: spec.bind,
+    environment,
+    volumes: spec.volumes,
   });
 }
 
-async function probeWithinDeadline(context: SwapContext, announce = true): Promise<ProbeOutcome> {
-  const spec = context.request.spec;
+async function probeWithinDeadline(
+  context: SwapContext,
+  announce = true,
+  spec: SwapSpec = context.request.spec,
+): Promise<ProbeOutcome> {
   const deadlineMs = swapProbeDeadlineMs(spec);
   if (announce) {
     emit(
