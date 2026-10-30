@@ -3,8 +3,8 @@
 ## Current State
 **Phase**: ADD-AND-LIFECYCLE-2
 **Status**: In Progress
-**Validation Gaps**: 9 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T01:38:47.051Z
+**Validation Gaps**: 12 unverified check(s) - see "Validation Gaps"
+**Last Updated**: 2026-10-30T03:03:41.069Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -54,12 +54,13 @@
   - Files: src/lifecycle/add.ts, src/cli/prompts.ts, src/cli/commands/add.ts, tests/unit/add.test.ts
 - [x] Phase ADD-AND-LIFECYCLE-2, Task ADD-1.5: Implement list, status, logs, and config (@lifecycle-engineer)
   - Files: src/cli/commands/list.ts, src/cli/commands/status.ts, src/cli/commands/logs.ts, src/cli/commands/config.ts, tests/unit/read-commands.test.ts, src/cli/commands/read-model.ts
+- [x] Phase ADD-AND-LIFECYCLE-2, Task ADD-1.6: Prove add end to end on the host (@qa-engineer)
+  - Files: tests/integration/add.test.ts, src/platform/podman.ts, tests/unit/podman.test.ts
 
 ## Current Task
 - None currently running
 
 ## Remaining
-- [ ] Phase ADD-AND-LIFECYCLE-2: Phase 2: Add and Read Commands
 - [ ] Phase UPDATE-AND-HEALTH-GATE-1: Phase 1: Diff and Swap
 - [ ] Phase UPDATE-AND-HEALTH-GATE-2: Phase 2: Update Command and Proof
 - [ ] Phase ROLLBACK-AND-REMOVE-1: Phase 1: Rollback, Retention, and Remove
@@ -81,6 +82,9 @@
 - Task ADD-1.3: Gated host integration was not run; tests/integration/add.test.ts does not exist yet and this task requires no real host.
 - Task ADD-1.4: No real clone, Railpack build, container start, or HTTP probe was performed in this unit-only task.
 - Task ADD-1.5: No real Podman container, editor, or TTY was exercised; runtime, editor, and output streams were injected fakes while the registry and state cache were real temporary files.
+- Task ADD-1.6: Real builds ran on x86_64 only; the Vite cold build ranged 472-509s across runs, so the suite's timeouts (15 min per test, 15 min setup, 5 min cleanup) carry headroom but remain network-dependent.
+- Task ADD-1.6: A SIGKILL of the runner itself would bypass afterAll; the suite tolerates crashes by naming every resource uniquely and verifying removal, but that path is reasoned, not exercised.
+- Task ADD-1.6: ADD-FR-04's TCP probe mode is unit-tested (tests/unit/probe.test.ts) and not re-proven on the host, because all three v1 fixtures answer over HTTP.
 
 ## Notes
 - Workflow engine run 8f1b4440-8f77-47c1-944a-481e1b74296e

@@ -587,6 +587,10 @@ export async function removeContainer(
 /**
  * Inspects the app container and normalizes Podman's JSON into a typed view.
  * Environment values from `Config.Env` are reduced to names.
+ *
+ * An absent container is reported as {@link NotFoundError} (exit 5) for both
+ * `no such container` and Podman 5.7's `no such object: "<name>"` wording; every
+ * other nonzero exit stays a {@link PrerequisiteError}.
  */
 export async function inspectContainer(
   options: InspectContainerOptions,
@@ -607,7 +611,7 @@ export async function inspectContainer(
 
   if (result.exitCode !== 0 || result.spawnError !== undefined) {
     const reason = summarizePodmanOutput(result, timeoutMs);
-    if (isMissingContainer(result)) {
+    if (isMissingInspectTarget(result)) {
       throw containerNotFoundError(app, container, reason);
     }
 
@@ -1368,6 +1372,17 @@ function isMissingContainer(result: PodmanCommandResult): boolean {
   return MISSING_CONTAINER_PATTERN.test(outputOf(result));
 }
 
+/**
+ * `podman inspect` on Podman 5.7 reports an absent container as
+ * `Error: no such object: "<name>"` (exit 125, stdout `[]`), unlike
+ * `stop`/`rm`/`logs`, which say `no such container`. The pattern stays anchored
+ * to that exact wording so an unrelated runtime failure is never mistaken for
+ * an absent container.
+ */
+function isMissingInspectTarget(result: PodmanCommandResult): boolean {
+  return isMissingContainer(result) || MISSING_INSPECT_PATTERN.test(outputOf(result));
+}
+
 function isVolumeExists(result: PodmanCommandResult): boolean {
   return VOLUME_EXISTS_PATTERN.test(outputOf(result));
 }
@@ -1465,5 +1480,6 @@ const PORT_IN_USE_PATTERN =
   /address already in use|port is already allocated|failed to bind host port|bind for .* port is already allocated/i;
 const MISSING_CONTAINER_PATTERN =
   /no such container|no container with name or id|container .* (?:does not exist|not found)/i;
+const MISSING_INSPECT_PATTERN = /no such object: "[^"]*"/i;
 const VOLUME_EXISTS_PATTERN = /volume .* already exists|volume already exists/i;
 const MISSING_VOLUME_PATTERN = /no such volume|volume .* (?:does not exist|not found)/i;

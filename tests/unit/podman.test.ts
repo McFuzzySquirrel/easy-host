@@ -599,6 +599,33 @@ describe("podman inspect", () => {
     expect(error.code).toBe(PODMAN_FAILURE_CODES.CONTAINER_NOT_FOUND);
   });
 
+  it("classifies Podman 5.7 'no such object' output as a missing container", async () => {
+    // Exact wording and exit status produced by `podman inspect` on rootless
+    // Podman 5.7.0 for an absent container; `add` preflight depends on this.
+    const runner = new RecordingRunner([
+      { exitCode: 125, stdout: "[]\n", stderr: 'Error: no such object: "easy-host-blog"' },
+    ]);
+
+    const error = await capture(() => inspectContainer({ app: "blog", runner }));
+
+    expect(error).toBeInstanceOf(NotFoundError);
+    expect(error.exitCode).toBe(EXIT_CODES.NOT_FOUND);
+    expect(error.code).toBe(PODMAN_FAILURE_CODES.CONTAINER_NOT_FOUND);
+    expect(singleCall(runner).args).toEqual(["inspect", "easy-host-blog"]);
+  });
+
+  it("keeps an unrelated inspect failure as a prerequisite failure", async () => {
+    const runner = new RecordingRunner([
+      fail("Error: unable to connect to Podman socket: no such file or directory", 125),
+    ]);
+
+    const error = await capture(() => inspectContainer({ app: "blog", runner }));
+
+    expect(error).toBeInstanceOf(PrerequisiteError);
+    expect(error.exitCode).toBe(EXIT_CODES.PREREQUISITE);
+    expect(error.code).toBe(PODMAN_FAILURE_CODES.INSPECT_FAILED);
+  });
+
   it("classifies malformed inspect output as a prerequisite failure", async () => {
     const invalid = await capture(async () => {
       const runner = new RecordingRunner([ok("not json")]);
