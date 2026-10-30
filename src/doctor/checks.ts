@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, statfsSync } from "node:fs";
 import { userInfo } from "node:os";
 import path from "node:path";
+import { PODMAN_RESTART_SERVICE } from "../platform/boot-recovery.js";
 import { resolveStateRoot } from "../platform/paths.js";
 
 /**
@@ -319,8 +320,61 @@ export function checkLinger(environment: DoctorCheckEnvironment): DoctorCheck {
   };
 }
 
-/** Git presence and minimum version (`PRE-FR-04`). */
-export function checkGit(environment: DoctorCheckEnvironment): DoctorCheck {
+/**
+ * Boot-time replay of the container restart policy (`RBK-FR-02`).
+ *
+ * `--restart=always` is enforced by the podman process that is already alive;
+ * it is not a boot hook. For a rootless user Podman ships
+ * `podman-restart.service` but leaves it disabled, so a container that was
+ * healthy before a reboot stays down. `add` enables the unit; doctor reports the
+ * state so an unrepairable host stays visible.
+ */
+export function checkBootRestart(environment: DoctorCheckEnvironment): DoctorCheck {
+  const outcome = invoke(environment, "systemctl", [
+    "--user",
+    "is-enabled",
+    PODMAN_RESTART_SERVICE,
+  ]);
+  const enabled = outcome.ok && /^enabled\b/im.test(outcome.stdout);
+
+  if (enabled) {
+    return {
+      id: "boot-restart",
+      label: "Reboot recovery",
+      status: "pass",
+      detail: `${PODMAN_RESTART_SERVICE} is enabled for ${environment.username}; --restart=always containers return after a reboot.`,
+      remediation: null,
+    };
+  }
+
+  if (!outcome.ok && isMissing(outcome)) {
+    return {
+      id: "boot-restart",
+      label: "Reboot recovery",
+      status: "skip",
+      detail:
+        "systemctl was not found on PATH; whether containers return after a reboot could not be checked.",
+      remediation: `Enable the Podman restart unit once systemd is present: systemctl --user enable --now ${PODMAN_RESTART_SERVICE}`,
+    };
+  }
+
+  const found =
+    firstLine(outcome.stdout) ??
+    firstLine(outcome.stderr) ??
+    `exit ${outcome.exitCode ?? "unknown"}`;
+
+  return {
+    id: "boot-restart",
+    label: "Reboot recovery",
+    status: "fail",
+    detail: `${PODMAN_RESTART_SERVICE} is not enabled for ${environment.username} (${found}); --restart=always containers will not return after a reboot.`,
+    remediation: `Run "easy-host add" again, or enable the unit directly: systemctl --user enable --now ${PODMAN_RESTART_SERVICE}`,
+  };
+}
+
+/** Git presence and minimum version (`PRE-FR-04`). */ export function checkGit(
+  environment: DoctorCheckEnvironment,
+): DoctorCheck {
   const outcome = invoke(environment, "git", ["--version"]);
 
   if (!outcome.ok) {

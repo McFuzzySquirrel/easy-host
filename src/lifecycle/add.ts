@@ -55,6 +55,11 @@ import {
   probeApp,
 } from "../health/probe.js";
 import {
+  type BootRecoveryResult,
+  enableBootRecovery,
+  PODMAN_RESTART_SERVICE,
+} from "../platform/boot-recovery.js";
+import {
   type BuildOutputSink,
   type BuildWorkspaceOptions,
   buildWorkspace,
@@ -111,6 +116,7 @@ export type AddPhase =
   | "preparing"
   | "starting"
   | "probing"
+  | "boot"
   | "keeping"
   | "stopping"
   | "removing"
@@ -178,6 +184,14 @@ export interface AddRuntime {
   stopContainer(options: StopContainerOptions): Promise<unknown>;
   removeContainer(options: RemoveContainerOptions): Promise<unknown>;
   containerLogs(options: ContainerLogsOptions): Promise<ContainerLogsResult>;
+  /**
+   * Enables the systemd user unit that replays the restart policy at boot.
+   *
+   * Optional so a test runtime can model the container calls alone; the
+   * production runtime always provides it. When it is absent `add` skips the
+   * step rather than silently claiming reboot survival.
+   */
+  enableBootRecovery?(): Promise<BootRecoveryResult>;
 }
 
 export interface AddProber {
@@ -316,6 +330,7 @@ export function createDefaultAddRuntime(): AddRuntime {
     stopContainer,
     removeContainer,
     containerLogs,
+    enableBootRecovery: () => enableBootRecovery(),
   };
 }
 
@@ -333,7 +348,11 @@ export function createDefaultAddProber(): AddProber {
  * remaining doctor checks (Podman, rootless mode, lingering, git, Node, disk)
  * are real prerequisites that cannot be repaired by the add operation.
  */
-const PROVISIONED_CHECK_IDS: ReadonlySet<string> = new Set(["railpack", "buildkit"]);
+const PROVISIONED_CHECK_IDS: ReadonlySet<string> = new Set([
+  "railpack",
+  "buildkit",
+  "boot-restart",
+]);
 
 /**
  * The production prerequisite check. It runs the ordered doctor checks and
@@ -556,6 +575,20 @@ async function addWhileLocked(context: AddContext): Promise<AddResult> {
       warnings,
       volumeNames,
     });
+  }
+
+  output.phase("boot", `enabling ${PODMAN_RESTART_SERVICE} so the app returns after a reboot`);
+  try {
+    const boot = await runtime.enableBootRecovery?.();
+    if (boot !== undefined && !boot.enabled) {
+      const message = `the app is healthy but will not return after a reboot: ${boot.detail}`;
+      warnings.push(message);
+      output.warn(message);
+    }
+  } catch (error) {
+    const message = `reboot recovery could not be enabled: ${messageOf(error)}`;
+    warnings.push(message);
+    output.warn(message);
   }
 
   output.phase("recording", "recording the healthy state");

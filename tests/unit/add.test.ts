@@ -463,6 +463,7 @@ describe("add happy path", () => {
       "building",
       "starting",
       "probing",
+      "boot",
       "recording",
       "keeping",
     ]);
@@ -924,5 +925,85 @@ describe("progress output", () => {
   it("re-exports the input type through the public lifecycle shape", () => {
     const input: AddInputValues = { port: "8080" };
     expect(input.port).toBe("8080");
+  });
+});
+
+describe("reboot recovery (RBK-FR-02)", () => {
+  it("enables podman-restart.service after a healthy probe", async () => {
+    const harness = createHarness();
+    const appDir = harness.paths.appDir("blog");
+    harness.workspace.next = gitWorkspace(appDir);
+
+    let calls = 0;
+    Object.assign(harness.runtime, {
+      enableBootRecovery: async () => {
+        calls += 1;
+        return {
+          service: "podman-restart.service",
+          enabled: true,
+          detail: "podman-restart.service is enabled and running for this user.",
+        };
+      },
+    });
+
+    const result = await addApp(
+      { repo: "https://github.com/example/blog.git", port: "8080", interactive: false },
+      harness.deps,
+    );
+
+    expect(calls).toBe(1);
+    expect(harness.output.phases).toContain("boot");
+    expect(harness.output.phases.indexOf("boot")).toBeGreaterThan(
+      harness.output.phases.indexOf("probing"),
+    );
+    expect(harness.output.phases.indexOf("boot")).toBeLessThan(
+      harness.output.phases.indexOf("recording"),
+    );
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("keeps the app and warns when the unit cannot be enabled", async () => {
+    const harness = createHarness();
+    const appDir = harness.paths.appDir("blog");
+    harness.workspace.next = gitWorkspace(appDir);
+
+    Object.assign(harness.runtime, {
+      enableBootRecovery: async () => ({
+        service: "podman-restart.service",
+        enabled: false,
+        detail: "systemctl could not start (ENOENT)",
+      }),
+    });
+
+    const result = await addApp(
+      { repo: "https://github.com/example/blog.git", port: "8080", interactive: false },
+      harness.deps,
+    );
+
+    expect(result.health.healthy).toBe(true);
+    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(result.warnings.join("\n")).toContain("will not return after a reboot");
+    expect(result.warnings.join("\n")).toContain("ENOENT");
+    expect(harness.output.text).toContain("will not return after a reboot");
+  });
+
+  it("warns instead of failing when enableBootRecovery throws", async () => {
+    const harness = createHarness();
+    const appDir = harness.paths.appDir("blog");
+    harness.workspace.next = gitWorkspace(appDir);
+
+    Object.assign(harness.runtime, {
+      enableBootRecovery: async () => {
+        throw new Error("user manager is not running");
+      },
+    });
+
+    const result = await addApp(
+      { repo: "https://github.com/example/blog.git", port: "8080", interactive: false },
+      harness.deps,
+    );
+
+    expect(result.health.healthy).toBe(true);
+    expect(result.warnings.join("\n")).toContain("user manager is not running");
   });
 });

@@ -150,6 +150,10 @@ function createHostRunner(options: RunnerOptions = {}): RecordingRunner {
       return ok("Linger=yes\n");
     }
 
+    if (command === "systemctl" && args[1] === "is-enabled") {
+      return ok("enabled\n");
+    }
+
     if (command === "git" && args[0] === "--version") {
       return ok("git version 2.43.0\n");
     }
@@ -546,6 +550,7 @@ describe("doctor composition", () => {
       "podman",
       "podman-rootless",
       "linger",
+      "boot-restart",
       "git",
       "node",
       "railpack",

@@ -673,6 +673,9 @@ class DoctorRunner implements ProcessRunner {
     if (command === "loginctl") {
       return { exitCode: 0, stdout: "Linger=yes\n", stderr: "" };
     }
+    if (command === "systemctl" && args[1] === "is-enabled") {
+      return { exitCode: 0, stdout: "enabled\n", stderr: "" };
+    }
     if (command === "git" && args[0] === "--version") {
       return { exitCode: 0, stdout: "git version 2.43.0\n", stderr: "" };
     }
@@ -749,7 +752,7 @@ describe("doctor --json", () => {
     expect(disk.workspaces).toEqual([]);
 
     const checks = document.checks as Array<Record<string, unknown>>;
-    expect(checks).toHaveLength(8);
+    expect(checks).toHaveLength(9);
 
     for (const check of checks) {
       expect(Object.keys(check)).toEqual(["id", "status", "detail", "remediation"]);
@@ -762,6 +765,7 @@ describe("doctor --json", () => {
       "podman",
       "podman-rootless",
       "linger",
+      "boot-restart",
       "git",
       "node",
       "railpack",

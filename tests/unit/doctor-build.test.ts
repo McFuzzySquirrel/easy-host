@@ -39,6 +39,7 @@ const EXPECTED_ORDER = [
   "podman",
   "podman-rootless",
   "linger",
+  "boot-restart",
   "git",
   "node",
   "railpack",
@@ -130,6 +131,10 @@ function createHostRunner(options: HostRunnerOptions = {}): RecordingRunner {
 
     if (command === "loginctl") {
       return ok("Linger=yes\n");
+    }
+
+    if (command === "systemctl" && args[1] === "is-enabled") {
+      return ok("enabled\n");
     }
 
     if (command === "git" && args[0] === "--version") {
@@ -531,10 +536,10 @@ describe("build checks in doctor composition", () => {
       "detail",
       "remediation",
     ]);
-    expect(document.checks[5]?.id).toBe("railpack");
-    expect(document.checks[6]?.id).toBe("buildkit");
-    expect(document.checks[5]?.remediation).toBeNull();
+    expect(document.checks[6]?.id).toBe("railpack");
+    expect(document.checks[7]?.id).toBe("buildkit");
     expect(document.checks[6]?.remediation).toBeNull();
+    expect(document.checks[7]?.remediation).toBeNull();
   });
 
   it("renders build-check failures in both human and JSON modes", () => {

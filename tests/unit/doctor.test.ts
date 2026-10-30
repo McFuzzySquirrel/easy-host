@@ -89,6 +89,7 @@ interface HostOptions {
   rootless?: boolean | null;
   linger?: "yes" | "no" | null;
   gitVersion?: string | null;
+  bootRestart?: "enabled" | "disabled" | null;
 }
 
 function createHost(options: HostOptions = {}): RecordingRunner {
@@ -97,9 +98,18 @@ function createHost(options: HostOptions = {}): RecordingRunner {
     rootless = true,
     linger = "yes",
     gitVersion = "2.43.0",
+    bootRestart = "enabled",
   } = options;
 
   return new RecordingRunner((command, args) => {
+    if (command === "systemctl" && args[1] === "is-enabled") {
+      if (bootRestart === null) {
+        return missing();
+      }
+
+      return ok(`${bootRestart}\n`);
+    }
+
     if (command === "podman" && args[0] === "--version") {
       return podmanVersion === null ? missing() : ok(`podman version ${podmanVersion}\n`);
     }
@@ -184,6 +194,7 @@ describe("healthy host", () => {
       "podman",
       "podman-rootless",
       "linger",
+      "boot-restart",
       "git",
       "node",
       "railpack",
@@ -348,6 +359,37 @@ describe("lingering", () => {
   });
 });
 
+describe("reboot recovery", () => {
+  it("passes when podman-restart.service is enabled", () => {
+    const report = diagnose(createHost({ bootRestart: "enabled" }));
+
+    const check = findCheck(report, "boot-restart");
+    expect(check.status).toBe("pass");
+    expect(check.detail).toContain("reboot");
+    expect(check.remediation).toBeNull();
+    expect(report.status).toBe("pass");
+  });
+
+  it("fails when the unit is disabled and names the reboot consequence", () => {
+    const report = diagnose(createHost({ bootRestart: "disabled" }));
+
+    const check = findCheck(report, "boot-restart");
+    expect(check.status).toBe("fail");
+    expect(check.detail).toContain("--restart=always");
+    expect(check.detail).toContain("will not return after a reboot");
+    expect(check.remediation).toContain("systemctl --user enable --now podman-restart.service");
+    expect(report.status).toBe("fail");
+  });
+
+  it("skips when systemctl is unavailable instead of claiming pass", () => {
+    const report = diagnose(createHost({ bootRestart: null }));
+
+    const check = findCheck(report, "boot-restart");
+    expect(check.status).toBe("skip");
+    expect(check.detail).toContain("systemctl");
+  });
+});
+
 describe("git and Node.js", () => {
   it("fails for git 2.39.2 and prints the found version", () => {
     const report = diagnose(createHost({ gitVersion: "2.39.2" }));
@@ -442,6 +484,7 @@ describe("report rendering and JSON", () => {
       "podman",
       "podman-rootless",
       "linger",
+      "boot-restart",
       "git",
       "node",
       "railpack",
@@ -468,7 +511,7 @@ describe("report rendering and JSON", () => {
     expect(document.schemaVersion).toBe(1);
     expect(document.status).toBe("pass");
     expect(Array.isArray(document.checks)).toBe(true);
-    expect(document.checks).toHaveLength(8);
+    expect(document.checks).toHaveLength(9);
 
     for (const check of document.checks) {
       expect(Object.keys(check)).toEqual(["id", "status", "detail", "remediation"]);
@@ -514,7 +557,13 @@ describe("report rendering and JSON", () => {
 describe("safety and budget", () => {
   it("never reports a non-pass check as pass", () => {
     const report = diagnose(
-      createHost({ podmanVersion: "4.9.3", rootless: false, linger: "no", gitVersion: "2.39.2" }),
+      createHost({
+        podmanVersion: "4.9.3",
+        rootless: false,
+        linger: "no",
+        gitVersion: "2.39.2",
+        bootRestart: "disabled",
+      }),
       {
         nodeVersion: "v22.11.0",
         readDiskSpace: () => ({ freeBytes: 1 * GIB, totalBytes: 200 * GIB }),
@@ -536,7 +585,7 @@ describe("safety and budget", () => {
     expect(report.durationMs).toBe(42);
     expect(report.durationMs).toBeLessThan(DOCTOR_BUDGET_MS);
 
-    const localCommands = new Set(["podman", "loginctl", "git", railpackPath]);
+    const localCommands = new Set(["podman", "loginctl", "systemctl", "git", railpackPath]);
     const networkArguments = ["pull", "push", "search", "login", "clone", "fetch", "http"];
 
     expect(runner.calls.length).toBeGreaterThan(0);
