@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { runDoctorCommand } from "../../src/cli/commands/doctor.js";
 import { EXIT_CODES } from "../../src/cli/errors.js";
 import {
@@ -19,10 +22,36 @@ import {
   runDoctor,
   toDoctorDocument,
 } from "../../src/doctor/index.js";
+import { RAILPACK_VERSION } from "../../src/platform/versions.js";
 
 const GIB = 1024 ** 3;
 const ANSI_ESCAPE = "\u001B[";
 const HEALTHY_DISK = { freeBytes: 42 * GIB, totalBytes: 200 * GIB };
+
+let buildRoot = "";
+let railpackPath = "";
+
+beforeAll(() => {
+  buildRoot = mkdtempSync(path.join(tmpdir(), "easy-host-doctor-"));
+  railpackPath = path.join(buildRoot, "railpack");
+  writeFileSync(railpackPath, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+});
+
+afterAll(() => {
+  if (buildRoot.length > 0) {
+    rmSync(buildRoot, { recursive: true, force: true });
+  }
+});
+
+/** Healthy build-check defaults so host-check tests stay focused. */
+function buildCheckOptions(): DoctorOptions {
+  return {
+    toolsDir: buildRoot,
+    buildkitDir: path.join(buildRoot, "buildkit"),
+    railpackPath,
+    probeBuildkit: () => true,
+  };
+}
 
 interface Call {
   command: string;
@@ -95,6 +124,10 @@ function createHost(options: HostOptions = {}): RecordingRunner {
       return gitVersion === null ? missing() : ok(`git version ${gitVersion}\n`);
     }
 
+    if (command === railpackPath && args[0] === "--version") {
+      return ok(`railpack ${RAILPACK_VERSION}\n`);
+    }
+
     throw new Error(`unexpected command: ${command} ${args.join(" ")}`);
   });
 }
@@ -109,6 +142,7 @@ function diagnose(runner: ProcessRunner, overrides: DoctorOptions = {}): DoctorR
     diskPath: "/var/lib/easy-host",
     readDiskSpace: () => HEALTHY_DISK,
     now: () => 0,
+    ...buildCheckOptions(),
     ...overrides,
   });
 }
@@ -152,6 +186,8 @@ describe("healthy host", () => {
       "linger",
       "git",
       "node",
+      "railpack",
+      "buildkit",
       "disk",
     ]);
 
@@ -174,6 +210,7 @@ describe("healthy host", () => {
       nodeVersion: "v24.0.0",
       diskPath: "/var/lib/easy-host",
       readDiskSpace: () => HEALTHY_DISK,
+      ...buildCheckOptions(),
     });
 
     expect(code).toBe(EXIT_CODES.SUCCESS);
@@ -183,6 +220,8 @@ describe("healthy host", () => {
     expect(stdout.text).toContain("PASS linger");
     expect(stdout.text).toContain("PASS git");
     expect(stdout.text).toContain("PASS node");
+    expect(stdout.text).toContain("PASS railpack");
+    expect(stdout.text).toContain("PASS buildkit");
     expect(stdout.text).toContain("PASS disk");
     expect(stdout.text).toContain("Result: pass");
     expect(stdout.text).not.toContain("next:");
@@ -213,6 +252,7 @@ describe("Podman version range", () => {
       osRelease: { id: "ubuntu", name: "Ubuntu 24.04 LTS" },
       nodeVersion: "v24.0.0",
       readDiskSpace: () => HEALTHY_DISK,
+      ...buildCheckOptions(),
     });
     expect(code).toBe(EXIT_CODES.PREREQUISITE);
   });
@@ -398,9 +438,16 @@ describe("report rendering and JSON", () => {
     const text = formatDoctorReport(report);
     const lines = text.split("\n");
 
-    const positions = ["podman", "podman-rootless", "linger", "git", "node", "disk"].map((id) =>
-      lines.findIndex((line) => line.includes(id)),
-    );
+    const positions = [
+      "podman",
+      "podman-rootless",
+      "linger",
+      "git",
+      "node",
+      "railpack",
+      "buildkit",
+      "disk",
+    ].map((id) => lines.findIndex((line) => line.includes(id)));
     expect(positions).toEqual([...positions].sort((left, right) => left - right));
 
     for (const line of lines) {
@@ -421,7 +468,7 @@ describe("report rendering and JSON", () => {
     expect(document.schemaVersion).toBe(1);
     expect(document.status).toBe("pass");
     expect(Array.isArray(document.checks)).toBe(true);
-    expect(document.checks).toHaveLength(6);
+    expect(document.checks).toHaveLength(8);
 
     for (const check of document.checks) {
       expect(Object.keys(check)).toEqual(["id", "status", "detail", "remediation"]);
@@ -447,6 +494,7 @@ describe("report rendering and JSON", () => {
       nodeVersion: "v24.0.0",
       diskPath: "/var/lib/easy-host",
       readDiskSpace: () => HEALTHY_DISK,
+      ...buildCheckOptions(),
     });
 
     expect(code).toBe(EXIT_CODES.PREREQUISITE);
@@ -470,6 +518,8 @@ describe("safety and budget", () => {
       {
         nodeVersion: "v22.11.0",
         readDiskSpace: () => ({ freeBytes: 1 * GIB, totalBytes: 200 * GIB }),
+        railpackPath: path.join(buildRoot, "missing-railpack"),
+        probeBuildkit: () => false,
       },
     );
 
@@ -486,7 +536,7 @@ describe("safety and budget", () => {
     expect(report.durationMs).toBe(42);
     expect(report.durationMs).toBeLessThan(DOCTOR_BUDGET_MS);
 
-    const localCommands = new Set(["podman", "loginctl", "git"]);
+    const localCommands = new Set(["podman", "loginctl", "git", railpackPath]);
     const networkArguments = ["pull", "push", "search", "login", "clone", "fetch", "http"];
 
     expect(runner.calls.length).toBeGreaterThan(0);

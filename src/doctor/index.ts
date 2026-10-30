@@ -1,4 +1,12 @@
+import { homedir } from "node:os";
 import { performance } from "node:perf_hooks";
+import { createPaths } from "../platform/paths.js";
+import {
+  type BuildCheckEnvironment,
+  type BuildkitReachabilityProbe,
+  probeBuildkitSocketSync,
+  runBuildChecks,
+} from "./build-checks.js";
 import {
   checkDisk,
   checkGit,
@@ -21,10 +29,12 @@ import {
 /**
  * Doctor composition, human rendering, and the `--json` document.
  *
- * The report order is stable and matches `runHostChecks`: Podman, rootless
- * mode, lingering, git, Node.js, disk. Human output carries text status labels
- * and no ANSI escapes (`PRE-FR-07`, `PRE-NF-02`, `PRD-ACC-02`). Doctor reads
- * only local state; it never contacts the network (`PRE-NF-01`).
+ * The report order is stable and matches `runDoctor`: Podman, rootless mode,
+ * lingering, git, Node.js, Railpack, BuildKit, disk. Human output carries text
+ * status labels and no ANSI escapes (`PRE-FR-07`, `PRE-NF-02`, `PRD-ACC-02`).
+ * Doctor reads only local state; it never contacts the network (`PRE-NF-01`),
+ * never downloads Railpack, and never starts the BuildKit daemon
+ * (`BLD-FR-05`).
  */
 
 /** The overall verdict for the host. A skip is reported as a warning. */
@@ -46,6 +56,18 @@ export interface DoctorOptions {
   nodeVersion?: string;
   diskPath?: string;
   readDiskSpace?: DiskSpaceReader;
+  /** `<root>/tools`; defaults to the state-root layout. */
+  toolsDir?: string;
+  /** `<root>/buildkit`; defaults to the state-root layout. */
+  buildkitDir?: string;
+  /** Base directory for a relative Railpack override. Defaults to `process.cwd()`. */
+  cwd?: string;
+  /** Home directory for `~/` expansion. Defaults to `os.homedir()`. */
+  homeDir?: string;
+  /** Test seam for an explicit Railpack executable path. */
+  railpackPath?: string;
+  /** Managed-socket reachability probe. Defaults to the real local probe. */
+  probeBuildkit?: BuildkitReachabilityProbe;
   /** Monotonic millisecond clock used for the budget report. */
   now?: () => number;
 }
@@ -85,12 +107,29 @@ export function runDoctor(options: DoctorOptions = {}): DoctorReport {
     readDiskSpace: options.readDiskSpace ?? readDiskSpace,
   };
 
+  const paths = createPaths({
+    env,
+    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
+    ...(options.homeDir === undefined ? {} : { homeDir: options.homeDir }),
+  });
+  const buildEnvironment: BuildCheckEnvironment = {
+    runner: environment.runner,
+    env,
+    toolsDir: options.toolsDir ?? paths.toolsDir,
+    buildkitDir: options.buildkitDir ?? paths.buildkitDir,
+    cwd: options.cwd ?? process.cwd(),
+    homeDir: options.homeDir ?? homedir(),
+    probeBuildkit: options.probeBuildkit ?? probeBuildkitSocketSync,
+    ...(options.railpackPath === undefined ? {} : { railpackPath: options.railpackPath }),
+  };
+
   const checks = [
     checkPodman(environment),
     checkPodmanRootless(environment),
     checkLinger(environment),
     checkGit(environment),
     checkNode(environment),
+    ...runBuildChecks(buildEnvironment),
     checkDisk(environment),
   ];
 

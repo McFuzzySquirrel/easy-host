@@ -4,7 +4,7 @@
 **Phase**: BUILDKIT-AND-RAILPACK-2
 **Status**: In Progress
 **Validation Gaps**: 3 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T00:23:02.356Z
+**Last Updated**: 2026-10-30T00:30:05.315Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -28,6 +28,8 @@
   - Files: src/platform/buildkit.ts, tests/unit/buildkit.test.ts
 - [x] Phase BUILDKIT-AND-RAILPACK-2, Task BLD-1.3: Build a workspace into a tagged image (@build-engineer)
   - Files: src/platform/build.ts, tests/unit/build.test.ts
+- [x] Phase BUILDKIT-AND-RAILPACK-2, Task BLD-1.5: Add build prerequisites to doctor (@cli-engineer)
+  - Files: src/doctor/build-checks.ts, src/doctor/index.ts, tests/unit/doctor-build.test.ts, tests/unit/doctor.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.1: Parse and validate AppSpec from TOML (@cli-engineer)
   - Files: src/config/schema.ts, src/config/parse.ts, tests/unit/config-parse.test.ts
 - [x] Phase APP-REGISTRY-AND-CONFIG-1, Task REG-1.2: Derive and validate app names (@cli-engineer)
