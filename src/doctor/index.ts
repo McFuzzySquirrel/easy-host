@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { performance } from "node:perf_hooks";
+import { serializeJson, toDoctorDocument } from "../cli/json.js";
 import { createPaths } from "../platform/paths.js";
 import {
   type BuildCheckEnvironment,
@@ -73,16 +74,8 @@ export interface DoctorOptions {
 }
 
 /** Stable shape of `doctor --json` under `schemaVersion: 1`. */
-export interface DoctorDocument {
-  schemaVersion: 1;
-  status: DoctorStatus;
-  checks: Array<{
-    id: string;
-    status: DoctorCheck["status"];
-    detail: string;
-    remediation: string | null;
-  }>;
-}
+export type { DoctorDocument } from "../cli/schemas.js";
+export { toDoctorDocument };
 
 /** The report is required to fit an 80-column terminal (`OBS-FR-02`). */
 const REPORT_WIDTH = 80;
@@ -181,25 +174,11 @@ export function formatDoctorReport(report: DoctorReport): string {
 }
 
 /**
- * Converts the report to the stable JSON document. Exactly one document is
- * written by the caller, with empty arrays present and no ANSI escapes.
+ * Serializes `doctor --json` as one newline-terminated document. The shape is
+ * the shared contract in `src/cli/schemas.ts`.
  */
-export function toDoctorDocument(report: DoctorReport): DoctorDocument {
-  return {
-    schemaVersion: 1,
-    status: report.status,
-    checks: report.checks.map((check) => ({
-      id: check.id,
-      status: check.status,
-      detail: check.detail,
-      remediation: check.remediation,
-    })),
-  };
-}
-
-/** Serializes `doctor --json` as one newline-terminated document. */
 export function formatDoctorJson(report: DoctorReport): string {
-  return `${JSON.stringify(toDoctorDocument(report), null, 2)}\n`;
+  return serializeJson(toDoctorDocument(report));
 }
 
 function statusLabel(status: DoctorCheck["status"]): string {

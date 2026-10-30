@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+import type { ConfigCommandOptions } from "../../src/cli/commands/config.js";
 import type { DoctorCommandOptions } from "../../src/cli/commands/doctor.js";
+import type { ListCommandOptions } from "../../src/cli/commands/list.js";
+import type { StatusCommandOptions } from "../../src/cli/commands/status.js";
 import {
   COMMAND_NAMES,
   type CommandName,
@@ -47,13 +50,10 @@ const APP_ARGUMENT_COMMANDS: readonly CommandName[] = [
 ];
 const PLACEHOLDER_COMMANDS: readonly CommandName[] = [
   "add",
-  "list",
-  "status",
   "logs",
   "update",
   "rollback",
   "remove",
-  "config",
 ];
 
 class RecordingStream {
@@ -77,7 +77,7 @@ function createCli(options: ProgramOptions = {}) {
   return {
     stdout,
     stderr,
-    run(argv: readonly string[]): number {
+    run(argv: readonly string[]): Promise<number> {
       return runCli(argv, {
         ...options,
         stdout,
@@ -85,6 +85,11 @@ function createCli(options: ProgramOptions = {}) {
         env,
         // Doctor probes the real host by default; unit tests inject a stub.
         runDoctor: options.runDoctor ?? (() => 0),
+        // The read commands are asynchronous and would inspect the host by
+        // default; this suite stays off the host unless it injects a wrapper.
+        runList: options.runList ?? (() => 0),
+        runStatus: options.runStatus ?? (() => 0),
+        runConfig: options.runConfig ?? (() => 0),
       });
     },
   };
@@ -138,10 +143,10 @@ describe("command registration", () => {
     }
   });
 
-  it("accepts the global --json flag after a command that does not list it", () => {
+  it("accepts the global --json flag after a command that does not list it", async () => {
     const { run, stdout, stderr } = createCli();
 
-    expect(run(["add", "https://example.com/app.git", "--json"])).toBe(1);
+    expect(await run(["add", "https://example.com/app.git", "--json"])).toBe(1);
     expect(stderr.text).toBe("");
 
     const document = JSON.parse(stdout.text) as {
@@ -163,21 +168,53 @@ describe("command registration", () => {
     expect(program.options.map((option) => option.long)).toContain("--json");
   });
 
-  it("accepts --json on the commands that document it", () => {
+  it("accepts --json on the commands that document it", async () => {
     for (const name of JSON_COMMANDS) {
       const { run } = createCli();
       const argv = APP_ARGUMENT_COMMANDS.includes(name)
         ? [name, "api", "--json"]
         : [name, "--json"];
 
-      // `version` and `doctor` succeed and emit JSON; the rest are placeholders
-      // that must fail with the JSON error envelope, not an unknown-option error.
-      const expected = name === "version" || name === "doctor" ? 0 : 1;
-      expect(run(argv), name).toBe(expected);
+      // Every JSON command is implemented; doctor and the read handlers are
+      // stubbed by `createCli` so this unit test never probes the host.
+      expect(await run(argv), name).toBe(0);
     }
   });
 
-  it("forwards --json and the doctor exit code through the program", () => {
+  it("forwards --json and the exit code through the read handlers", async () => {
+    const listCalls: ListCommandOptions[] = [];
+    const statusCalls: StatusCommandOptions[] = [];
+    const configCalls: ConfigCommandOptions[] = [];
+    const { run } = createCli({
+      runList: (options) => {
+        listCalls.push(options);
+        return 0;
+      },
+      runStatus: (options) => {
+        statusCalls.push(options);
+        return 4;
+      },
+      runConfig: (options) => {
+        configCalls.push(options);
+        return 0;
+      },
+    });
+
+    expect(await run(["list", "--json"])).toBe(0);
+    expect(await run(["status", "reports", "--json"])).toBe(4);
+    expect(await run(["config", "reports", "--json"])).toBe(0);
+    expect(await run(["config", "reports", "--path"])).toBe(0);
+
+    expect(listCalls[0]?.json).toBe(true);
+    expect(statusCalls[0]?.app).toBe("reports");
+    expect(statusCalls[0]?.json).toBe(true);
+    expect(configCalls[0]?.app).toBe("reports");
+    expect(configCalls[0]?.json).toBe(true);
+    expect(configCalls[1]?.path).toBe(true);
+    expect(configCalls[1]?.json).toBe(false);
+  });
+
+  it("forwards --json and the doctor exit code through the program", async () => {
     const calls: DoctorCommandOptions[] = [];
     const { run } = createCli({
       runDoctor: (options) => {
@@ -186,17 +223,17 @@ describe("command registration", () => {
       },
     });
 
-    expect(run(["doctor", "--json"])).toBe(2);
+    expect(await run(["doctor", "--json"])).toBe(2);
     expect(calls).toHaveLength(1);
     expect(calls[0]?.json).toBe(true);
   });
 });
 
 describe("help output", () => {
-  it("lists every command with a description and exits 0", () => {
+  it("lists every command with a description and exits 0", async () => {
     const { run, stdout, stderr } = createCli();
 
-    expect(run(["--help"])).toBe(0);
+    expect(await run(["--help"])).toBe(0);
     expect(stderr.text).toBe("");
 
     const help = stdout.text;
@@ -212,34 +249,34 @@ describe("help output", () => {
     expect(help).toContain("--json");
   });
 
-  it("does not list commander's built-in help command", () => {
+  it("does not list commander's built-in help command", async () => {
     const { run, stdout } = createCli();
 
-    expect(run(["--help"])).toBe(0);
+    expect(await run(["--help"])).toBe(0);
     expect(stdout.text).not.toContain("help [command]");
   });
 
-  it("shows the documented flags for a subcommand", () => {
+  it("shows the documented flags for a subcommand", async () => {
     const { run, stdout } = createCli();
 
-    expect(run(["logs", "--help"])).toBe(0);
+    expect(await run(["logs", "--help"])).toBe(0);
     expect(stdout.text).toContain("-f, --follow");
     expect(stdout.text).toContain("--tail <n>");
   });
 
-  it("prints help and exits 0 when no command is given", () => {
+  it("prints help and exits 0 when no command is given", async () => {
     const { run, stdout } = createCli();
 
-    expect(run([])).toBe(0);
+    expect(await run([])).toBe(0);
     expect(stdout.text).toContain("Usage: easy-host");
   });
 });
 
 describe("usage failures", () => {
-  it("exits 1 and names an unknown command", () => {
+  it("exits 1 and names an unknown command", async () => {
     const { run, stderr, stdout } = createCli();
 
-    expect(run(["bogus"])).toBe(1);
+    expect(await run(["bogus"])).toBe(1);
     expect(stdout.text).toBe("");
     expect(stderr.text).toContain("unknown command");
     expect(stderr.text).toContain("bogus");
@@ -247,27 +284,27 @@ describe("usage failures", () => {
     expect(stderr.text).not.toContain("    at ");
   });
 
-  it("exits 1 when a required argument is missing", () => {
+  it("exits 1 when a required argument is missing", async () => {
     for (const name of APP_ARGUMENT_COMMANDS) {
       const { run, stderr } = createCli();
 
-      expect(run([name]), name).toBe(1);
+      expect(await run([name]), name).toBe(1);
       expect(stderr.text, name).toContain("missing required argument");
       expect(stderr.text, name).toContain("'app'");
     }
   });
 
-  it("exits 1 for an unknown flag", () => {
+  it("exits 1 for an unknown flag", async () => {
     const { run, stderr } = createCli();
 
-    expect(run(["version", "--bogus"])).toBe(1);
+    expect(await run(["version", "--bogus"])).toBe(1);
     expect(stderr.text).toContain("unknown option");
   });
 
-  it("emits one JSON error document for a usage failure when --json is set", () => {
+  it("emits one JSON error document for a usage failure when --json is set", async () => {
     const { run, stdout, stderr } = createCli();
 
-    expect(run(["bogus", "--json"])).toBe(1);
+    expect(await run(["bogus", "--json"])).toBe(1);
     expect(stderr.text).toBe("");
 
     const document = JSON.parse(stdout.text) as {
@@ -284,7 +321,7 @@ describe("usage failures", () => {
 });
 
 describe("placeholder handlers", () => {
-  it("exits 1 with a not-implemented usage message", () => {
+  it("exits 1 with a not-implemented usage message", async () => {
     for (const name of PLACEHOLDER_COMMANDS) {
       const { run, stderr } = createCli();
       const argv = name === "add" ? [name, "https://example.com/app.git"] : [name];
@@ -293,16 +330,16 @@ describe("placeholder handlers", () => {
         argv.push("api");
       }
 
-      expect(run(argv), name).toBe(1);
+      expect(await run(argv), name).toBe(1);
       expect(stderr.text, name).toContain("not implemented");
       expect(stderr.text, name).toContain("next:");
     }
   });
 
-  it("accepts --json on a placeholder and reports the error as JSON", () => {
+  it("accepts --json on a placeholder and reports the error as JSON", async () => {
     const { run, stdout, stderr } = createCli();
 
-    expect(run(["config", "api", "--json"])).toBe(1);
+    expect(await run(["logs", "api", "--json"])).toBe(1);
     expect(stderr.text).toBe("");
 
     const document = JSON.parse(stdout.text) as {
@@ -317,19 +354,19 @@ describe("placeholder handlers", () => {
 });
 
 describe("version command", () => {
-  it("prints the package version and exits 0", () => {
+  it("prints the package version and exits 0", async () => {
     const { run, stdout, stderr } = createCli();
 
-    expect(run(["version"])).toBe(0);
+    expect(await run(["version"])).toBe(0);
     expect(stderr.text).toBe("");
     expect(stdout.text).toBe(`${readPackageVersion()}\n`);
     expect(stdout.text.trim()).toMatch(SEMVER_PATTERN);
   });
 
-  it("accepts the global --json flag before the command", () => {
+  it("accepts the global --json flag before the command", async () => {
     const { run, stdout } = createCli();
 
-    expect(run(["--json", "version"])).toBe(0);
+    expect(await run(["--json", "version"])).toBe(0);
 
     const document = JSON.parse(stdout.text) as {
       schemaVersion: number;
@@ -346,10 +383,10 @@ describe("version command", () => {
     expect(stdout.text).not.toContain(ANSI_ESCAPE);
   });
 
-  it("emits one JSON document for version --json", () => {
+  it("emits one JSON document for version --json", async () => {
     const { run, stdout, stderr } = createCli();
 
-    expect(run(["version", "--json"])).toBe(0);
+    expect(await run(["version", "--json"])).toBe(0);
     expect(stderr.text).toBe("");
 
     const lines = stdout.text.trim().split("\n");

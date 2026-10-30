@@ -1,7 +1,7 @@
 {
   "runId": "8f1b4440-8f77-47c1-944a-481e1b74296e",
   "startedAt": "2026-10-29T22:53:04.089Z",
-  "lastUpdatedAt": "2026-10-30T03:08:03.120Z",
+  "lastUpdatedAt": "2026-10-30T03:20:53.553Z",
   "manifestPath": "/home/mcfuzzysquirrel/Projects/react-hoster/docs/EXECUTION-MANIFEST.json",
   "manifestVersion": "1.0",
   "harness": "opencode",
@@ -1120,10 +1120,64 @@
     },
     "OBS-1.1": {
       "taskId": "OBS-1.1",
-      "status": "pending",
+      "status": "complete",
       "ownerAgent": "cli-engineer",
-      "attempt": 0,
-      "outputFiles": []
+      "attempt": 2,
+      "outputFiles": [
+        "src/cli/json.ts",
+        "src/cli/schemas.ts",
+        "tests/unit/json.test.ts",
+        "src/cli/commands/config.ts",
+        "src/cli/commands/list.ts",
+        "src/cli/commands/not-implemented.ts",
+        "src/cli/commands/read-model.ts",
+        "src/cli/commands/status.ts",
+        "src/cli/errors.ts",
+        "src/cli/index.ts",
+        "src/cli/program.ts",
+        "src/doctor/index.ts",
+        "tests/unit/cli-entry.test.ts",
+        "tests/unit/program.test.ts"
+      ],
+      "startedAt": "2026-10-30T03:13:51.482Z",
+      "usage": {
+        "source": "unavailable",
+        "note": "opencode usage unavailable: Unterminated string in JSON at position 547622 (line 5251 column 429)"
+      },
+      "attemptHistory": [
+        {
+          "attempt": 1,
+          "outcome": "failed",
+          "reason": "forge-result.unresolved must be a string array; use [] when no blocking requirements remain.",
+          "resultPath": "docs/artifacts/OBS-1.1.2026-10-30T03-13-46-473Z.attempt-1.result.json",
+          "usage": {
+            "source": "unavailable",
+            "note": "opencode usage unavailable: Expected property name or '}' in JSON at position 547412 (line 3898 column 4)"
+          }
+        },
+        {
+          "attempt": 2,
+          "outcome": "passed",
+          "resultPath": "docs/artifacts/OBS-1.1.2026-10-30T03-20-53-547Z.attempt-2.result.json",
+          "usage": {
+            "source": "unavailable",
+            "note": "opencode usage unavailable: Unterminated string in JSON at position 547622 (line 5251 column 429)"
+          }
+        }
+      ],
+      "completedAt": "2026-10-30T03:20:53.550Z",
+      "agentOutput": "I'll start by reading the execution file and the authoritative sources.\nI found the prior attempt's implementation intact but its handoff malformed. Before finalizing, I'm closing the known CLI-wiring gap (the ADD-1.5 handoff) so `list/status/config --json` are actually reachable through the program, then I'll re-run all checks.\n## Result report — OBS-1.1: Freeze the JSON output contract\n\n### What changed\n\n**Created**\n- `src/cli/schemas.ts` — the frozen `schemaVersion: 1` document types (`VersionDocument`, `ListDocument`, `StatusDocument`, `DoctorDocument`, `ConfigDocument`, `JsonDocument`, `AppStatusLabel`).\n- `src/cli/json.ts` — the shared serializers: `toIsoUtc`, `redactedSpec`, `toVersionDocument`, `toListDocument`, `toStatusDocument`, `toDoctorDocument`, `toConfigDocument`, `serializeJson`, `writeJsonDocument`.\n- `tests/unit/json.test.ts` — 21 tests covering exact top-level shapes, empty arrays, ISO timestamps, no ANSI, no secrets, and program-level wiring.\n\n**Changed**\n- `src/cli/commands/list.ts`\n- `src/cli/commands/status.ts`\n- `src/cli/commands/config.ts`\n- `src/cli/commands/read-model.ts`\n- `src/cli/commands/not-implemented.ts`\n- `src/cli/program.ts`\n- `src/cli/errors.ts`\n- `src/cli/index.ts`\n- `src/doctor/index.ts`\n- `tests/unit/program.test.ts`\n- `tests/unit/cli-entry.test.ts`\n\nI did not modify `docs/artifacts/`. `docs/EXECUTION-AUDIT.jsonl` and `docs/WORKFLOW-STATE.json` were already engine-modified before this attempt.\n\n### Requirements satisfied\n\n- **OBS-FR-01** — `list`, `status`, `doctor`, `config`, and `version` each emit exactly one JSON document with `schemaVersion: 1`, stable field names, typed booleans/numbers, `null` for unknown scalars, permanent arrays (`apps`, `checks`, `ports`, `volumes`), ISO 8601 UTC timestamps, no ANSI escapes, no tables, and no secret values.\n- **OBS-NF-01** — JSON is written only to stdout; human narration and `config --edit` validation notes stay on stderr.\n- **OBS-NF-02** — no field was renamed or removed; `schemaVersion` remains `1` and additive-only evolution is documented in `schemas.ts`.\n- **PRD §12.1 / §16** — no commands, flags, config keys, or telemetry were added.\n\n### Contract notes\n\n- **No exit-code table change.** The documented 0/1/2/3/4/5/6/7 contract is untouched.\n- **Behavioral change:** `list`, `status`, and `config` were registered placeholders returning exit 1; they are now wired to their real handlers and return their documented codes (including 4 for unhealthy/stopped/missing status and 5 for unknown apps). Their `--json` output is now reachable from the binary.\n- **Interface change:** `runCli` and `main` are now asynchronous (`Promise<ExitCode>` / `Promise<number>`) because read handlers await container inspection; `runCli` uses `parseAsync` and the entry point uses `runWithErrorHandlingAsync`.\n- **No JSON field renames/removals**, no config keys, and no file-mode changes.\n- Timestamps are normalized through `toIsoUtc` (offsets become `Z`; unparseable values become `null`).\n- Every emitted string passes through `redactText`; every `[env]` value is replaced with `[redacted]`.\n\n### Validation\n\n| Command | Result |\n|---|---|\n| `npm run typecheck` | exit 0 |\n| `npm run lint` | exit 0 (65 files checked) |\n| `npm test -- tests/unit/json.test.ts` | 1 file, 21 tests passed |\n| `npm test -- tests/unit/json.test.ts tests/unit/read-commands.test.ts tests/unit/doctor.test.ts tests/unit/doctor-build.test.ts tests/unit/program.test.ts tests/unit/cli-entry.test.ts tests/unit/errors.test.ts` | 7 files, 147 tests passed |\n| `npm test` | 23 files, 589 tests passed |\n| `npm run build` | exit 0 |\n| `node dist/cli/index.js version --json` | one `schemaVersion: 1` document, exit 0 |\n| `EASY_HOST_HOME=<temp> node dist/cli/index.js list --json` | `{\"schemaVersion\":1,\"apps\":[]}`, exit 0 |\n| `EASY_HOST_HOME=<temp> node dist/cli/index.js status --json` | `{\"schemaVersion\":1,\"apps\":[]}`, exit 0 |\n| `EASY_HOST_HOME=<temp> node dist/cli/index.js config missing --json` | one `schemaVersion: 1` error envelope, exit 5 |\n| `node dist/cli/index.js doctor --json` | one document, 8 checks, no ANSI, 1.12 s, exit 2 from this host’s missing Railpack/BuildKit |\n| `node dist/cli/index.js --help` / `version` / `bogus` | 0 / 0 / 1 respectively |\n\n### Unresolved questions / default assumptions applied\n\n- Broken app directories are included in `list`/`status` JSON with `\"status\": \"broken\"` and an `error` object, per feature 07 open question 1’s default.\n- `status --json` exits 4 for stopped, missing, or last-recorded unhealthy apps, per open question 3’s default.\n- `logs` and the lifecycle commands (`add`, `update`, `rollback`, `remove`) remain registered placeholders; wiring them belongs to their lifecycle tasks.\n- Doctor’s exit 2 in the manual run reflects this host’s real missing prerequisites, not a JSON-contract failure.\n\n```forge-result\n{\"summary\":\"Froze the schemaVersion 1 JSON contract in src/cli/schemas.ts and src/cli/json.ts, routed list, status, config, doctor, and version through the shared serializers, wired list/status/config into the CLI via async dispatch, normalised timestamps to ISO 8601 UTC, kept empty arrays and typed values, and redacted every [env] value plus ANSI and URL credentials. Typecheck, lint, the 21-test json suite, the 147-test interaction suite, the 589-test full suite, build, and manual list/status/config/version/doctor JSON checks pass.\",\"unresolved\":[],\"decisions\":[\"All document types live in src/cli/schemas.ts and all projections in src/cli/json.ts; command modules re-export the old names so existing imports keep working.\",\"Timestamps are normalised through toIsoUtc: Date and offset strings become UTC ...Z, unparseable values become null.\",\"Every emitted string passes through redactText, and redactedSpec recursively preserves config structure while replacing all [env] values with [redacted].\",\"serializeJson/writeJsonDocument are the only JSON writers used by command handlers, keeping human narration and error text on their existing streams.\",\"runCli and main are now async so the read handlers' container inspection is awaited; runCli uses parseAsync and the entry point uses runWithErrorHandlingAsync.\",\"list, status, and config are registered with real handlers and injectable overrides; logs and lifecycle commands remain placeholders.\",\"No field renames or removals were made; schemaVersion stays 1 and additive fields remain allowed under OBS-NF-02.\"],\"interfaces\":[\"JSON_SCHEMA_VERSION, VersionDocument, ListDocument, StatusDocument, DoctorDocument, ConfigDocument, JsonDocument, AppStatusLabel in src/cli/schemas.ts\",\"toIsoUtc, redactedSpec, toVersionDocument, toListDocument, toStatusDocument, toDoctorDocument, toConfigDocument, serializeJson, writeJsonDocument in src/cli/json.ts\",\"runCli(argv, options): Promise<ExitCode>; main(argv): Promise<number>; ProgramOptions.runList/runStatus/runConfig injectables; runWithErrorHandlingAsync\"],\"tests\":[\"npm run typecheck: exit 0\",\"npm run lint: exit 0 (65 files)\",\"npm test -- tests/unit/json.test.ts: 21 passed\",\"focused interaction suite (json, read-commands, doctor, doctor-build, program, cli-entry, errors): 147 passed\",\"npm test: 589 passed across 23 files\",\"npm run build: exit 0\",\"node dist/cli/index.js version --json: one schemaVersion 1 document, exit 0\",\"temp EASY_HOST_HOME list/status --json: schemaVersion 1 with apps [], exit 0\",\"temp EASY_HOST_HOME config missing --json: schemaVersion 1 error envelope, exit 5\",\"node dist/cli/index.js doctor --json: one document, 8 checks, no ANSI, 1.12 s, exit 2 from real host prerequisites\"],\"warnings\":[\"Doctor exits 2 on this host because Railpack and BuildKit are absent; that is host state, not a JSON contract failure.\",\"logs, add, update, rollback, and remove remain registered placeholders; their wiring belongs to later lifecycle tasks.\",\"runCli and main are now asynchronous, a deliberate interface change required to await container inspection; synchronous callers must await them.\"],\"validationLimitations\":[\"No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.\",\"The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy.\"]}\n```\n",
+      "validationLimitations": [
+        "No real Podman container was exercised for the JSON suite; runtime inspection was faked while registry and state-cache files were real temporary files.",
+        "The manual doctor run reports this host's actual prerequisite results; no attempt was made to make the host healthy."
+      ],
+      "artifactId": "work-obs-1-1-001",
+      "inputArtifactIds": [
+        "work-add-1-5-001",
+        "work-pre-1-5-001",
+        "work-add-1-4-001",
+        "work-add-1-6-001"
+      ]
     },
     "OBS-1.2": {
       "taskId": "OBS-1.2",

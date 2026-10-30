@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { Command, CommanderError, type OptionValues } from "commander";
+import { type ConfigCommandOptions, runConfigCommand } from "./commands/config.js";
 import { type DoctorCommandOptions, runDoctorCommand } from "./commands/doctor.js";
+import { type ListCommandOptions, runListCommand } from "./commands/list.js";
 import { createNotImplementedHandler } from "./commands/not-implemented.js";
+import { runStatusCommand, type StatusCommandOptions } from "./commands/status.js";
 import {
   type ErrorRenderOptions,
   EXIT_CODES,
@@ -9,6 +12,7 @@ import {
   reportError,
   UsageError,
 } from "./errors.js";
+import { toVersionDocument, writeJsonDocument } from "./json.js";
 
 /**
  * The single executable name. Every help line, remediation, and JSON document
@@ -58,6 +62,14 @@ export interface ProgramOptions {
    * real host; production uses {@link runDoctorCommand}.
    */
   runDoctor?: (options: DoctorCommandOptions) => ExitCode;
+  /**
+   * Runs the read commands. The default handlers perform the real registry,
+   * state-cache, and Podman reads; tests and embedders can replace one handler
+   * without touching the others.
+   */
+  runList?: (options: ListCommandOptions) => ExitCode | Promise<ExitCode>;
+  runStatus?: (options: StatusCommandOptions) => ExitCode | Promise<ExitCode>;
+  runConfig?: (options: ConfigCommandOptions) => ExitCode | Promise<ExitCode>;
 }
 
 /**
@@ -73,14 +85,11 @@ const EXIT_STATE: unique symbol = Symbol("easy-host.exit-state");
 type ProgramWithExitState = Command & { [EXIT_STATE]?: ExitState };
 
 /**
- * The stable `version --json` document. Field names are additive-only under
- * `schemaVersion: 1` (`OBS-NF-02`).
+ * The stable `version --json` document shape is part of the shared contract in
+ * `src/cli/schemas.ts`; field names are additive-only under `schemaVersion: 1`
+ * (`OBS-NF-02`).
  */
-export interface VersionDocument {
-  schemaVersion: 1;
-  name: string;
-  version: string;
-}
+export type { VersionDocument } from "./schemas.js";
 
 interface PackageManifest {
   version?: unknown;
@@ -105,14 +114,17 @@ export function readPackageVersion(): string {
 
 /**
  * Creates the commander program with exactly ten subcommands, the documented
- * flags, and the global `--json` flag. `version` and `doctor` perform work
- * here; lifecycle and the remaining read commands throw a usage error until
- * later tasks wire them.
+ * flags, and the global `--json` flag. `version`, `doctor`, `list`, `status`,
+ * and `config` perform work here; the lifecycle commands and `logs` remain
+ * placeholders until later tasks wire them.
  */
 export function createProgram(options: ProgramOptions = {}): Command {
   const stdout = options.stdout ?? process.stdout;
   const stderr = options.stderr ?? process.stderr;
   const readVersion = options.readVersion ?? readPackageVersion;
+  const runList = options.runList ?? runListCommand;
+  const runStatus = options.runStatus ?? runStatusCommand;
+  const runConfig = options.runConfig ?? runConfigCommand;
 
   const program = new Command();
   const exitState: ExitState = { exitCode: EXIT_CODES.SUCCESS };
@@ -139,13 +151,13 @@ export function createProgram(options: ProgramOptions = {}): Command {
     .option("--json", "write one machine-readable JSON document to stdout");
 
   registerAdd(program);
-  registerList(program);
-  registerStatus(program);
+  registerList(program, exitState, runList, stdout, stderr, options.env);
+  registerStatus(program, exitState, runStatus, stdout, stderr, options.env);
   registerLogs(program);
   registerUpdate(program);
   registerRollback(program);
   registerRemove(program);
-  registerConfig(program);
+  registerConfig(program, exitState, runConfig, stdout, stderr, options.env);
   registerDoctor(program, exitState, options.runDoctor ?? runDoctorCommand, stdout, options.env);
   registerVersion(program, readVersion, stdout);
 
@@ -153,13 +165,17 @@ export function createProgram(options: ProgramOptions = {}): Command {
 }
 
 /**
- * Parses one invocation and returns the documented exit code. All expected
+ * Parses one invocation and resolves the documented exit code. All expected
  * failures are rendered through the shared error taxonomy; `--help` and a
- * successful command return 0.
+ * successful command return 0. Read commands are asynchronous, so callers
+ * await this function; the synchronous commands simply resolve immediately.
  *
  * `argv` contains user arguments only (no `node` executable or script path).
  */
-export function runCli(argv: readonly string[], options: ProgramOptions = {}): ExitCode {
+export async function runCli(
+  argv: readonly string[],
+  options: ProgramOptions = {},
+): Promise<ExitCode> {
   const stdout = options.stdout ?? process.stdout;
   const stderr = options.stderr ?? process.stderr;
   const program = createProgram(options);
@@ -177,7 +193,7 @@ export function runCli(argv: readonly string[], options: ProgramOptions = {}): E
       return EXIT_CODES.SUCCESS;
     }
 
-    program.parse([...argv], { from: "user" });
+    await program.parseAsync([...argv], { from: "user" });
     return (program as ProgramWithExitState)[EXIT_STATE]?.exitCode ?? EXIT_CODES.SUCCESS;
   } catch (error) {
     if (error instanceof CommanderError) {
@@ -212,21 +228,54 @@ function registerAdd(program: Command): void {
     .action(createNotImplementedHandler("add"));
 }
 
-function registerList(program: Command): void {
+function registerList(
+  program: Command,
+  exitState: ExitState,
+  runList: (options: ListCommandOptions) => ExitCode | Promise<ExitCode>,
+  stdout: OutputStream,
+  stderr: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("list")
     .description("List registered apps")
     .option("--json", "write one machine-readable JSON document to stdout")
-    .action(createNotImplementedHandler("list"));
+    .action(async (_options: OptionValues, command: Command) => {
+      const { json } = command.optsWithGlobals<{ json?: boolean }>();
+
+      exitState.exitCode = await runList({
+        json: json === true,
+        stdout,
+        stderr,
+        ...(env === undefined ? {} : { environment: env }),
+      });
+    });
 }
 
-function registerStatus(program: Command): void {
+function registerStatus(
+  program: Command,
+  exitState: ExitState,
+  runStatus: (options: StatusCommandOptions) => ExitCode | Promise<ExitCode>,
+  stdout: OutputStream,
+  stderr: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("status")
     .description("Show app status and drift")
     .argument("[app]", "app name (omit to show every app)")
     .option("--json", "write one machine-readable JSON document to stdout")
-    .action(createNotImplementedHandler("status"));
+    .action(async (app: string | undefined, _options: OptionValues, command: Command) => {
+      const { json } = command.optsWithGlobals<{ json?: boolean }>();
+
+      exitState.exitCode = await runStatus({
+        ...(app === undefined ? {} : { app }),
+        json: json === true,
+        stdout,
+        stderr,
+        ...(env === undefined ? {} : { environment: env }),
+      });
+    });
 }
 
 function registerLogs(program: Command): void {
@@ -266,7 +315,14 @@ function registerRemove(program: Command): void {
     .action(createNotImplementedHandler("remove"));
 }
 
-function registerConfig(program: Command): void {
+function registerConfig(
+  program: Command,
+  exitState: ExitState,
+  runConfig: (options: ConfigCommandOptions) => ExitCode | Promise<ExitCode>,
+  stdout: OutputStream,
+  stderr: OutputStream,
+  env: NodeJS.ProcessEnv | undefined,
+): void {
   program
     .command("config")
     .description("Show or edit an app's configuration")
@@ -274,7 +330,23 @@ function registerConfig(program: Command): void {
     .option("--path", "print the app's directory path")
     .option("--edit", "open the app's configuration in $EDITOR")
     .option("--json", "write one machine-readable JSON document to stdout")
-    .action(createNotImplementedHandler("config"));
+    .action(async (app: string, _options: OptionValues, command: Command) => {
+      const flags = command.optsWithGlobals<{
+        json?: boolean;
+        path?: boolean;
+        edit?: boolean;
+      }>();
+
+      exitState.exitCode = await runConfig({
+        app,
+        ...(flags.path === true ? { path: true } : {}),
+        ...(flags.edit === true ? { edit: true } : {}),
+        json: flags.json === true,
+        stdout,
+        stderr,
+        ...(env === undefined ? {} : { environment: env }),
+      });
+    });
 }
 
 function registerDoctor(
@@ -309,12 +381,7 @@ function registerVersion(program: Command, readVersion: () => string, stdout: Ou
       const version = readVersion();
 
       if (json === true) {
-        const document: VersionDocument = {
-          schemaVersion: 1,
-          name: PROGRAM_NAME,
-          version,
-        };
-        stdout.write(`${JSON.stringify(document, null, 2)}\n`);
+        writeJsonDocument(stdout, toVersionDocument(version));
         return;
       }
 

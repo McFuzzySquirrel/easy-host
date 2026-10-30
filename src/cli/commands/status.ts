@@ -17,9 +17,10 @@
 import type { AppSpec } from "../../config/schema.js";
 import type { OkAppEntry } from "../../registry/store.js";
 import { EXIT_CODES, type ExitCode, reportError } from "../errors.js";
+import { toStatusDocument, writeJsonDocument } from "../json.js";
+import type { StatusAppDocument, StatusDocument } from "../schemas.js";
 import {
   type AppRow,
-  type AppStatusLabel,
   collectAppRows,
   containerName,
   formatField,
@@ -32,7 +33,6 @@ import {
   type ReadOutputStream,
   type ReadRegistry,
   readAppState,
-  redactedSpec,
   resolveReadDependencies,
   shortContainerId,
   sourceDescription,
@@ -40,6 +40,9 @@ import {
   statusLabel,
   volumesDescription,
 } from "./read-model.js";
+
+export type { StatusAppDocument, StatusDocument };
+export { toStatusDocument };
 
 /** Options accepted by {@link runStatusCommand}. */
 export interface StatusCommandOptions extends ReadDependencyOverrides {
@@ -51,44 +54,6 @@ export interface StatusCommandOptions extends ReadDependencyOverrides {
   readonly stdout?: ReadOutputStream;
   /** Destination for human errors. Defaults to stderr. */
   readonly stderr?: ReadOutputStream;
-}
-
-/** The stable per-app detail object in `status --json`. */
-export interface StatusAppDocument {
-  readonly name: string;
-  readonly status: AppStatusLabel;
-  readonly configPath: string;
-  readonly directory: string;
-  readonly spec: Record<string, unknown> | null;
-  readonly source:
-    | { readonly kind: "git"; readonly repo: string | null; readonly ref: string }
-    | { readonly kind: "local"; readonly path: string; readonly devOnly: true }
-    | null;
-  readonly images: { readonly current: string | null; readonly previous: string | null };
-  readonly container: {
-    readonly name: string;
-    readonly state: string;
-    readonly running: boolean;
-    readonly id: string;
-    readonly image: string;
-    readonly restartPolicy: string | null;
-    readonly startedAt: string | null;
-    readonly ports: readonly string[];
-    readonly volumes: readonly string[];
-  } | null;
-  readonly health: {
-    readonly status: "healthy" | "unhealthy" | "unknown";
-    readonly checkedAt: string | null;
-    readonly detail: string | null;
-  };
-  readonly updatedAt: string | null;
-  readonly error: { readonly code: string; readonly summary: string } | null;
-}
-
-/** The stable `status --json` document (`schemaVersion: 1`). */
-export interface StatusDocument {
-  readonly schemaVersion: 1;
-  readonly apps: readonly StatusAppDocument[];
 }
 
 /**
@@ -108,11 +73,11 @@ export async function runStatusCommand(options: StatusCommandOptions = {}): Prom
         ? await collectAppRows(dependencies.registry.list(), dependencies)
         : [await collectNamedAppRow(options.app, dependencies.registry, dependencies)];
 
-    stdout.write(
-      options.json === true
-        ? `${JSON.stringify(toStatusDocument(rows), null, 2)}\n`
-        : formatStatusReport(rows),
-    );
+    if (options.json === true) {
+      writeJsonDocument(stdout, toStatusDocument(rows));
+    } else {
+      stdout.write(formatStatusReport(rows));
+    }
 
     if (options.app !== undefined) {
       const row = rows[0];
@@ -244,64 +209,4 @@ function formatHealth(row: AppRow): string[] {
     ...formatField("checked", formatTimestamp(health?.checkedAt)),
     ...formatField("detail", health?.detail ?? "no health result recorded"),
   ];
-}
-
-/**
- * Projects rows into the stable JSON document. Broken apps keep their error
- * object and null detail fields, so consumers can rely on every field being
- * present.
- */
-export function toStatusDocument(rows: readonly AppRow[]): StatusDocument {
-  return {
-    schemaVersion: 1,
-    apps: rows.map(toStatusAppDocument),
-  };
-}
-
-function toStatusAppDocument(row: AppRow): StatusAppDocument {
-  const spec = row.spec;
-  const state = row.state;
-  const container = row.container;
-
-  return {
-    name: row.name,
-    status: row.status,
-    configPath: row.entry.configPath,
-    directory: row.entry.directory,
-    spec: spec === undefined ? null : redactedSpec(spec),
-    source:
-      spec === undefined
-        ? null
-        : spec.local_path !== undefined
-          ? { kind: "local", path: spec.local_path, devOnly: true }
-          : { kind: "git", repo: spec.repo ?? null, ref: spec.ref },
-    images: {
-      current: state?.images.current ?? null,
-      previous: state?.images.previous ?? null,
-    },
-    container:
-      container === undefined
-        ? null
-        : {
-            name: container.name,
-            state: container.state.status,
-            running: container.state.running,
-            id: container.id,
-            image: container.image,
-            restartPolicy: container.restartPolicy ?? null,
-            startedAt: container.state.startedAt ?? null,
-            ports: container.ports.map((binding) => {
-              const host = binding.hostIp.length === 0 ? "0.0.0.0" : binding.hostIp;
-              return `${host}:${binding.hostPort}->${binding.containerPort}/${binding.protocol}`;
-            }),
-            volumes: container.volumes.map((mount) => `${mount.name}:${mount.destination}`),
-          },
-    health: {
-      status: state?.health.status ?? "unknown",
-      checkedAt: state?.health.checkedAt ?? null,
-      detail: state?.health.detail ?? null,
-    },
-    updatedAt: state?.updatedAt ?? null,
-    error: row.error === undefined ? null : { code: row.error.code, summary: row.error.message },
-  };
 }

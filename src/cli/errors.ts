@@ -331,6 +331,22 @@ export function runWithErrorHandling(
 }
 
 /**
+ * The asynchronous counterpart of {@link runWithErrorHandling}. It is used by
+ * the CLI entry point because the read commands inspect containers before they
+ * can report a result.
+ */
+export async function runWithErrorHandlingAsync(
+  action: () => number | Promise<number>,
+  options: ErrorRenderOptions = {},
+): Promise<number> {
+  try {
+    return await action();
+  } catch (error) {
+    return reportError(error, options);
+  }
+}
+
+/**
  * Redacts credential userinfo embedded in URLs and strips ANSI control
  * sequences so diagnostics stay plain text in every mode:
  * `https://user:password@host` becomes `https://[redacted]@host`.

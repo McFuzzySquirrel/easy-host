@@ -2,18 +2,21 @@
 
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { runWithErrorHandling } from "./errors.js";
+import { runWithErrorHandlingAsync } from "./errors.js";
 import { readPackageVersion, runCli } from "./program.js";
 
 export { readPackageVersion };
 
 /**
- * Runs one CLI invocation from the user-supplied arguments and returns the
+ * Runs one CLI invocation from the user-supplied arguments and resolves the
  * documented exit code. Argument parsing, command dispatch, and error rendering
  * live in `program.ts`; this entry point only guards against bugs outside that
  * boundary.
+ *
+ * The read commands perform bounded asynchronous work (a container inspect),
+ * so the entry point is asynchronous by contract.
  */
-export function main(argv: readonly string[] = process.argv.slice(2)): number {
+export function main(argv: readonly string[] = process.argv.slice(2)): Promise<number> {
   return runCli(argv);
 }
 
@@ -36,7 +39,9 @@ function isDirectExecution(): boolean {
 }
 
 if (isDirectExecution()) {
-  process.exitCode = runWithErrorHandling(main, {
+  void runWithErrorHandlingAsync(main, {
     json: process.argv.includes("--json"),
+  }).then((code) => {
+    process.exitCode = code;
   });
 }

@@ -28,15 +28,19 @@ import {
   reportError,
   UsageError,
 } from "../errors.js";
+import { toConfigDocument, writeJsonDocument } from "../json.js";
+import type { ConfigDocument } from "../schemas.js";
 import {
   formatField,
   probeDescription,
   type ReadDependencyOverrides,
   type ReadOutputStream,
-  redactedSpec,
   resolveReadDependencies,
   sourceDescription,
 } from "./read-model.js";
+
+export type { ConfigDocument };
+export { toConfigDocument };
 
 /** One resolved editor command line. */
 export interface EditorInvocation {
@@ -67,15 +71,6 @@ export interface ConfigCommandOptions extends ReadDependencyOverrides {
   readonly editorRunner?: EditorRunner;
   /** Existence probe, injectable for tests. Defaults to `existsSync`. */
   readonly pathExists?: (target: string) => boolean;
-}
-
-/** The stable `config --json` document (`schemaVersion: 1`). */
-export interface ConfigDocument {
-  readonly schemaVersion: 1;
-  readonly app: string;
-  readonly path: string;
-  readonly valid: true;
-  readonly config: Record<string, unknown>;
 }
 
 type ConfigMode = "path" | "edit" | "json" | "validate";
@@ -126,11 +121,11 @@ export async function runConfigCommand(options: ConfigCommandOptions): Promise<E
     // The registry reads the file; it never writes it.
     const spec = dependencies.registry.readConfig(record.name);
 
-    stdout.write(
-      mode === "json"
-        ? `${JSON.stringify(toConfigDocument(record, spec), null, 2)}\n`
-        : formatConfigReport(record, spec),
-    );
+    if (mode === "json") {
+      writeJsonDocument(stdout, toConfigDocument(record, spec));
+    } else {
+      stdout.write(formatConfigReport(record, spec));
+    }
 
     return EXIT_CODES.SUCCESS;
   } catch (error) {
@@ -357,15 +352,4 @@ export function formatConfigReport(record: AppRecord, spec: AppSpec): string {
   }
 
   return `${lines.join("\n")}\n`;
-}
-
-/** Builds the `config --json` document with every `[env]` value redacted. */
-export function toConfigDocument(record: AppRecord, spec: AppSpec): ConfigDocument {
-  return {
-    schemaVersion: 1,
-    app: record.name,
-    path: record.configPath,
-    valid: true,
-    config: redactedSpec(spec),
-  };
 }

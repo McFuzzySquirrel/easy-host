@@ -30,13 +30,10 @@ import {
 } from "../../platform/podman.js";
 import { type AppState, StateStore } from "../../registry/state.js";
 import { type AppListEntry, type AppRecord, Registry } from "../../registry/store.js";
-import {
-  type EasyHostError,
-  EXIT_CODES,
-  type ExitCode,
-  NotFoundError,
-  REDACTED,
-} from "../errors.js";
+import { type EasyHostError, EXIT_CODES, type ExitCode, NotFoundError } from "../errors.js";
+import type { AppStatusLabel } from "../schemas.js";
+
+export type { AppStatusLabel };
 
 /** A writable stream, narrowed so tests can inject a recorder. */
 export interface ReadOutputStream {
@@ -83,9 +80,6 @@ export interface ReadDependencies {
   readonly stateStore: (appDir: string) => StateStore;
   readonly clock: () => Date;
 }
-
-/** A text status derived from the cached health and the live container. */
-export type AppStatusLabel = "healthy" | "unhealthy" | "stopped" | "missing" | "unknown" | "broken";
 
 /** One app's read-only snapshot. */
 export interface AppRow {
@@ -337,20 +331,6 @@ export function volumesDescription(
   return declared
     .map((volume) => `${volumeName(app, volume)}:${spec.volumes[volume] ?? ""} (declared)`)
     .join(", ");
-}
-
-/**
- * A JSON-safe spec projection with every `[env]` value replaced by the stable
- * redaction marker. Variable names remain visible; values never do
- * (`PRD-NF-10`).
- */
-export function redactedSpec(spec: AppSpec): Record<string, unknown> {
-  const env: Record<string, string> = {};
-  for (const name of Object.keys(spec.env)) {
-    env[name] = REDACTED;
-  }
-
-  return { ...spec, env };
 }
 
 /** The fixed label column used by `status` and `config` output. */
