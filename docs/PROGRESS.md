@@ -4,7 +4,7 @@
 **Phase**: ROLLBACK-AND-REMOVE-2
 **Status**: In Progress
 **Validation Gaps**: 36 unverified check(s) - see "Validation Gaps"
-**Last Updated**: 2026-10-30T08:32:54.000Z
+**Last Updated**: 2026-10-30T19:31:27.452Z
 **Run ID**: 8f1b4440-8f77-47c1-944a-481e1b74296e
 **Harness**: opencode
 **Execution Mode**: auto
@@ -74,6 +74,8 @@
   - Files: tests/integration/rollback.test.ts
 - [x] Phase ROLLBACK-AND-REMOVE-2, Task RBK-1.5: Prove removal leaves no orphans but keeps data (@qa-engineer)
   - Files: tests/integration/remove.test.ts, package.json, src/platform/podman.ts, tests/unit/podman.test.ts
+- [x] Phase ROLLBACK-AND-REMOVE-2, Task RBK-1.6: Run the v0.1.0 release gate
+  - Files: docs/reviews/v1-success-scenarios.json
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.1: Freeze the JSON output contract (@cli-engineer)
   - Files: src/cli/json.ts, src/cli/schemas.ts, tests/unit/json.test.ts, src/cli/commands/config.ts, src/cli/commands/list.ts, src/cli/commands/not-implemented.ts, src/cli/commands/read-model.ts, src/cli/commands/status.ts, src/cli/errors.ts, src/cli/index.ts, src/cli/program.ts, src/doctor/index.ts, tests/unit/cli-entry.test.ts, tests/unit/program.test.ts
 - [x] Phase OBSERVABILITY-AND-OUTPUT-1, Task OBS-1.2: Make human output TTY-aware and accessible (@cli-engineer)
@@ -87,7 +89,6 @@
 - None currently running
 
 ## Remaining
-- [ ] Phase ROLLBACK-AND-REMOVE-2: Phase 2: Proof and Release Gate
 - [ ] Phase DOCS-AND-PACKAGING-1: Phase 1: Install and Generate
 - [ ] Phase DOCS-AND-PACKAGING-2: Phase 2: Operator Documentation
 
