@@ -44,6 +44,7 @@ const DOCUMENTED_MARKDOWN = [
   "README.md",
   "docs/operations/prerequisites.md",
   "docs/operations/systemd-timer.md",
+  "docs/operations/tailscale.md",
   "docs/reference/cli.md",
   "docs/reference/config.md",
   "docs/MIGRATION.md",
@@ -55,6 +56,8 @@ const PREREQUISITES_PATH = join(REPO_ROOT, "docs/operations/prerequisites.md");
 const PREREQUISITES = readFileSync(PREREQUISITES_PATH, "utf8");
 const TIMER_PATH = join(REPO_ROOT, "docs/operations/systemd-timer.md");
 const TIMER = readFileSync(TIMER_PATH, "utf8");
+const TAILSCALE_PATH = join(REPO_ROOT, "docs/operations/tailscale.md");
+const TAILSCALE = readFileSync(TAILSCALE_PATH, "utf8");
 
 /**
  * Headings the README must carry. Exact text keeps the check honest: renaming a
@@ -104,6 +107,22 @@ const TIMER_HEADINGS = [
   "## What each exit code means for the timer",
   "## Disable or remove the schedule",
   "## What this timer is not",
+] as const;
+
+/** Headings the Tailscale guide must keep. */
+const TAILSCALE_HEADINGS = [
+  "# Reaching an app from outside the LAN with Tailscale",
+  "## Two supported layouts",
+  "## Before you start",
+  "## Publish one app with TLS (recommended)",
+  "## Several apps on one host",
+  "## The `0.0.0.0` shortcut",
+  "## Exposing to the public internet",
+  "## Access control",
+  "## Reboot and persistence",
+  "## Troubleshooting",
+  "## What this guide is not",
+  "## Tailscale documentation",
 ] as const;
 
 /** The ten checks `runDoctor` reports, in report order. */
@@ -616,10 +635,33 @@ describe("operations guides", () => {
     );
   });
 
+  it("keeps the Tailscale guide's sections and its loopback layout", () => {
+    const headings = markdownHeadings(TAILSCALE);
+
+    for (const heading of TAILSCALE_HEADINGS) {
+      expect(headings, `missing heading: ${heading}`).toContain(heading);
+    }
+
+    for (const literal of [
+      'bind = "127.0.0.1"',
+      "tailscale serve --bg --https=443 http://127.0.0.1:8080",
+      "tailscale funnel --bg --https=443 http://127.0.0.1:8080",
+      "tailscale serve status",
+      "https://tailscale.com/docs/reference/tailscale-cli/serve",
+      "https://tailscale.com/docs/features/tailscale-funnel",
+    ]) {
+      expect(TAILSCALE, `missing Tailscale literal: ${literal}`).toContain(literal);
+    }
+
+    expect(TAILSCALE.toLowerCase()).toContain("not supported");
+    expect(TAILSCALE.toLowerCase()).toContain("does not run tailscale inside the app container");
+  });
+
   it("only names registered commands and no forbidden command", () => {
     for (const [filePath, markdown] of [
       [PREREQUISITES_PATH, PREREQUISITES],
       [TIMER_PATH, TIMER],
+      [TAILSCALE_PATH, TAILSCALE],
     ] as const) {
       const invoked = commandInvocations(markdown);
       const source = relative(REPO_ROOT, filePath);
@@ -639,8 +681,8 @@ describe("operations guides", () => {
     }
   });
 
-  it("uses plain markdown for both guides", () => {
-    for (const markdown of [PREREQUISITES, TIMER]) {
+  it("uses plain markdown for every guide", () => {
+    for (const markdown of [PREREQUISITES, TIMER, TAILSCALE]) {
       expect(markdown).not.toMatch(/!\[[^\]]*\]\([^)]*\)/);
       expect(markdown).not.toMatch(/<img\b/i);
       expect(markdown).not.toMatch(/<script\b/i);
@@ -655,6 +697,7 @@ describe("operations guides", () => {
     for (const target of [
       "docs/operations/prerequisites.md",
       "docs/operations/systemd-timer.md",
+      "docs/operations/tailscale.md",
       "docs/reference/cli.md",
       "docs/reference/config.md",
     ]) {

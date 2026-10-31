@@ -91,7 +91,7 @@ easy-host update blog
 
 `doctor` fails before the first `add` if the host is not ready. `add` clones the repository at the configured ref, builds the image, creates the container on `0.0.0.0:8080` by default, and waits for the readiness probe. The success summary prints the URL, image, previous image, and health result. `status` reports the container state, drift, port, and image; `logs` is a `podman logs` passthrough; `update` fetches the ref, rebuilds only when needed, and health-gates the swap.
 
-The app is reachable from another machine on the LAN at `http://<host-lan-address>:8080/`. easy-host publishes the port on the LAN; it does not terminate TLS or act as a reverse proxy, so internet exposure and HTTPS are the operator's responsibility.
+The app is reachable from another machine on the LAN at `http://<host-lan-address>:8080/`. easy-host publishes the port on the LAN; it does not terminate TLS or act as a reverse proxy, so internet exposure and HTTPS are the operator's responsibility. The [Tailscale guide](docs/operations/tailscale.md) walks through the recommended loopback layout, where the host terminates TLS and the app is reachable only on your tailnet — or on the public internet through Funnel.
 
 easy-host ships no scheduler. To repeat `update` on a schedule, write a systemd user timer that calls it; the [scheduled updates guide](docs/operations/systemd-timer.md) has complete unit files, enable commands, log location, and the lock behavior when runs overlap.
 
@@ -150,6 +150,7 @@ podman volume rm easy-host-blog-blog-data
 | [Configuration reference](docs/reference/config.md) | Every `config.toml` key, type, default, validation rule, volume, and env precedence |
 | [Host prerequisites and upgrade](docs/operations/prerequisites.md) | Podman support window, the 4.9 upgrade, lingering, git, Node, ports |
 | [Scheduled updates with a systemd timer](docs/operations/systemd-timer.md) | User units that call `update`, enable commands, logs, and lock behavior |
+| [Reaching an app outside the LAN with Tailscale](docs/operations/tailscale.md) | Loopback bind, `tailscale serve` and `funnel`, ACLs, and troubleshooting |
 | [v0.1.0 release-gate record](docs/operations/release-gate-v0.1.0.md) | Verified host, commands, and observed results |
 | [Architecture](docs/ARCHITECTURE.md) | Module map, on-disk state, build layer, lifecycle, exit codes |
 | [Support](docs/SUPPORT.md) | Who owns what, intake, and the release checklist |
