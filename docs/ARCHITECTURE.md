@@ -3,7 +3,8 @@
 easy-host is a small CLI that hosts git repositories as rootless Podman services
 on one machine. This document describes the modules as they exist in `src/` and
 the contracts that hold them together. It is the maintainer's map, not a
-specification of future work.
+specification of future work. The durable decisions behind these boundaries are
+recorded in the [ADR index](adr/README.md).
 
 ## Command surface
 

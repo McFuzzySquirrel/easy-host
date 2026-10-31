@@ -42,11 +42,24 @@ const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 /** Every markdown file this suite owns. DOC-1.5 and DOC-1.6 extend this. */
 const DOCUMENTED_MARKDOWN = [
   "README.md",
+  "CHANGELOG.md",
+  "docs/user-guide.md",
+  "docs/admin-guide.md",
   "docs/operations/prerequisites.md",
   "docs/operations/systemd-timer.md",
   "docs/operations/tailscale.md",
   "docs/reference/cli.md",
   "docs/reference/config.md",
+  "docs/adr/README.md",
+  "docs/adr/0001-rootless-podman-runtime.md",
+  "docs/adr/0002-filesystem-registry-derived-state.md",
+  "docs/adr/0003-pinned-railpack-buildkit-build-layer.md",
+  "docs/adr/0004-fixed-port-health-gated-swap.md",
+  "docs/adr/0005-two-image-retention.md",
+  "docs/adr/0006-label-scoped-volume-deletion.md",
+  "docs/adr/0007-ten-command-surface.md",
+  "docs/adr/0008-exit-codes-and-json-contract.md",
+  "docs/releases/v0.1.0.md",
   "docs/MIGRATION.md",
 ] as const;
 
