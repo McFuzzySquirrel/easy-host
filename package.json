@@ -2,6 +2,7 @@
   "name": "easy-host",
   "version": "0.1.0",
   "description": "Self-host apps on a rootless Podman host with a small, predictable CLI.",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "engines": {
@@ -14,9 +15,17 @@
     "dist",
     "completions",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
+    "docs/ARCHITECTURE.md",
+    "docs/SUPPORT.md",
+    "docs/MIGRATION.md",
+    "docs/user-guide.md",
+    "docs/admin-guide.md",
+    "docs/adr",
     "docs/operations",
-    "docs/reference"
+    "docs/reference",
+    "docs/releases"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
